@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OwnerType {
+  SINGLE
+  MULTIPLE
+}
+
+model Company {
+  id               String              @id @default(cuid())
+  name             String
+  ownerType        OwnerType           @default(SINGLE) @map("owner_type")
+  registrationDate DateTime?           @map("registration_date")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  owners           CompanyOwner[]
+  witnesses        CompanyWitness[]
+  objectives       CompanyObjective[]
+  documents        GeneratedDocument[]
+
+  @@map("companies")
+}
+
+model CompanyOwner {
+  id              String   @id @default(cuid())
+  companyId       String   @map("company_id")
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name            String
+  address         String?
+  sharePercentage Float?   @map("share_percentage")
+  order           Int      @default(0)
+
+  @@map("company_owners")
+}
+
+model CompanyWitness {
+  id        String   @id @default(cuid())
+  companyId String   @map("company_id")
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+  address   String?
+  order     Int      @default(0)
+
+  @@map("company_witnesses")
+}
+
+model Objective {
+  id        String   @id @default(cuid())
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("objectives")
+}
+
+model CompanyObjective {
+  id                String   @id @default(cuid())
+  companyId         String   @map("company_id")
+  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sourceObjectiveId String?  @map("source_objective_id")
+  text              String
+  order             Int      @default(0)
+
+  @@map("company_objectives")
+}
+
+model Variable {
+  id    String @id @default(cuid())
+  key   String @unique
+  label String
+  type  String @default("text") // text | date | number | list
+
+  @@map("variables")
+}
+
+model Template {
+  id        String   @id @default(cuid())
+  name      String
+  fileUrl   String   @map("file_url")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  documents GeneratedDocument[]
+
+  @@map("templates")
+}
+
+model GeneratedDocument {
+  id          String   @id @default(cuid())
+  templateId  String   @map("template_id")
+  template    Template @relation(fields: [templateId], references: [id])
+  companyId   String   @map("company_id")
+  company     Company  @relation(fields: [companyId], references: [id])
+  docxUrl     String   @map("docx_url")
+  pdfUrl      String?  @map("pdf_url")
+  generatedAt DateTime @default(now()) @map("generated_at")
+
+  @@map("generated_documents")
+}
