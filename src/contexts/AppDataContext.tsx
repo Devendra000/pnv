@@ -22,6 +22,7 @@ interface AppDataContextType {
   getCompany: (id: string) => Company | undefined;
   addCompany: (company: Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'documentCount'>) => Promise<void>;
   updateCompany: (id: string, updates: Partial<Company>) => Promise<void>;
+  saveCompanyVariableValues: (companyId: string, values: Array<{ variableId: string; value: string }>) => Promise<unknown>;
   deleteCompany: (id: string) => Promise<void>;
   addObjective: (objective: Omit<CompanyObjectiveTemplate, 'id' | 'createdAt'>) => Promise<void>;
   updateObjective: (id: string, updates: Partial<CompanyObjectiveTemplate>) => Promise<void>;
@@ -32,7 +33,7 @@ interface AppDataContextType {
   addTemplate: (template: { name: string; file: File }) => Promise<void>;
   updateTemplate: (id: string, updates: { name: string; file?: File | null }) => Promise<void>;
   deleteTemplate: (id: string) => Promise<void>;
-  addDocument: (document: Omit<Document, 'id' | 'generatedAt' | 'docxUrl'>) => Promise<void>;
+  addDocument: (document: Omit<Document, 'id' | 'generatedAt' | 'docxUrl'> & { variables: Record<string, string> }) => Promise<void>;
   deleteDocument: (id: string) => Promise<void>;
 }
 

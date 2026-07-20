@@ -1,5 +1,7 @@
 'use server';
 
+import Docxtemplater from 'docxtemplater';
+import PizZip from 'pizzip';
 import { prisma } from './prisma';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -47,11 +49,76 @@ function mapCompanyVariableValues(values: unknown): UICompanyVariableValue[] {
   }));
 }
 
+function resolvePublicFilePath(relativeUrl: string) {
+  return path.join(process.cwd(), 'public', relativeUrl.replace(/^\/+/, ''));
+}
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function replaceDocxVariables(zip: PizZip, variables: Record<string, string>) {
+  const xmlParts = [
+    'word/document.xml',
+    'word/header1.xml',
+    'word/header2.xml',
+    'word/header3.xml',
+    'word/footer1.xml',
+    'word/footer2.xml',
+    'word/footer3.xml',
+    'word/comments.xml',
+    'word/footnotes.xml',
+    'word/endnotes.xml',
+  ];
+
+  const replacements = Object.entries(createReplacementMap(variables)).map(([key, value]) => ({
+    pattern: new RegExp(`\\{\\{\\s*${escapeRegExp(key)}\\s*\\}\\}`, 'g'),
+    value: escapeXml(value),
+  }));
+
+  for (const fileName of xmlParts) {
+    const file = zip.file(fileName);
+    if (!file) continue;
+
+    let xml = file.asText();
+    for (const replacement of replacements) {
+      xml = xml.replace(replacement.pattern, replacement.value);
+    }
+    zip.file(fileName, xml);
+  }
+
+  return Buffer.from(
+    zip.generate({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+    })
+  );
+}
+
+type CompanyVariableValueInput = {
+  variableId: string;
+  value: string;
+};
+
 // Helper to read content from disk
 async function readFileContent(relativeUrl: string): Promise<string> {
   if (!relativeUrl) return '';
   try {
-    const filePath = path.join(process.cwd(), 'public', relativeUrl);
+    const filePath = resolvePublicFilePath(relativeUrl);
+    if (relativeUrl.toLowerCase().endsWith('.docx')) {
+      const fileBuffer = await fs.readFile(filePath);
+      return extractDocxTemplateData(fileBuffer, []).content;
+    }
+
     return await fs.readFile(filePath, 'utf8');
   } catch (error) {
     console.error(`Error reading file at ${relativeUrl}:`, error);
@@ -62,12 +129,84 @@ async function readFileContent(relativeUrl: string): Promise<string> {
 async function readTemplateFile(relativeUrl: string): Promise<Buffer> {
   if (!relativeUrl) return Buffer.from('');
   try {
-    const filePath = path.join(process.cwd(), 'public', relativeUrl);
+    const filePath = resolvePublicFilePath(relativeUrl);
     return await fs.readFile(filePath);
   } catch (error) {
     console.error(`Error reading file at ${relativeUrl}:`, error);
     return Buffer.from('');
   }
+}
+
+function createReplacementMap(variables: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries(variables).map(([key, value]) => [key, value ?? ''])
+  );
+}
+
+async function renderDocxTemplate(templateId: string, variables: Record<string, string>) {
+  const templatePath = path.join(process.cwd(), 'public', 'uploads', 'templates', `${templateId}.docx`);
+  const templateBuffer = await fs.readFile(templatePath);
+  const zip = new PizZip(templateBuffer);
+
+  try {
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+      delimiters: {
+        start: '{{',
+        end: '}}',
+      },
+    });
+
+    doc.setData(createReplacementMap(variables));
+    doc.render();
+
+    return Buffer.from(
+      doc.getZip().generate({
+        type: 'nodebuffer',
+        compression: 'DEFLATE',
+      })
+    );
+  } catch (error) {
+    console.error('Docxtemplater render failed, falling back to raw XML replacement:', error);
+    return replaceDocxVariables(new PizZip(templateBuffer), variables);
+  }
+}
+
+export async function saveCompanyVariableValuesAction(
+  companyId: string,
+  values: CompanyVariableValueInput[]
+): Promise<UICompanyVariableValue[]> {
+  const normalizedValues = values.filter((entry) => entry.value.trim() !== '');
+
+  await prisma.$transaction(
+    normalizedValues.map((entry) =>
+      prisma.companyVariableValue.upsert({
+        where: {
+          companyId_variableId: {
+            companyId,
+            variableId: entry.variableId,
+          },
+        },
+        update: {
+          value: entry.value,
+        },
+        create: {
+          companyId,
+          variableId: entry.variableId,
+          value: entry.value,
+        },
+      })
+    )
+  );
+
+  const updatedValues = await prisma.companyVariableValue.findMany({
+    where: { companyId },
+    include: { variable: true },
+    orderBy: { variable: { key: 'asc' } },
+  });
+
+  return mapCompanyVariableValues(updatedValues);
 }
 
 async function extractTemplateData(relativeUrl: string, variables: UIVariable[]) {
@@ -391,7 +530,7 @@ export async function deleteCompanyAction(id: string): Promise<void> {
   const docs = await prisma.generatedDocument.findMany({ where: { companyId: id } });
   for (const doc of docs) {
     try {
-      const filePath = path.join(process.cwd(), 'public', doc.docxUrl);
+      const filePath = resolvePublicFilePath(doc.docxUrl);
       await fs.unlink(filePath);
     } catch (e) {
       console.error('Failed to delete file:', e);
@@ -550,7 +689,7 @@ export async function deleteTemplateAction(id: string): Promise<void> {
   const t = await prisma.template.findUnique({ where: { id } });
   if (t) {
     try {
-      const filePath = path.join(process.cwd(), 'public', t.fileUrl);
+      const filePath = resolvePublicFilePath(t.fileUrl);
       await fs.unlink(filePath);
     } catch (e) {
       console.error('Failed to delete file:', e);
@@ -560,7 +699,7 @@ export async function deleteTemplateAction(id: string): Promise<void> {
   const docs = await prisma.generatedDocument.findMany({ where: { templateId: id } });
   for (const doc of docs) {
     try {
-      const filePath = path.join(process.cwd(), 'public', doc.docxUrl);
+      const filePath = resolvePublicFilePath(doc.docxUrl);
       await fs.unlink(filePath);
     } catch (e) {
       console.error('Failed to delete generated doc file:', e);
@@ -575,6 +714,7 @@ export async function createDocumentAction(data: {
   companyId: string;
   templateId: string;
   content: string;
+  variables: Record<string, string>;
 }): Promise<Document> {
   const d = await prisma.generatedDocument.create({
     data: {
@@ -588,10 +728,11 @@ export async function createDocumentAction(data: {
     },
   });
 
-  const docxUrl = `/uploads/generated/${d.id}.txt`;
-  const filePath = path.join(process.cwd(), 'public', 'uploads', 'generated', `${d.id}.txt`);
+  const docxUrl = `/uploads/generated/${d.id}.docx`;
+  const filePath = path.join(process.cwd(), 'public', 'uploads', 'generated', `${d.id}.docx`);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, data.content, 'utf8');
+  const docxBuffer = await renderDocxTemplate(data.templateId, data.variables);
+  await fs.writeFile(filePath, docxBuffer);
 
   await prisma.generatedDocument.update({
     where: { id: d.id },
@@ -614,7 +755,7 @@ export async function deleteDocumentAction(id: string): Promise<void> {
   const d = await prisma.generatedDocument.findUnique({ where: { id } });
   if (d) {
     try {
-      const filePath = path.join(process.cwd(), 'public', d.docxUrl);
+      const filePath = resolvePublicFilePath(d.docxUrl);
       await fs.unlink(filePath);
     } catch (e) {
       console.error('Failed to delete generated doc file:', e);

@@ -98,6 +98,7 @@ export default function TemplatesPage() {
 
   const visiblePreview = filePreview || editingTemplate;
   const visibleMatchedVariables = visiblePreview?.matchedVariables || [];
+  const visibleDetectedKeys = visiblePreview?.detectedKeys || [];
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-background">
@@ -185,26 +186,30 @@ export default function TemplatesPage() {
 
               <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <h4 className="text-sm font-semibold text-foreground">Matched Variables</h4>
+                  <h4 className="text-sm font-semibold text-foreground">Detected Variables</h4>
                   <span className="text-xs text-slate-500">
-                    {visibleMatchedVariables.length} found
+                    {visibleDetectedKeys.length} found
                   </span>
                 </div>
-                {visibleMatchedVariables.length > 0 ? (
+                {visibleDetectedKeys.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {visibleMatchedVariables.map((variable) => (
+                    {visibleDetectedKeys.map((key) => {
+                      const matchedVariable = visibleMatchedVariables.find((variable) => variable.key === key);
+
+                      return (
                       <span
-                        key={variable.id}
+                        key={key}
                         className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs text-blue-700 dark:text-blue-300"
                       >
-                        <span className="font-mono">{'{{'}{variable.key}{'}}'}</span>
-                        <span>{variable.label}</span>
+                        <span className="font-mono">{'{{'}{key}{'}}'}</span>
+                        <span>{matchedVariable?.label || 'Custom variable'}</span>
                       </span>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-sm text-slate-500">
-                    No variables from your variables table were found yet.
+                    No variables were detected in this DOCX.
                   </p>
                 )}
               </div>

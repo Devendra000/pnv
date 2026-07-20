@@ -65,7 +65,7 @@ export default function DocumentsPage() {
                     <div className="flex items-center gap-2">
                       <a
                         href={doc.docxUrl}
-                        download={`${doc.templateName}-${doc.companyName}.txt`}
+                        download={`${doc.templateName}-${doc.companyName}.docx`}
                         onClick={(e) => e.stopPropagation()}
                         className="no-underline"
                       >

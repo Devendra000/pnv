@@ -1,102 +1,199 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppDataContext } from '@/contexts/AppDataContext';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildInitialVariableDrafts(
+  company: { variableValues: Array<{ variableId: string; value: string }> } | undefined,
+  template:
+    | {
+        matchedVariables?: Array<{ id: string; key: string }>;
+        detectedKeys?: string[];
+      }
+    | undefined
+) {
+  if (!company || !template) {
+    return {} as Record<string, string>;
+  }
+
+  const savedValues = new Map(company.variableValues.map((entry) => [entry.variableId, entry.value]));
+
+  return Object.fromEntries(
+    (template.matchedVariables || []).map((variable) => [variable.id, savedValues.get(variable.id) || ''])
+  ) as Record<string, string>;
+}
+
+type TemplateVariableItem = {
+  key: string;
+  label: string;
+  source: 'database' | 'detected';
+  id?: string;
+};
 
 export default function GenerateDocumentPage() {
   const router = useRouter();
-  const { companies, templates, loading, addDocument } = useAppDataContext();
+  const { companies, templates, loading, addDocument, saveCompanyVariableValues } = useAppDataContext();
 
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
-  const [generatedContent, setGeneratedContent] = useState('');
+  const [variableDrafts, setVariableDrafts] = useState<Record<string, string>>({});
+
+  const selectedCompanyRecord = companies.find((company) => company.id === selectedCompany);
+  const selectedTemplateRecord = templates.find((template) => template.id === selectedTemplate);
 
   const handleGenerate = () => {
-    if (!selectedCompany || !selectedTemplate) {
+    if (!selectedCompanyRecord || !selectedTemplateRecord) {
       alert('Please select both a company and template');
-      return;
+    }
+  };
+
+  const baseVariables = useMemo(() => {
+    if (!selectedCompanyRecord) {
+      return {} as Record<string, string>;
     }
 
-    const company = companies.find((c) => c.id === selectedCompany);
-    const template = templates.find((t) => t.id === selectedTemplate);
-
-    if (!company || !template) {
-      alert('Invalid selection');
-      return;
-    }
-
-    const companyVariableMap = new Map(
-      (company.variableValues || []).map((entry) => [entry.variableKey, entry.value])
-    );
-
-    // Replace variables in template
-    let content = template.content;
-
-    // Create variable map
-    const varMap: Record<string, string> = {
-      CompanyName: company.name,
-      RegistrationDate: company.registrationDate
-        ? new Date(company.registrationDate).toLocaleDateString()
+    return {
+      CompanyName: selectedCompanyRecord.name,
+      RegistrationDate: selectedCompanyRecord.registrationDate
+        ? new Date(selectedCompanyRecord.registrationDate).toLocaleDateString()
         : 'N/A',
-      OwnerType: company.ownerType === 'SINGLE' ? 'Single Owner' : 'Multiple Owners',
-      OwnerNames: company.owners.map((o) => o.name).join(', '),
-      WitnessNames: company.witnesses.map((w) => w.name).join(', '),
+      OwnerType: selectedCompanyRecord.ownerType === 'SINGLE' ? 'Single Owner' : 'Multiple Owners',
+      OwnerNames: selectedCompanyRecord.owners.map((owner) => owner.name).join(', '),
+      WitnessNames: selectedCompanyRecord.witnesses.map((witness) => witness.name).join(', '),
       DateGenerated: new Date().toLocaleDateString(),
-      CompanyObjectives: company.objectives
-        .map((o) => `• ${o.text}`)
-        .join('\n'),
+      CompanyObjectives: selectedCompanyRecord.objectives.map((objective) => `• ${objective.text}`).join('\n'),
     };
+  }, [selectedCompanyRecord]);
 
-    for (const variable of template.matchedVariables || []) {
-      const existingValue = companyVariableMap.get(variable.key) || varMap[variable.key] || '';
+  const companyVariableMap = useMemo(
+    () => new Map((selectedCompanyRecord?.variableValues || []).map((entry) => [entry.variableId, entry.value])),
+    [selectedCompanyRecord]
+  );
 
-      if (existingValue.trim()) {
-        varMap[variable.key] = existingValue;
-        continue;
-      }
-
-      const response = window.prompt(`Enter a value for ${variable.label} (${variable.key})`);
-      if (response === null) {
-        return;
-      }
-
-      varMap[variable.key] = response;
+  const templateVariables = useMemo<TemplateVariableItem[]>(() => {
+    if (!selectedTemplateRecord) {
+      return [];
     }
 
-    // Replace all variables
-    Object.entries(varMap).forEach(([key, value]) => {
-      const regex = new RegExp(`{{${key}}}`, 'g');
+    const databaseVariables = (selectedTemplateRecord.matchedVariables || []).map((variable) => ({
+      key: variable.key,
+      label: variable.label,
+      source: 'database' as const,
+      id: variable.id,
+    }));
+
+    const matchedKeys = new Set(databaseVariables.map((variable) => variable.key));
+    const detectedOnlyVariables = (selectedTemplateRecord.detectedKeys || [])
+      .filter((key) => !matchedKeys.has(key))
+      .map((key) => ({
+        key,
+        label: key,
+        source: 'detected' as const,
+      }));
+
+    return [...databaseVariables, ...detectedOnlyVariables];
+  }, [selectedTemplateRecord]);
+
+  const resolvedTemplateVariables = useMemo(() => {
+    if (!selectedTemplateRecord) {
+      return {} as Record<string, string>;
+    }
+
+    return Object.fromEntries(
+      templateVariables.map((variable) => {
+        const draftValue = variable.source === 'database' ? variableDrafts[variable.id || ''] ?? '' : variableDrafts[variable.key] ?? '';
+        const savedValue = variable.source === 'database' && variable.id ? companyVariableMap.get(variable.id) || '' : '';
+        return [variable.key, draftValue.trim() ? draftValue : savedValue];
+      })
+    );
+  }, [companyVariableMap, selectedTemplateRecord, templateVariables, variableDrafts]);
+
+  const previewContent = useMemo(() => {
+    if (!selectedTemplateRecord) {
+      return '';
+    }
+
+    let content = selectedTemplateRecord.content;
+    const mergedVariables = { ...baseVariables, ...resolvedTemplateVariables };
+    const escapeRegExpLocal = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    Object.entries(mergedVariables).forEach(([key, value]) => {
+      const regex = new RegExp(`{{\s*${escapeRegExpLocal(key)}\s*}}`, 'g');
       content = content.replace(regex, value);
     });
 
-    setGeneratedContent(content);
+    return content;
+  }, [baseVariables, resolvedTemplateVariables, selectedTemplateRecord]);
+
+  const canShowTemplateVariables = Boolean(selectedCompanyRecord && selectedTemplateRecord);
+
+  const missingTemplateVariables = useMemo(() => {
+    if (!selectedTemplateRecord) {
+      return [] as { id: string; key: string; label: string }[];
+    }
+
+    return templateVariables.filter((variable) => {
+      const draftValue = variable.source === 'database' ? variableDrafts[variable.id || ''] ?? '' : variableDrafts[variable.key] ?? '';
+      const savedValue = variable.source === 'database' && variable.id ? companyVariableMap.get(variable.id) || '' : '';
+      return !(draftValue.trim() || savedValue.trim());
+    });
+  }, [companyVariableMap, selectedTemplateRecord, templateVariables, variableDrafts]);
+
+  const saveVariableValue = async (variableId: string) => {
+    if (!selectedCompanyRecord || !selectedTemplateRecord) {
+      return;
+    }
+
+    const variable = templateVariables.find((entry) => entry.id === variableId);
+    if (!variable) {
+      return;
+    }
+
+    const value = variableDrafts[variableId] || '';
+    if (!value.trim()) {
+      alert(`Enter a value for ${variable.label} before saving.`);
+      return;
+    }
+
+    await saveCompanyVariableValues(selectedCompanyRecord.id, [{ variableId, value }]);
   };
 
   const handleSave = async () => {
-    if (!selectedCompany || !selectedTemplate || !generatedContent) {
-      alert('Please generate a document first');
+    if (!selectedCompanyRecord || !selectedTemplateRecord || !previewContent) {
+      alert('Please select a company and template, then fill the variable values first.');
       return;
     }
 
-    const company = companies.find((c) => c.id === selectedCompany);
-    const template = templates.find((t) => t.id === selectedTemplate);
-
-    if (!company || !template) {
-      alert('Invalid selection');
+    if (missingTemplateVariables.length > 0) {
+      alert(`Fill all template variables before generating: ${missingTemplateVariables.map((variable) => variable.label).join(', ')}`);
       return;
     }
+
+    await saveCompanyVariableValues(
+      selectedCompanyRecord.id,
+      templateVariables
+        .filter((variable): variable is TemplateVariableItem & { id: string } => variable.source === 'database' && Boolean(variable.id))
+        .map((variable) => ({
+        variableId: variable.id,
+          value: variableDrafts[variable.id] || '',
+        }))
+    );
 
     await addDocument({
-      companyId: company.id,
-      companyName: company.name,
-      templateId: template.id,
-      templateName: template.name,
-      content: generatedContent,
+      companyId: selectedCompanyRecord.id,
+      companyName: selectedCompanyRecord.name,
+      templateId: selectedTemplateRecord.id,
+      templateName: selectedTemplateRecord.name,
+      content: previewContent,
+      variables: resolvedTemplateVariables,
     });
 
     alert('Document saved successfully!');
@@ -130,7 +227,12 @@ export default function GenerateDocumentPage() {
                     </label>
                     <select
                       value={selectedCompany}
-                      onChange={(e) => setSelectedCompany(e.target.value)}
+                      onChange={(e) => {
+                        const nextCompanyId = e.target.value;
+                        setSelectedCompany(nextCompanyId);
+                        const nextCompany = companies.find((company) => company.id === nextCompanyId);
+                        setVariableDrafts(buildInitialVariableDrafts(nextCompany, selectedTemplateRecord));
+                      }}
                       className="w-full px-3 py-2.5 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
                     >
                       <option value="">Choose a company...</option>
@@ -149,7 +251,12 @@ export default function GenerateDocumentPage() {
                     </label>
                     <select
                       value={selectedTemplate}
-                      onChange={(e) => setSelectedTemplate(e.target.value)}
+                      onChange={(e) => {
+                        const nextTemplateId = e.target.value;
+                        setSelectedTemplate(nextTemplateId);
+                        const nextTemplate = templates.find((template) => template.id === nextTemplateId);
+                        setVariableDrafts(buildInitialVariableDrafts(selectedCompanyRecord, nextTemplate));
+                      }}
                       className="w-full px-3 py-2.5 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
                     >
                       <option value="">Choose a template...</option>
@@ -170,44 +277,125 @@ export default function GenerateDocumentPage() {
                   </Button>
 
                   {/* Company Details */}
-                  {selectedCompany && companies.find((c) => c.id === selectedCompany) && (
+                  {selectedCompany && selectedCompanyRecord && (
                     <div className="mt-6 pt-6 border-t border-border">
                       <h3 className="font-semibold text-foreground mb-4">
                         Company Details
                       </h3>
-                      {(() => {
-                        const company = companies.find((c) => c.id === selectedCompany);
-                        return (
-                          <div className="space-y-3 text-sm">
-                            <div>
-                              <p className="text-muted-foreground mb-1">Name</p>
-                              <p className="text-foreground font-medium">
-                                {company?.name}
-                              </p>
+                      <div className="space-y-3 text-sm">
+                        <div>
+                          <p className="text-muted-foreground mb-1">Name</p>
+                          <p className="text-foreground font-medium">
+                            {selectedCompanyRecord.name}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground mb-1">Registration Date</p>
+                          <p className="text-foreground font-medium">
+                            {selectedCompanyRecord.registrationDate
+                              ? new Date(selectedCompanyRecord.registrationDate).toLocaleDateString()
+                              : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground mb-1">Ownership Type</p>
+                          <p className="text-foreground font-medium font-mono text-xs">
+                            {selectedCompanyRecord.ownerType}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground mb-1">Owners</p>
+                          <p className="text-foreground font-medium">
+                            {selectedCompanyRecord.owners.map((owner) => owner.name).join(', ') || 'None'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {canShowTemplateVariables && (
+                    <div className="mt-6 pt-6 border-t border-border space-y-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="font-semibold text-foreground">Template Variables</h3>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-border text-foreground hover:bg-muted"
+                          onClick={async () => {
+                            if (!selectedCompanyRecord || !selectedTemplateRecord) return;
+
+                            const values = selectedTemplateRecord.matchedVariables.map((variable) => ({
+                              variableId: variable.id,
+                              value: variableDrafts[variable.id] || '',
+                            }));
+
+                            await saveCompanyVariableValues(selectedCompanyRecord.id, values);
+                          }}
+                        >
+                          Save All Values
+                        </Button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {templateVariables.map((variable) => {
+                          const companyRecord = selectedCompanyRecord;
+                          if (!companyRecord) {
+                            return null;
+                          }
+
+                          const savedValue = variable.source === 'database' && variable.id
+                            ? companyRecord.variableValues.find((entry) => entry.variableId === variable.id)?.value || ''
+                            : '';
+                          const draftKey = variable.source === 'database' && variable.id ? variable.id : variable.key;
+                          const currentValue = variableDrafts[draftKey] ?? savedValue;
+
+                          return (
+                            <div key={draftKey} className="space-y-2 rounded-lg border border-border bg-input/30 p-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="font-medium text-foreground">{variable.label}</p>
+                                  <p className="text-xs font-mono text-muted-foreground">{`{{${variable.key}}}`}</p>
+                                  {variable.source === 'detected' && (
+                                    <p className="text-xs text-amber-500">Not in database yet, but detected in template.</p>
+                                  )}
+                                </div>
+                                {variable.source === 'database' && variable.id ? (
+                                  (() => {
+                                    const databaseVariableId = variable.id;
+
+                                    return (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-border text-foreground hover:bg-muted"
+                                    onClick={() => saveVariableValue(databaseVariableId)}
+                                  >
+                                    Save
+                                  </Button>
+                                    );
+                                  })()
+                                ) : (
+                                  <span className="text-xs text-amber-500">Template-only variable</span>
+                                )}
+                              </div>
+                              <Input
+                                value={currentValue}
+                                onChange={(event) =>
+                                  setVariableDrafts((prev) => ({
+                                    ...prev,
+                                    [draftKey]: event.target.value,
+                                  }))
+                                }
+                                placeholder={`Enter value for ${variable.label}`}
+                                className="bg-background"
+                              />
+                              <div className="text-xs text-muted-foreground">
+                                {savedValue ? 'Saved in company variables.' : 'No saved value yet.'}
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-muted-foreground mb-1">Registration Date</p>
-                              <p className="text-foreground font-medium">
-                                {company?.registrationDate
-                                  ? new Date(company.registrationDate).toLocaleDateString()
-                                  : 'N/A'}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground mb-1">Ownership Type</p>
-                              <p className="text-foreground font-medium font-mono text-xs">
-                                {company?.ownerType}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground mb-1">Owners</p>
-                              <p className="text-foreground font-medium">
-                                {company?.owners.map((o) => o.name).join(', ') || 'None'}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })()}
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -223,23 +411,23 @@ export default function GenerateDocumentPage() {
               </h2>
 
               <div className="flex-1 bg-input/50 border border-border rounded-lg p-5 overflow-y-auto mb-6 min-h-[350px]">
-                {generatedContent ? (
+                {previewContent ? (
                   <pre className="text-sm text-foreground whitespace-pre-wrap break-words font-mono leading-relaxed">
-                    {generatedContent}
+                    {previewContent}
                   </pre>
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <p className="text-muted-foreground text-center">
                       Select a company and template, then click
                       <br />
-                      <span className="font-semibold">"Generate Document"</span> to preview
+                      <span className="font-semibold">&quot;Generate Document&quot;</span> to preview
                     </p>
                   </div>
                 )}
               </div>
 
               {/* Action Buttons */}
-              {generatedContent && (
+              {previewContent && (
                 <div className="flex gap-3">
                   <Button
                     className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2.5 rounded-lg transition-colors"
@@ -253,7 +441,7 @@ export default function GenerateDocumentPage() {
                     onClick={() => {
                       setSelectedCompany('');
                       setSelectedTemplate('');
-                      setGeneratedContent('');
+                      setVariableDrafts({});
                     }}
                   >
                     Clear

@@ -14,6 +14,7 @@ import {
   createCompanyAction,
   updateCompanyAction,
   deleteCompanyAction,
+  saveCompanyVariableValuesAction,
   createObjectiveAction,
   updateObjectiveAction,
   deleteObjectiveAction,
@@ -98,6 +99,21 @@ export const useAppData = () => {
     }
   }, []);
 
+  const saveCompanyVariableValues = useCallback(async (companyId: string, values: Array<{ variableId: string; value: string }>) => {
+    try {
+      const savedValues = await saveCompanyVariableValuesAction(companyId, values);
+      setCompanies((prev) =>
+        prev.map((company) =>
+          company.id === companyId ? { ...company, variableValues: savedValues } : company
+        )
+      );
+      return savedValues;
+    } catch (error) {
+      console.error('Error saving company variable values:', error);
+      throw error;
+    }
+  }, []);
+
   const deleteCompany = useCallback(async (id: string) => {
     try {
       await deleteCompanyAction(id);
@@ -154,21 +170,18 @@ export const useAppData = () => {
 
   const updateVariable = useCallback(async (id: string, updates: Partial<Variable>) => {
     try {
-      setVariables((prev) => {
-        const existing = prev.find((v) => v.id === id);
-        if (!existing) return prev;
-        const updated = { ...existing, ...updates };
+      const existing = variables.find((v) => v.id === id);
+      if (!existing) return;
 
-        updateVariableAction(id, updated).then((saved) => {
-          setVariables((current) => current.map((v) => (v.id === id ? saved : v)));
-        });
+      const updated = { ...existing, ...updates };
+      setVariables((prev) => prev.map((v) => (v.id === id ? updated : v)));
 
-        return prev.map((v) => (v.id === id ? updated : v));
-      });
+      const saved = await updateVariableAction(id, updated);
+      setVariables((current) => current.map((v) => (v.id === id ? saved : v)));
     } catch (error) {
       console.error('Error updating variable:', error);
     }
-  }, []);
+  }, [variables]);
 
   const deleteVariable = useCallback(async (id: string) => {
     try {
@@ -225,12 +238,13 @@ export const useAppData = () => {
   }, []);
 
   // Documents operations
-  const addDocument = useCallback(async (document: Omit<Document, 'id' | 'generatedAt' | 'docxUrl'>) => {
+  const addDocument = useCallback(async (document: Omit<Document, 'id' | 'generatedAt' | 'docxUrl'> & { variables: Record<string, string> }) => {
     try {
       const created = await createDocumentAction({
         companyId: document.companyId,
         templateId: document.templateId,
         content: document.content,
+        variables: document.variables,
       });
       setDocuments((prev) => [...prev, created]);
     } catch (error) {
@@ -270,6 +284,7 @@ export const useAppData = () => {
     getCompany,
     addCompany,
     updateCompany,
+    saveCompanyVariableValues,
     deleteCompany,
     addObjective,
     updateObjective,
