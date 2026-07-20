@@ -53,6 +53,66 @@ function resolvePublicFilePath(relativeUrl: string) {
   return path.join(process.cwd(), 'public', relativeUrl.replace(/^\/+/, ''));
 }
 
+function getCompanyDocumentsRelativePath(companyId: string) {
+  return `/uploads/companies/${companyId}`;
+}
+
+async function ensureCompanyFolder(companyId: string) {
+  const rootPath = getCompanyDocumentsRelativePath(companyId);
+  const generatedPath = `${rootPath}/generated`;
+
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { id: true },
+  });
+
+  if (!company) {
+    throw new Error(`Company ${companyId} not found`);
+  }
+
+  let rootFolder = await prisma.companyFolder.findFirst({
+    where: {
+      companyId,
+      parentFolderId: null,
+      path: rootPath,
+    },
+  });
+
+  if (!rootFolder) {
+    rootFolder = await prisma.companyFolder.create({
+      data: {
+        companyId,
+        name: 'Documents',
+        path: rootPath,
+      },
+    });
+  }
+
+  let generatedFolder = await prisma.companyFolder.findFirst({
+    where: {
+      companyId,
+      parentFolderId: rootFolder.id,
+      name: 'generated',
+    },
+  });
+
+  if (!generatedFolder) {
+    generatedFolder = await prisma.companyFolder.create({
+      data: {
+        companyId,
+        parentFolderId: rootFolder.id,
+        name: 'generated',
+        path: generatedPath,
+      },
+    });
+  }
+
+  await fs.mkdir(resolvePublicFilePath(rootFolder.path), { recursive: true });
+  await fs.mkdir(resolvePublicFilePath(generatedFolder.path), { recursive: true });
+
+  return { rootFolder, generatedFolder };
+}
+
 function escapeXml(value: string) {
   return value
     .replace(/&/g, '&amp;')
@@ -439,6 +499,8 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
     },
   });
 
+  await ensureCompanyFolder(c.id);
+
   return {
     id: c.id,
     name: c.name,
@@ -536,8 +598,18 @@ export async function deleteCompanyAction(id: string): Promise<void> {
       console.error('Failed to delete file:', e);
     }
   }
+
+  try {
+    await fs.rm(resolvePublicFilePath(getCompanyDocumentsRelativePath(id)), {
+      recursive: true,
+      force: true,
+    });
+  } catch (e) {
+    console.error('Failed to delete company folder:', e);
+  }
+
   await prisma.generatedDocument.deleteMany({ where: { companyId: id } });
-  await prisma.company.delete({ where: { id } });
+  await prisma.company.deleteMany({ where: { id } });
 }
 
 // Objective mutations
@@ -716,10 +788,13 @@ export async function createDocumentAction(data: {
   content: string;
   variables: Record<string, string>;
 }): Promise<Document> {
+  const { rootFolder } = await ensureCompanyFolder(data.companyId);
+
   const d = await prisma.generatedDocument.create({
     data: {
       companyId: data.companyId,
       templateId: data.templateId,
+      folderId: rootFolder.id,
       docxUrl: '',
     },
     include: {
@@ -728,9 +803,8 @@ export async function createDocumentAction(data: {
     },
   });
 
-  const docxUrl = `/uploads/generated/${d.id}.docx`;
-  const filePath = path.join(process.cwd(), 'public', 'uploads', 'generated', `${d.id}.docx`);
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  const docxUrl = `${rootFolder.path}/${d.id}.docx`;
+  const filePath = resolvePublicFilePath(docxUrl);
   const docxBuffer = await renderDocxTemplate(data.templateId, data.variables);
   await fs.writeFile(filePath, docxBuffer);
 

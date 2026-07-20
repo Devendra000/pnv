@@ -81,6 +81,45 @@ export interface Document {
   content: string; // The file contents read from docxUrl on server
 }
 
+export interface CompanyFolder {
+  id: string;
+  companyId: string;
+  parentFolderId?: string | null;
+  name: string;
+  path: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  documents: Document[];
+  children: CompanyFolder[];
+}
+
+export interface CompanyFolderDraft {
+  id: string;
+  name: string;
+  path: string;
+  parentFolderId?: string | null;
+}
+
+export interface CompanyFolderRow {
+  id: string;
+  name: string;
+  path: string;
+  documents: Document[];
+  children: CompanyFolderRow[];
+}
+
+export interface CompanyFolderTree extends CompanyFolderRow {
+  companyId: string;
+}
+
+export interface FolderNode {
+  id: string;
+  name: string;
+  path: string;
+  documents: Document[];
+  children: FolderNode[];
+}
+
 export interface Stats {
   totalCompanies: number;
   totalObjectives: number;

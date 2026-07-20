@@ -20,6 +20,9 @@ model Company {
   createdAt        DateTime            @default(now()) @map("created_at")
   updatedAt        DateTime            @updatedAt @map("updated_at")
 
+  rootFolderId     String?             @unique @map("root_folder_id")
+  rootFolder       CompanyFolder?      @relation("CompanyRootFolder", fields: [rootFolderId], references: [id], onDelete: SetNull)
+  folders          CompanyFolder[]     @relation("CompanyFolders")
   owners           CompanyOwner[]
   witnesses        CompanyWitness[]
   objectives       CompanyObjective[]
@@ -94,6 +97,25 @@ model CompanyVariableValue {
   @@map("company_variable_values")
 }
 
+model CompanyFolder {
+  id         String   @id @default(cuid())
+  companyId  String   @map("company_id")
+  company    Company  @relation("CompanyFolders", fields: [companyId], references: [id], onDelete: Cascade)
+  parentFolderId String? @map("parent_folder_id")
+  parentFolder CompanyFolder? @relation("CompanyFolderTree", fields: [parentFolderId], references: [id], onDelete: Cascade)
+  children   CompanyFolder[] @relation("CompanyFolderTree")
+  rootOfCompany Company? @relation("CompanyRootFolder")
+  name       String   @default("Documents")
+  path       String   @unique
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  documents  GeneratedDocument[]
+
+  @@index([companyId])
+  @@map("company_folders")
+}
+
 model Template {
   id        String   @id @default(cuid())
   name      String
@@ -107,6 +129,8 @@ model Template {
 
 model GeneratedDocument {
   id          String   @id @default(cuid())
+  folderId    String?  @map("folder_id")
+  folder      CompanyFolder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
   templateId  String   @map("template_id")
   template    Template @relation(fields: [templateId], references: [id])
   companyId   String   @map("company_id")
