@@ -7,10 +7,6 @@ import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 function buildInitialVariableDrafts(
   company: { variableValues: Array<{ variableId: string; value: string }> } | undefined,
   template:
