@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Company, CompanyObjectiveTemplate, Owner, Witness } from '@/lib/types';
+import { Variable } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DynamicList } from '@/components/DynamicList';
@@ -11,12 +12,14 @@ import Link from 'next/link';
 interface CompanyFormProps {
   company?: Company;
   objectives: CompanyObjectiveTemplate[];
+  variables: Variable[];
   onSubmit: (company: any) => void;
 }
 
 export function CompanyForm({
   company,
   objectives,
+  variables,
   onSubmit,
 }: CompanyFormProps) {
   const [formData, setFormData] = useState<{
@@ -38,6 +41,7 @@ export function CompanyForm({
   });
   const [additionalWitnesses, setAdditionalWitnesses] = useState<Witness[]>([]);
   const [selectedObjectives, setSelectedObjectives] = useState<string[]>([]);
+  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
 
   const setOwnerType = (ownerType: 'SINGLE' | 'MULTIPLE') => {
     setFormData((current) => ({ ...current, ownerType }));
@@ -77,6 +81,10 @@ export function CompanyForm({
   };
 
   useEffect(() => {
+    const initialValues = Object.fromEntries(
+      variables.map((variable) => [variable.id, ''])
+    ) as Record<string, string>;
+
     if (company) {
       setFormData({
         name: company.name,
@@ -100,8 +108,16 @@ export function CompanyForm({
       setSelectedObjectives(
         company.objectives ? company.objectives.map((o) => o.sourceObjectiveId || '') : []
       );
+      setVariableValues(
+        company.variableValues.reduce((accumulator, entry) => {
+          accumulator[entry.variableId] = entry.value;
+          return accumulator;
+        }, initialValues)
+      );
+      return;
     }
-  }, [company]);
+    setVariableValues(initialValues);
+  }, [company, variables]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,6 +141,10 @@ export function CompanyForm({
         sourceObjectiveId: objId,
         text: objectives.find((o) => o.id === objId)?.text || '',
         order: idx,
+      })),
+      variableValues: variables.map((variable) => ({
+        variableId: variable.id,
+        value: variableValues[variable.id] || '',
       })),
     };
 
@@ -343,6 +363,54 @@ export function CompanyForm({
               <p className="text-sm text-slate-500">No objectives configured yet. Add them in the Objectives section.</p>
             )}
           </div>
+        </div>
+
+        {/* Variable Values */}
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+          <h2 className="text-xl font-bold text-foreground mb-4">Variable Values</h2>
+          {variables.length > 0 ? (
+            <div className="space-y-4">
+              {variables.map((variable) => {
+                const inputType = variable.type === 'date' ? 'date' : variable.type === 'number' ? 'number' : 'text';
+
+                return (
+                  <div key={variable.id}>
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      {variable.label}
+                    </label>
+                    {variable.type === 'list' ? (
+                      <textarea
+                        value={variableValues[variable.id] || ''}
+                        onChange={(e) =>
+                          setVariableValues((current) => ({
+                            ...current,
+                            [variable.id]: e.target.value,
+                          }))
+                        }
+                        placeholder={`Enter ${variable.key}`}
+                        className="w-full min-h-24 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-600 resize-y"
+                      />
+                    ) : (
+                      <Input
+                        type={inputType}
+                        value={variableValues[variable.id] || ''}
+                        onChange={(e) =>
+                          setVariableValues((current) => ({
+                            ...current,
+                            [variable.id]: e.target.value,
+                          }))
+                        }
+                        placeholder={`Enter ${variable.key}`}
+                        className="bg-white dark:bg-slate-800"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">No variables configured yet.</p>
+          )}
         </div>
 
         {/* Submit */}

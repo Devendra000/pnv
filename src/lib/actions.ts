@@ -4,7 +4,6 @@ import { prisma } from './prisma';
 import { promises as fs } from 'fs';
 import path from 'path';
 import {
-  Company as DBCompany,
   CompanyOwner,
   CompanyWitness,
   CompanyObjective,
@@ -22,7 +21,31 @@ import {
   Template,
   Document,
   Stats,
+  CompanyVariableValue as UICompanyVariableValue,
 } from './types';
+import { extractDocxTemplateData } from '@/lib/templateParser';
+
+type CompanyVariableValueRow = {
+  id: string;
+  companyId: string;
+  variableId: string;
+  value: string;
+  variable: {
+    key: string;
+    label: string;
+  };
+};
+
+function mapCompanyVariableValues(values: unknown): UICompanyVariableValue[] {
+  return (values as CompanyVariableValueRow[]).map((entry) => ({
+    id: entry.id,
+    companyId: entry.companyId,
+    variableId: entry.variableId,
+    variableKey: entry.variable.key,
+    variableLabel: entry.variable.label,
+    value: entry.value,
+  }));
+}
 
 // Helper to read content from disk
 async function readFileContent(relativeUrl: string): Promise<string> {
@@ -34,6 +57,39 @@ async function readFileContent(relativeUrl: string): Promise<string> {
     console.error(`Error reading file at ${relativeUrl}:`, error);
     return 'File content not found on disk.';
   }
+}
+
+async function readTemplateFile(relativeUrl: string): Promise<Buffer> {
+  if (!relativeUrl) return Buffer.from('');
+  try {
+    const filePath = path.join(process.cwd(), 'public', relativeUrl);
+    return await fs.readFile(filePath);
+  } catch (error) {
+    console.error(`Error reading file at ${relativeUrl}:`, error);
+    return Buffer.from('');
+  }
+}
+
+async function extractTemplateData(relativeUrl: string, variables: UIVariable[]) {
+  const fileBuffer = await readTemplateFile(relativeUrl);
+
+  if (!fileBuffer.length) {
+    return {
+      content: '',
+      detectedKeys: [] as string[],
+      matchedVariables: [] as UIVariable[],
+    };
+  }
+
+  if (relativeUrl.endsWith('.docx')) {
+    return extractDocxTemplateData(fileBuffer, variables);
+  }
+
+  return {
+    content: fileBuffer.toString('utf8'),
+    detectedKeys: [] as string[],
+    matchedVariables: [] as UIVariable[],
+  };
 }
 
 // Fetch all app data
@@ -52,6 +108,10 @@ export async function fetchAppData(): Promise<{
         owners: { orderBy: { order: 'asc' } },
         witnesses: { orderBy: { order: 'asc' } },
         objectives: { orderBy: { order: 'asc' } },
+        variableValues: {
+          include: { variable: true },
+          orderBy: { variable: { key: 'asc' } },
+        },
         documents: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -84,6 +144,7 @@ export async function fetchAppData(): Promise<{
         text: o.text,
         order: o.order,
       })),
+      variableValues: mapCompanyVariableValues(c.variableValues),
       documentCount: c.documents.length,
     }));
 
@@ -117,13 +178,15 @@ export async function fetchAppData(): Promise<{
 
     const templates: Template[] = await Promise.all(
       dbTemplates.map(async (t) => {
-        const content = await readFileContent(t.fileUrl);
+        const parsed = await extractTemplateData(t.fileUrl, variables);
         return {
           id: t.id,
           name: t.name,
           fileUrl: t.fileUrl,
           createdAt: t.createdAt.toISOString(),
-          content,
+          content: parsed.content,
+          detectedKeys: parsed.detectedKeys,
+          matchedVariables: parsed.matchedVariables,
         };
       })
     );
@@ -219,11 +282,20 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
           order: idx,
         })),
       },
+      variableValues: {
+        create: data.variableValues
+          .filter((entry) => entry.value.trim() !== '')
+          .map((entry) => ({
+            variableId: entry.variableId,
+            value: entry.value,
+          })),
+      },
     },
     include: {
       owners: { orderBy: { order: 'asc' } },
       witnesses: { orderBy: { order: 'asc' } },
       objectives: { orderBy: { order: 'asc' } },
+      variableValues: { include: { variable: true }, orderBy: { variable: { key: 'asc' } } },
       documents: true,
     },
   });
@@ -238,6 +310,7 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
     owners: c.owners.map((o) => ({ id: o.id, name: o.name, address: o.address, sharePercentage: o.sharePercentage, order: o.order })),
     witnesses: c.witnesses.map((w) => ({ id: w.id, name: w.name, address: w.address, order: w.order })),
     objectives: c.objectives.map((o) => ({ id: o.id, companyId: o.companyId, sourceObjectiveId: o.sourceObjectiveId, text: o.text, order: o.order })),
+    variableValues: mapCompanyVariableValues(c.variableValues),
     documentCount: c.documents.length,
   };
 }
@@ -250,6 +323,7 @@ export async function updateCompanyAction(
     prisma.companyOwner.deleteMany({ where: { companyId: id } }),
     prisma.companyWitness.deleteMany({ where: { companyId: id } }),
     prisma.companyObjective.deleteMany({ where: { companyId: id } }),
+    prisma.companyVariableValue.deleteMany({ where: { companyId: id } }),
   ]);
 
   const c = await prisma.company.update({
@@ -280,11 +354,20 @@ export async function updateCompanyAction(
           order: idx,
         })),
       },
+      variableValues: {
+        create: data.variableValues
+          .filter((entry) => entry.value.trim() !== '')
+          .map((entry) => ({
+            variableId: entry.variableId,
+            value: entry.value,
+          })),
+      },
     },
     include: {
       owners: { orderBy: { order: 'asc' } },
       witnesses: { orderBy: { order: 'asc' } },
       objectives: { orderBy: { order: 'asc' } },
+      variableValues: { include: { variable: true }, orderBy: { variable: { key: 'asc' } } },
       documents: true,
     },
   });
@@ -299,6 +382,7 @@ export async function updateCompanyAction(
     owners: c.owners.map((o) => ({ id: o.id, name: o.name, address: o.address, sharePercentage: o.sharePercentage, order: o.order })),
     witnesses: c.witnesses.map((w) => ({ id: w.id, name: w.name, address: w.address, order: w.order })),
     objectives: c.objectives.map((o) => ({ id: o.id, companyId: o.companyId, sourceObjectiveId: o.sourceObjectiveId, text: o.text, order: o.order })),
+    variableValues: mapCompanyVariableValues(c.variableValues),
     documentCount: c.documents.length,
   };
 }
@@ -384,34 +468,49 @@ export async function deleteVariableAction(id: string): Promise<void> {
 }
 
 // Template mutations
-export async function createTemplateAction(data: { name: string; content: string }): Promise<Template> {
+async function writeTemplateFile(templateId: string, fileData: string) {
+  const buffer = Buffer.from(fileData, 'base64');
+  const fileUrl = `/uploads/templates/${templateId}.docx`;
+  const filePath = path.join(process.cwd(), 'public', 'uploads', 'templates', `${templateId}.docx`);
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, buffer);
+  return fileUrl;
+}
+
+export async function createTemplateAction(data: { name: string; fileName: string; fileData: string }): Promise<Template> {
   const t = await prisma.template.create({
     data: {
       name: data.name,
-      fileUrl: '', // Will set below
+      fileUrl: '',
     },
   });
 
-  const fileUrl = `/uploads/templates/${t.id}.txt`;
-  const filePath = path.join(process.cwd(), 'public', 'uploads', 'templates', `${t.id}.txt`);
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, data.content, 'utf8');
-
+  const fileUrl = await writeTemplateFile(t.id, data.fileData);
   await prisma.template.update({
     where: { id: t.id },
     data: { fileUrl },
   });
+
+  const variables = await prisma.variable.findMany({ orderBy: { key: 'asc' } });
+  const parsed = await extractTemplateData(fileUrl, variables.map((v) => ({
+    id: v.id,
+    key: v.key,
+    label: v.label,
+    type: v.type as any,
+  })));
 
   return {
     id: t.id,
     name: t.name,
     fileUrl,
     createdAt: t.createdAt.toISOString(),
-    content: data.content,
+    content: parsed.content,
+    detectedKeys: parsed.detectedKeys,
+    matchedVariables: parsed.matchedVariables,
   };
 }
 
-export async function updateTemplateAction(id: string, data: { name: string; content: string }): Promise<Template> {
+export async function updateTemplateAction(id: string, data: { name: string; fileName?: string; fileData?: string }): Promise<Template> {
   const t = await prisma.template.update({
     where: { id },
     data: {
@@ -419,16 +518,31 @@ export async function updateTemplateAction(id: string, data: { name: string; con
     },
   });
 
-  const filePath = path.join(process.cwd(), 'public', 'uploads', 'templates', `${id}.txt`);
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, data.content, 'utf8');
+  let fileUrl = t.fileUrl;
+  if (data.fileData) {
+    fileUrl = await writeTemplateFile(id, data.fileData);
+    await prisma.template.update({
+      where: { id },
+      data: { fileUrl },
+    });
+  }
+
+  const variables = await prisma.variable.findMany({ orderBy: { key: 'asc' } });
+  const parsed = await extractTemplateData(fileUrl, variables.map((v) => ({
+    id: v.id,
+    key: v.key,
+    label: v.label,
+    type: v.type as any,
+  })));
 
   return {
     id: t.id,
     name: t.name,
-    fileUrl: t.fileUrl,
+    fileUrl,
     createdAt: t.createdAt.toISOString(),
-    content: data.content,
+    content: parsed.content,
+    detectedKeys: parsed.detectedKeys,
+    matchedVariables: parsed.matchedVariables,
   };
 }
 
@@ -466,7 +580,7 @@ export async function createDocumentAction(data: {
     data: {
       companyId: data.companyId,
       templateId: data.templateId,
-      docxUrl: '', // Will set below
+      docxUrl: '',
     },
     include: {
       company: true,

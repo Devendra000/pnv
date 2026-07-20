@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/PageHeader';
 export default function CompanyDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { getCompany, updateCompany, objectives, loading } = useAppDataContext();
+  const { getCompany, updateCompany, objectives, variables, loading } = useAppDataContext();
 
   const company = getCompany(params.id as string);
 
@@ -49,6 +49,7 @@ export default function CompanyDetailPage() {
         <CompanyForm
           company={company}
           objectives={objectives}
+          variables={variables}
           onSubmit={handleSubmit}
         />
       </div>

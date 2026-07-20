@@ -30,6 +30,10 @@ export default function GenerateDocumentPage() {
       return;
     }
 
+    const companyVariableMap = new Map(
+      (company.variableValues || []).map((entry) => [entry.variableKey, entry.value])
+    );
+
     // Replace variables in template
     let content = template.content;
 
@@ -47,6 +51,22 @@ export default function GenerateDocumentPage() {
         .map((o) => `• ${o.text}`)
         .join('\n'),
     };
+
+    for (const variable of template.matchedVariables || []) {
+      const existingValue = companyVariableMap.get(variable.key) || varMap[variable.key] || '';
+
+      if (existingValue.trim()) {
+        varMap[variable.key] = existingValue;
+        continue;
+      }
+
+      const response = window.prompt(`Enter a value for ${variable.label} (${variable.key})`);
+      if (response === null) {
+        return;
+      }
+
+      varMap[variable.key] = response;
+    }
 
     // Replace all variables
     Object.entries(varMap).forEach(([key, value]) => {

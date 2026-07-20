@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/PageHeader';
 
 export default function NewCompanyPage() {
   const router = useRouter();
-  const { objectives, addCompany } = useAppDataContext();
+  const { objectives, variables, addCompany } = useAppDataContext();
 
   const handleSubmit = async (companyData: any) => {
     await addCompany(companyData);
@@ -23,6 +23,7 @@ export default function NewCompanyPage() {
       <div className="flex-1 p-6">
         <CompanyForm
           objectives={objectives}
+          variables={variables}
           onSubmit={handleSubmit}
         />
       </div>

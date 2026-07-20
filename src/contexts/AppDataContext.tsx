@@ -29,8 +29,8 @@ interface AppDataContextType {
   addVariable: (variable: Omit<Variable, 'id'>) => Promise<void>;
   updateVariable: (id: string, updates: Partial<Variable>) => Promise<void>;
   deleteVariable: (id: string) => Promise<void>;
-  addTemplate: (template: Omit<Template, 'id' | 'createdAt' | 'fileUrl'>) => Promise<void>;
-  updateTemplate: (id: string, updates: Partial<Template>) => Promise<void>;
+  addTemplate: (template: { name: string; file: File }) => Promise<void>;
+  updateTemplate: (id: string, updates: { name: string; file?: File | null }) => Promise<void>;
   deleteTemplate: (id: string) => Promise<void>;
   addDocument: (document: Omit<Document, 'id' | 'generatedAt' | 'docxUrl'>) => Promise<void>;
   deleteDocument: (id: string) => Promise<void>;

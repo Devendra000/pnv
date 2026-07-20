@@ -23,6 +23,7 @@ model Company {
   owners           CompanyOwner[]
   witnesses        CompanyWitness[]
   objectives       CompanyObjective[]
+  variableValues   CompanyVariableValue[]
   documents        GeneratedDocument[]
 
   @@map("companies")
@@ -76,7 +77,21 @@ model Variable {
   label String
   type  String @default("text") // text | date | number | list
 
+  companyValues CompanyVariableValue[]
+
   @@map("variables")
+}
+
+model CompanyVariableValue {
+  id         String  @id @default(cuid())
+  companyId   String  @map("company_id")
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  variableId  String  @map("variable_id")
+  variable    Variable @relation(fields: [variableId], references: [id], onDelete: Cascade)
+  value      String
+
+  @@unique([companyId, variableId])
+  @@map("company_variable_values")
 }
 
 model Template {

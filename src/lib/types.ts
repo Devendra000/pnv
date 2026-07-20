@@ -29,6 +29,15 @@ export interface CompanyObjective {
   order: number;
 }
 
+export interface CompanyVariableValue {
+  id: string;
+  companyId: string;
+  variableId: string;
+  variableKey: string;
+  variableLabel: string;
+  value: string;
+}
+
 export interface Company {
   id: string;
   name: string;
@@ -39,6 +48,7 @@ export interface Company {
   owners: Owner[];
   witnesses: Witness[];
   objectives: CompanyObjective[];
+  variableValues: CompanyVariableValue[];
   documentCount?: number;
 }
 
@@ -55,6 +65,8 @@ export interface Template {
   fileUrl: string;
   createdAt: string | Date;
   content: string; // The file contents read from fileUrl on server
+  detectedKeys?: string[];
+  matchedVariables: Variable[];
 }
 
 export interface Document {

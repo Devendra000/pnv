@@ -68,6 +68,18 @@ export const useAppData = () => {
     [companies]
   );
 
+  const arrayBufferToBase64 = async (file: File) => {
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+
+    bytes.forEach((byte) => {
+      binary += String.fromCharCode(byte);
+    });
+
+    return btoa(binary);
+  };
+
   const addCompany = useCallback(async (company: Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'documentCount'>) => {
     try {
       const created = await createCompanyAction(company);
@@ -168,28 +180,33 @@ export const useAppData = () => {
   }, []);
 
   // Templates operations
-  const addTemplate = useCallback(async (template: Omit<Template, 'id' | 'createdAt' | 'fileUrl'>) => {
+  const addTemplate = useCallback(async (template: { name: string; file: File }) => {
     try {
-      const created = await createTemplateAction({ name: template.name, content: template.content });
+      const fileData = await arrayBufferToBase64(template.file);
+      const created = await createTemplateAction({
+        name: template.name,
+        fileName: template.file.name,
+        fileData,
+      });
       setTemplates((prev) => [...prev, created]);
     } catch (error) {
       console.error('Error adding template:', error);
     }
   }, []);
 
-  const updateTemplate = useCallback(async (id: string, updates: Partial<Template>) => {
+  const updateTemplate = useCallback(async (id: string, updates: { name: string; file?: File | null }) => {
     try {
-      setTemplates((prev) => {
-        const existing = prev.find((t) => t.id === id);
-        if (!existing) return prev;
-        const updated = { ...existing, ...updates };
+      const payload: { name: string; fileName?: string; fileData?: string } = {
+        name: updates.name,
+      };
 
-        updateTemplateAction(id, { name: updated.name, content: updated.content }).then((saved) => {
-          setTemplates((current) => current.map((t) => (t.id === id ? saved : t)));
-        });
+      if (updates.file) {
+        payload.fileName = updates.file.name;
+        payload.fileData = await arrayBufferToBase64(updates.file);
+      }
 
-        return prev.map((t) => (t.id === id ? updated : t));
-      });
+      const saved = await updateTemplateAction(id, payload);
+      setTemplates((prev) => prev.map((t) => (t.id === id ? saved : t)));
     } catch (error) {
       console.error('Error updating template:', error);
     }
