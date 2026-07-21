@@ -25,6 +25,10 @@ import {
   Stats,
   CompanyVariableValue as UICompanyVariableValue,
 } from './types';
+import {
+  buildCompanyRuntimeVariableValues,
+  buildCompanyTemplateData,
+} from '@/lib/companyVariables';
 import { extractDocxTemplateData } from '@/lib/templateParser';
 
 type CompanyVariableValueRow = {
@@ -51,6 +55,89 @@ function mapCompanyVariableValues(values: unknown): UICompanyVariableValue[] {
 
 function resolvePublicFilePath(relativeUrl: string) {
   return path.join(process.cwd(), 'public', relativeUrl.replace(/^\/+/, ''));
+}
+
+function humanizeVariableKey(key: string) {
+  return key
+    .replace(/_(\d+)$/, ' $1')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function inferVariableType(key: string): 'text' | 'number' | 'date' | 'list' {
+  if (key.includes('date')) {
+    return 'date';
+  }
+
+  if (key.includes('count') || key.includes('share_percentage')) {
+    return 'number';
+  }
+
+  if (key.includes('names') || key.includes('texts') || key.includes('list')) {
+    return 'list';
+  }
+
+  return 'text';
+}
+
+async function ensureVariableForKey(key: string) {
+  return prisma.variable.upsert({
+    where: { key },
+    update: {
+      label: humanizeVariableKey(key),
+      type: inferVariableType(key),
+    },
+    create: {
+      key,
+      label: humanizeVariableKey(key),
+      type: inferVariableType(key),
+    },
+  });
+}
+
+async function syncCompanyVariableValues(
+  companyId: string,
+  data: {
+    name: string;
+    ownerType: 'SINGLE' | 'MULTIPLE';
+    registrationDate?: string | Date | null;
+    owners: Array<{ name: string; address?: string | null; sharePercentage?: number | null; order?: number }>;
+    witnesses: Array<{ name: string; address?: string | null; order?: number }>;
+    objectives: Array<{ text: string; order?: number }>;
+    variableValues: Array<{ variableId: string; value: string }>;
+  }
+) {
+  const derivedValues = buildCompanyRuntimeVariableValues(data);
+  const variableIds = data.variableValues.map((entry) => entry.variableId);
+  const variables = variableIds.length
+    ? await prisma.variable.findMany({ where: { id: { in: variableIds } } })
+    : [];
+  const variableKeyById = new Map(variables.map((variable) => [variable.id, variable.key]));
+
+  for (const entry of data.variableValues) {
+    const key = variableKeyById.get(entry.variableId);
+    if (!key || entry.value.trim() === '') {
+      continue;
+    }
+
+    derivedValues[key] = entry.value;
+  }
+
+  const keys = Object.keys(derivedValues);
+  const savedVariables = await Promise.all(keys.map((key) => ensureVariableForKey(key)));
+  const variableIdByKey = new Map(savedVariables.map((variable) => [variable.key, variable.id]));
+
+  await prisma.companyVariableValue.deleteMany({ where: { companyId } });
+
+  await prisma.companyVariableValue.createMany({
+    data: keys
+      .filter((key) => derivedValues[key].trim() !== '')
+      .map((key) => ({
+        companyId,
+        variableId: variableIdByKey.get(key)!,
+        value: derivedValues[key],
+      })),
+  });
 }
 
 function escapeXml(value: string) {
@@ -143,7 +230,7 @@ function createReplacementMap(variables: Record<string, string>) {
   );
 }
 
-async function renderDocxTemplate(templateId: string, variables: Record<string, string>) {
+async function renderDocxTemplate(templateId: string, variables: Record<string, string>, templateData?: Record<string, unknown>) {
   const templatePath = path.join(process.cwd(), 'public', 'uploads', 'templates', `${templateId}.docx`);
   const templateBuffer = await fs.readFile(templatePath);
   const zip = new PizZip(templateBuffer);
@@ -158,7 +245,7 @@ async function renderDocxTemplate(templateId: string, variables: Record<string, 
       },
     });
 
-    doc.setData(createReplacementMap(variables));
+    doc.setData(templateData || createReplacementMap(variables));
     doc.render();
 
     return Buffer.from(
@@ -421,14 +508,6 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
           order: idx,
         })),
       },
-      variableValues: {
-        create: data.variableValues
-          .filter((entry) => entry.value.trim() !== '')
-          .map((entry) => ({
-            variableId: entry.variableId,
-            value: entry.value,
-          })),
-      },
     },
     include: {
       owners: { orderBy: { order: 'asc' } },
@@ -439,18 +518,39 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
     },
   });
 
+  await syncCompanyVariableValues(c.id, {
+    ...data,
+    registrationDate: data.registrationDate ?? null,
+    variableValues: data.variableValues,
+  });
+
+  const reloaded = await prisma.company.findUnique({
+    where: { id: c.id },
+    include: {
+      owners: { orderBy: { order: 'asc' } },
+      witnesses: { orderBy: { order: 'asc' } },
+      objectives: { orderBy: { order: 'asc' } },
+      variableValues: { include: { variable: true }, orderBy: { variable: { key: 'asc' } } },
+      documents: true,
+    },
+  });
+
+  if (!reloaded) {
+    throw new Error('Failed to reload created company');
+  }
+
   return {
-    id: c.id,
-    name: c.name,
-    ownerType: c.ownerType,
-    registrationDate: c.registrationDate ? c.registrationDate.toISOString().split('T')[0] : null,
-    createdAt: c.createdAt.toISOString(),
-    updatedAt: c.updatedAt.toISOString(),
-    owners: c.owners.map((o) => ({ id: o.id, name: o.name, address: o.address, sharePercentage: o.sharePercentage, order: o.order })),
-    witnesses: c.witnesses.map((w) => ({ id: w.id, name: w.name, address: w.address, order: w.order })),
-    objectives: c.objectives.map((o) => ({ id: o.id, companyId: o.companyId, sourceObjectiveId: o.sourceObjectiveId, text: o.text, order: o.order })),
-    variableValues: mapCompanyVariableValues(c.variableValues),
-    documentCount: c.documents.length,
+    id: reloaded.id,
+    name: reloaded.name,
+    ownerType: reloaded.ownerType,
+    registrationDate: reloaded.registrationDate ? reloaded.registrationDate.toISOString().split('T')[0] : null,
+    createdAt: reloaded.createdAt.toISOString(),
+    updatedAt: reloaded.updatedAt.toISOString(),
+    owners: reloaded.owners.map((o) => ({ id: o.id, name: o.name, address: o.address, sharePercentage: o.sharePercentage, order: o.order })),
+    witnesses: reloaded.witnesses.map((w) => ({ id: w.id, name: w.name, address: w.address, order: w.order })),
+    objectives: reloaded.objectives.map((o) => ({ id: o.id, companyId: o.companyId, sourceObjectiveId: o.sourceObjectiveId, text: o.text, order: o.order })),
+    variableValues: mapCompanyVariableValues(reloaded.variableValues),
+    documentCount: reloaded.documents.length,
   };
 }
 
@@ -493,14 +593,6 @@ export async function updateCompanyAction(
           order: idx,
         })),
       },
-      variableValues: {
-        create: data.variableValues
-          .filter((entry) => entry.value.trim() !== '')
-          .map((entry) => ({
-            variableId: entry.variableId,
-            value: entry.value,
-          })),
-      },
     },
     include: {
       owners: { orderBy: { order: 'asc' } },
@@ -511,18 +603,39 @@ export async function updateCompanyAction(
     },
   });
 
+  await syncCompanyVariableValues(c.id, {
+    ...data,
+    registrationDate: data.registrationDate ?? null,
+    variableValues: data.variableValues,
+  });
+
+  const reloaded = await prisma.company.findUnique({
+    where: { id },
+    include: {
+      owners: { orderBy: { order: 'asc' } },
+      witnesses: { orderBy: { order: 'asc' } },
+      objectives: { orderBy: { order: 'asc' } },
+      variableValues: { include: { variable: true }, orderBy: { variable: { key: 'asc' } } },
+      documents: true,
+    },
+  });
+
+  if (!reloaded) {
+    throw new Error('Failed to reload updated company');
+  }
+
   return {
-    id: c.id,
-    name: c.name,
-    ownerType: c.ownerType,
-    registrationDate: c.registrationDate ? c.registrationDate.toISOString().split('T')[0] : null,
-    createdAt: c.createdAt.toISOString(),
-    updatedAt: c.updatedAt.toISOString(),
-    owners: c.owners.map((o) => ({ id: o.id, name: o.name, address: o.address, sharePercentage: o.sharePercentage, order: o.order })),
-    witnesses: c.witnesses.map((w) => ({ id: w.id, name: w.name, address: w.address, order: w.order })),
-    objectives: c.objectives.map((o) => ({ id: o.id, companyId: o.companyId, sourceObjectiveId: o.sourceObjectiveId, text: o.text, order: o.order })),
-    variableValues: mapCompanyVariableValues(c.variableValues),
-    documentCount: c.documents.length,
+    id: reloaded.id,
+    name: reloaded.name,
+    ownerType: reloaded.ownerType,
+    registrationDate: reloaded.registrationDate ? reloaded.registrationDate.toISOString().split('T')[0] : null,
+    createdAt: reloaded.createdAt.toISOString(),
+    updatedAt: reloaded.updatedAt.toISOString(),
+    owners: reloaded.owners.map((o) => ({ id: o.id, name: o.name, address: o.address, sharePercentage: o.sharePercentage, order: o.order })),
+    witnesses: reloaded.witnesses.map((w) => ({ id: w.id, name: w.name, address: w.address, order: w.order })),
+    objectives: reloaded.objectives.map((o) => ({ id: o.id, companyId: o.companyId, sourceObjectiveId: o.sourceObjectiveId, text: o.text, order: o.order })),
+    variableValues: mapCompanyVariableValues(reloaded.variableValues),
+    documentCount: reloaded.documents.length,
   };
 }
 
@@ -715,6 +828,7 @@ export async function createDocumentAction(data: {
   templateId: string;
   content: string;
   variables: Record<string, string>;
+  templateData?: Record<string, unknown>;
 }): Promise<Document> {
   const d = await prisma.generatedDocument.create({
     data: {
@@ -731,7 +845,7 @@ export async function createDocumentAction(data: {
   const docxUrl = `/uploads/generated/${d.id}.docx`;
   const filePath = path.join(process.cwd(), 'public', 'uploads', 'generated', `${d.id}.docx`);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  const docxBuffer = await renderDocxTemplate(data.templateId, data.variables);
+  const docxBuffer = await renderDocxTemplate(data.templateId, data.variables, data.templateData);
   await fs.writeFile(filePath, docxBuffer);
 
   await prisma.generatedDocument.update({

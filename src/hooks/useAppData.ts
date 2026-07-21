@@ -238,13 +238,14 @@ export const useAppData = () => {
   }, []);
 
   // Documents operations
-  const addDocument = useCallback(async (document: Omit<Document, 'id' | 'generatedAt' | 'docxUrl'> & { variables: Record<string, string> }) => {
+  const addDocument = useCallback(async (document: Omit<Document, 'id' | 'generatedAt' | 'docxUrl'> & { variables: Record<string, string>; templateData?: import('@/lib/companyVariables').CompanyTemplateData }) => {
     try {
       const created = await createDocumentAction({
         companyId: document.companyId,
         templateId: document.templateId,
         content: document.content,
         variables: document.variables,
+        templateData: document.templateData,
       });
       setDocuments((prev) => [...prev, created]);
     } catch (error) {

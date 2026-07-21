@@ -6,6 +6,11 @@ import { useAppDataContext } from '@/contexts/AppDataContext';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  buildCompanyRuntimeVariableValues,
+  buildCompanyTemplateData,
+  TEMPLATE_LOOP_HELPER_KEYS,
+} from '@/lib/companyVariables';
 
 function buildInitialVariableDrafts(
   company: { variableValues: Array<{ variableId: string; value: string }> } | undefined,
@@ -34,6 +39,43 @@ type TemplateVariableItem = {
   id?: string;
 };
 
+function replacePlaceholders(template: string, values: Record<string, unknown>) {
+  return template.replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, (_, key: string) => {
+    const value = values[key];
+    return value === null || value === undefined ? '' : String(value);
+  });
+}
+
+function renderLoopSection(
+  template: string,
+  sectionKey: string,
+  items: Array<Record<string, unknown>>
+) {
+  const sectionPattern = new RegExp(
+    `\\{\\{\\s*#\\s*${sectionKey}\\s*\\}\\}([\\s\\S]*?)\\{\\{\\s*\\/\\s*${sectionKey}\\s*\\}\\}`,
+    'g'
+  );
+
+  return template.replace(sectionPattern, (_, sectionContent: string) => {
+    return items.map((item) => replacePlaceholders(sectionContent, item)).join('');
+  });
+}
+
+function renderPreviewTemplate(
+  template: string,
+  flatVariables: Record<string, string>,
+  templateData: ReturnType<typeof buildCompanyTemplateData> | null
+) {
+  let rendered = template;
+
+  if (templateData) {
+    rendered = renderLoopSection(rendered, 'owners_list', templateData.owners_list as Array<Record<string, unknown>>);
+    rendered = renderLoopSection(rendered, 'witnesses_list', templateData.witnesses_list as Array<Record<string, unknown>>);
+  }
+
+  return replacePlaceholders(rendered, flatVariables);
+}
+
 export default function GenerateDocumentPage() {
   const router = useRouter();
   const { companies, templates, loading, addDocument, saveCompanyVariableValues } = useAppDataContext();
@@ -51,23 +93,15 @@ export default function GenerateDocumentPage() {
     }
   };
 
-  const baseVariables = useMemo(() => {
-    if (!selectedCompanyRecord) {
-      return {} as Record<string, string>;
-    }
+  const baseVariables = useMemo(
+    () => (selectedCompanyRecord ? buildCompanyRuntimeVariableValues(selectedCompanyRecord) : {} as Record<string, string>),
+    [selectedCompanyRecord]
+  );
 
-    return {
-      CompanyName: selectedCompanyRecord.name,
-      RegistrationDate: selectedCompanyRecord.registrationDate
-        ? new Date(selectedCompanyRecord.registrationDate).toLocaleDateString()
-        : 'N/A',
-      OwnerType: selectedCompanyRecord.ownerType === 'SINGLE' ? 'Single Owner' : 'Multiple Owners',
-      OwnerNames: selectedCompanyRecord.owners.map((owner) => owner.name).join(', '),
-      WitnessNames: selectedCompanyRecord.witnesses.map((witness) => witness.name).join(', '),
-      DateGenerated: new Date().toLocaleDateString(),
-      CompanyObjectives: selectedCompanyRecord.objectives.map((objective) => `• ${objective.text}`).join('\n'),
-    };
-  }, [selectedCompanyRecord]);
+  const templateData = useMemo(
+    () => (selectedCompanyRecord ? buildCompanyTemplateData(selectedCompanyRecord) : null),
+    [selectedCompanyRecord]
+  );
 
   const companyVariableMap = useMemo(
     () => new Map((selectedCompanyRecord?.variableValues || []).map((entry) => [entry.variableId, entry.value])),
@@ -88,7 +122,7 @@ export default function GenerateDocumentPage() {
 
     const matchedKeys = new Set(databaseVariables.map((variable) => variable.key));
     const detectedOnlyVariables = (selectedTemplateRecord.detectedKeys || [])
-      .filter((key) => !matchedKeys.has(key))
+      .filter((key) => !matchedKeys.has(key) && !TEMPLATE_LOOP_HELPER_KEYS.has(key))
       .map((key) => ({
         key,
         label: key,
@@ -117,17 +151,10 @@ export default function GenerateDocumentPage() {
       return '';
     }
 
-    let content = selectedTemplateRecord.content;
-    const mergedVariables = { ...baseVariables, ...resolvedTemplateVariables };
-    const escapeRegExpLocal = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const mergedVariables: Record<string, string> = { ...baseVariables, ...resolvedTemplateVariables };
 
-    Object.entries(mergedVariables).forEach(([key, value]) => {
-      const regex = new RegExp(`{{\s*${escapeRegExpLocal(key)}\s*}}`, 'g');
-      content = content.replace(regex, value);
-    });
-
-    return content;
-  }, [baseVariables, resolvedTemplateVariables, selectedTemplateRecord]);
+    return renderPreviewTemplate(selectedTemplateRecord.content, mergedVariables, templateData);
+  }, [baseVariables, resolvedTemplateVariables, selectedTemplateRecord, templateData]);
 
   const canShowTemplateVariables = Boolean(selectedCompanyRecord && selectedTemplateRecord);
 
@@ -189,7 +216,8 @@ export default function GenerateDocumentPage() {
       templateId: selectedTemplateRecord.id,
       templateName: selectedTemplateRecord.name,
       content: previewContent,
-      variables: resolvedTemplateVariables,
+      variables: { ...baseVariables, ...resolvedTemplateVariables },
+      templateData: templateData || undefined,
     });
 
     alert('Document saved successfully!');

@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Variable } from '@/lib/types';
+import { isRuntimeCompanyVariableKey } from '@/lib/companyVariables';
 import { useState, useMemo } from 'react';
 import { Plus, X, Search } from 'lucide-react';
 
@@ -26,11 +27,16 @@ export default function VariablesPage() {
   });
 
   const filteredVariables = useMemo(() => {
-    return variables.filter(
-      (v) =>
+    return variables.filter((v) => {
+      if (isRuntimeCompanyVariableKey(v.key)) {
+        return false;
+      }
+
+      return (
         v.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
         v.label.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+      );
+    });
   }, [variables, searchQuery]);
 
   const handleAdd = () => {
@@ -135,7 +141,7 @@ export default function VariablesPage() {
                   onChange={(e) =>
                     setNewVariable({
                       ...newVariable,
-                      type: e.target.value as any,
+                      type: e.target.value as Variable['type'],
                     })
                   }
                   className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-600"

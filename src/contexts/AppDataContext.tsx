@@ -10,6 +10,7 @@ import {
   Document,
   Stats,
 } from '@/lib/types';
+import { CompanyTemplateData } from '@/lib/companyVariables';
 
 interface AppDataContextType {
   companies: Company[];
@@ -33,7 +34,12 @@ interface AppDataContextType {
   addTemplate: (template: { name: string; file: File }) => Promise<void>;
   updateTemplate: (id: string, updates: { name: string; file?: File | null }) => Promise<void>;
   deleteTemplate: (id: string) => Promise<void>;
-  addDocument: (document: Omit<Document, 'id' | 'generatedAt' | 'docxUrl'> & { variables: Record<string, string> }) => Promise<void>;
+  addDocument: (
+    document: Omit<Document, 'id' | 'generatedAt' | 'docxUrl'> & {
+      variables: Record<string, string>;
+      templateData?: CompanyTemplateData;
+    }
+  ) => Promise<void>;
   deleteDocument: (id: string) => Promise<void>;
 }
 

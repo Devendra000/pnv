@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { COMPANY_VARIABLE_DEFINITIONS } from "../src/lib/companyVariables";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -13,6 +14,21 @@ async function main() {
       { text: "To import, export, buy, sell, and deal in goods of all kinds." },
     ],
   });
+
+  for (const variable of COMPANY_VARIABLE_DEFINITIONS) {
+    await prisma.variable.upsert({
+      where: { key: variable.key },
+      update: {
+        label: variable.label,
+        type: variable.type,
+      },
+      create: {
+        key: variable.key,
+        label: variable.label,
+        type: variable.type,
+      },
+    });
+  }
 
   await prisma.company.create({
     data: {
