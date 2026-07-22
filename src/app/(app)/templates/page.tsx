@@ -180,7 +180,28 @@ export default function TemplatesPage() {
             <div className="mt-4 space-y-3">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">Variable key</label>
-                <Input value={helperKey} onChange={(e) => setHelperKey(e.target.value.trim())} placeholder="e.g., owner_name" />
+                <div className="flex gap-2">
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) setHelperKey(e.target.value);
+                    }}
+                    className="w-44 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-foreground text-sm px-2 py-2 focus:outline-none"
+                  >
+                    <option value="">Existing variable…</option>
+                    {variables.map((v) => (
+                      <option key={v.id} value={v.key}>
+                        {v.label} ({v.key})
+                      </option>
+                    ))}
+                  </select>
+                  <Input
+                    value={helperKey}
+                    onChange={(e) => setHelperKey(e.target.value.trim())}
+                    placeholder="e.g., owner_name"
+                    className="flex-1"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-3">
