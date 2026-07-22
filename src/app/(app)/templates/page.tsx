@@ -122,12 +122,12 @@ export default function TemplatesPage() {
     const listKey = `${pluralize(prefix)}_list`;
 
     if (helperMode === 'single') {
-      setGeneratedSnippet(`{{${helperKey}}}`);
+      setGeneratedSnippet(`[${helperKey}]`);
       return;
     }
 
-    const snLine = includeSN ? 'SN: {{sn}}\n' : '';
-    setGeneratedSnippet(`{{#${listKey}}}\n${snLine}Owner: {{${helperKey}}}\n{{/${listKey}}}`);
+    const snLine = includeSN ? 'SN: [sn]\n' : '';
+    setGeneratedSnippet(`[#${listKey}]\n${snLine}Owner: [${helperKey}]\n[/${listKey}]`);
   }, [helperKey, helperMode, includeSN]);
 
   const copyToClipboard = async () => {
@@ -256,7 +256,7 @@ export default function TemplatesPage() {
                   {editingId ? 'Edit Template' : 'New Template'}
                 </h3>
                 <p className="text-sm text-slate-500 mt-1">
-                  Upload a `.docx` file that contains placeholders like <span className="font-mono">{'{{CompanyName}}'}</span>.
+                  Upload a `.docx` file that contains placeholders like <span className="font-mono">{'[CompanyName]'}</span>.
                 </p>
               </div>
 
@@ -321,7 +321,7 @@ export default function TemplatesPage() {
                         key={key}
                         className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs text-blue-700 dark:text-blue-300"
                       >
-                        <span className="font-mono">{'{{'}{key}{'}}'}</span>
+                        <span className="font-mono">{'['}{key}{']'}</span>
                         <span>{matchedVariable?.label || 'Custom variable'}</span>
                       </span>
                       );
@@ -407,7 +407,7 @@ export default function TemplatesPage() {
                               key={variable.id}
                               className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs text-blue-700 dark:text-blue-300"
                             >
-                              <span className="font-mono">{'{{'}{variable.key}{'}}'}</span>
+                              <span className="font-mono">{'['}{variable.key}{']'}</span>
                               <span>{variable.label}</span>
                             </span>
                           ))}

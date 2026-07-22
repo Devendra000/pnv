@@ -24,6 +24,7 @@ CREATE TABLE "company_owners" (
     "citizenship" TEXT,
     "jari_jilla" TEXT,
     "shares" TEXT,
+    "share_percentage" DOUBLE PRECISION,
     "order" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "company_owners_pkey" PRIMARY KEY ("id")
@@ -100,6 +101,7 @@ CREATE TABLE "generated_documents" (
     "company_id" TEXT NOT NULL,
     "docx_url" TEXT NOT NULL,
     "pdf_url" TEXT,
+    "variables" JSONB,
     "generated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "generated_documents_pkey" PRIMARY KEY ("id")

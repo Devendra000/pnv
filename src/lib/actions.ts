@@ -17,7 +17,7 @@ import {
 import {
   buildCompanyRuntimeVariableValues,
 } from '@/lib/companyVariables';
-import { extractDocxTemplateData } from '@/lib/templateParser';
+import { extractDocxTemplateData, cleanDocxZipTags } from '@/lib/templateParser';
 
 type CompanyVariableValueRow = {
   id: string;
@@ -172,10 +172,24 @@ function replaceDocxVariables(zip: PizZip, variables: Record<string, string>) {
     'word/endnotes.xml',
   ];
 
-  const replacements = Object.entries(createReplacementMap(variables)).map(([key, value]) => ({
-    pattern: new RegExp(`\\{\\{\\s*${escapeRegExp(key)}\\s*\\}\\}`, 'g'),
-    value: escapeXml(value),
-  }));
+  const replacementMap = createReplacementMap(variables);
+  const replacements: Array<{ pattern: RegExp; value: string }> = [];
+
+  for (const [key, rawValue] of Object.entries(replacementMap)) {
+    const val = escapeXml(rawValue ?? '');
+    const variants = new Set([
+      escapeRegExp(key),
+      escapeRegExp(key.replace(/_/g, ' ')),
+      escapeRegExp(key.replace(/\s+/g, '_')),
+    ]);
+
+    for (const variant of variants) {
+      replacements.push({
+        pattern: new RegExp(`\\[\\s*${variant}\\s*\\]`, 'gi'),
+        value: val,
+      });
+    }
+  }
 
   for (const fileName of xmlParts) {
     const file = zip.file(fileName);
@@ -238,19 +252,36 @@ function createReplacementMap(variables: Record<string, string>) {
 async function renderDocxTemplate(templateId: string, variables: Record<string, string>, templateData?: Record<string, unknown>) {
   const templatePath = path.join(process.cwd(), 'public', 'uploads', 'templates', `${templateId}.docx`);
   const templateBuffer = await fs.readFile(templatePath);
-  const zip = new PizZip(templateBuffer);
+  const zip = cleanDocxZipTags(new PizZip(templateBuffer));
+
+  const mergedData: Record<string, unknown> = {
+    ...createReplacementMap(variables),
+    ...(templateData || {}),
+  };
+
+  for (const [key, value] of Object.entries(variables)) {
+    if (value !== undefined && value !== null) {
+      const valStr = String(value);
+      mergedData[key] = valStr;
+      mergedData[key.replace(/\s+/g, '_')] = valStr;
+      mergedData[key.replace(/_/g, ' ')] = valStr;
+    }
+  }
 
   try {
     const doc = new Docxtemplater(zip, {
       paragraphLoop: true,
       linebreaks: true,
+      nullGetter() {
+        return '';
+      },
       delimiters: {
-        start: '{{',
-        end: '}}',
+        start: '[',
+        end: ']',
       },
     });
 
-    doc.setData(templateData || createReplacementMap(variables));
+    doc.setData(mergedData);
     doc.render();
 
     return Buffer.from(
@@ -450,6 +481,7 @@ export async function fetchAppData(): Promise<{
           companyName: d.company?.englishName || 'Unknown Company',
           docxUrl: d.docxUrl,
           pdfUrl: d.pdfUrl,
+          variables: (d.variables as Record<string, string>) || undefined,
           generatedAt: d.generatedAt.toISOString(),
           content,
         };
@@ -902,6 +934,7 @@ export async function createDocumentAction(data: {
       companyId: data.companyId,
       templateId: data.templateId,
       docxUrl: '',
+      variables: data.variables as any,
     },
     include: {
       company: true,
@@ -927,6 +960,7 @@ export async function createDocumentAction(data: {
     companyId: d.companyId,
     companyName: d.company?.englishName || 'Unknown Company',
     docxUrl,
+    variables: data.variables,
     generatedAt: d.generatedAt.toISOString(),
     content: data.content,
   };

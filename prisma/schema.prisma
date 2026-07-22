@@ -121,6 +121,7 @@ model GeneratedDocument {
   company     Company  @relation(fields: [companyId], references: [id])
   docxUrl     String   @map("docx_url")
   pdfUrl      String?  @map("pdf_url")
+  variables   Json?    @map("variables")
   generatedAt DateTime @default(now()) @map("generated_at")
 
   @@map("generated_documents")

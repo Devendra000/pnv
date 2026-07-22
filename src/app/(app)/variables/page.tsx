@@ -103,7 +103,7 @@ export default function VariablesPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Variable Key (e.g. {"{{CompanyName}}"}) <span className="text-red-500">*</span>
+                  Variable Key (e.g. {"[CompanyName]"}) <span className="text-red-500">*</span>
                 </label>
                 <Input
                   value={newVariable.key}

@@ -85,6 +85,7 @@ export interface Document {
   companyName: string;
   docxUrl: string;
   pdfUrl?: string | null;
+  variables?: Record<string, string>;
   generatedAt: string | Date;
   content: string; // The file contents read from docxUrl on server
 }

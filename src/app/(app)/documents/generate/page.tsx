@@ -40,8 +40,8 @@ type TemplateVariableItem = {
 };
 
 function replacePlaceholders(template: string, values: Record<string, unknown>) {
-  return template.replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, (_, key: string) => {
-    const value = values[key];
+  return template.replace(/(?:\{\{|\[)\s*([A-Za-z0-9_.]+)\s*(?:\}\}|\])/g, (_, key: string) => {
+    const value = values[key] ?? values[key.replace(/\s+/g, '_')];
     return value === null || value === undefined ? '' : String(value);
   });
 }
@@ -52,7 +52,7 @@ function renderLoopSection(
   items: Array<Record<string, unknown>>
 ) {
   const sectionPattern = new RegExp(
-    `\\{\\{\\s*#\\s*${sectionKey}\\s*\\}\\}([\\s\\S]*?)\\{\\{\\s*\\/\\s*${sectionKey}\\s*\\}\\}`,
+    `(?:\\{\\{|\\[)\\s*#\\s*${sectionKey}\\s*(?:\\}\\}|\\])([\\s\\S]*?)(?:\\{\\{|\\[)\\s*\\/\\s*${sectionKey}\\s*(?:\\}\\}|\\])`,
     'g'
   );
 
