@@ -7,31 +7,33 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  // ── Variables ──────────────────────────────────────────────────────────────
+  for (const variable of COMPANY_VARIABLE_DEFINITIONS) {
+    await prisma.variable.upsert({
+      where: { key: variable.key },
+      update: { label: variable.label, type: variable.type },
+      create: { key: variable.key, label: variable.label, type: variable.type },
+    });
+  }
+  console.log(`Seeded ${COMPANY_VARIABLE_DEFINITIONS.length} variables.`);
+
+  // ── Sample objectives ──────────────────────────────────────────────────────
   await prisma.objective.createMany({
     data: [
       { text: "To carry on the business of general trading and commission agency." },
       { text: "To provide consultancy and advisory services related to business registration." },
       { text: "To import, export, buy, sell, and deal in goods of all kinds." },
     ],
+    skipDuplicates: true,
   });
+  console.log("Seeded sample objectives.");
 
-  for (const variable of COMPANY_VARIABLE_DEFINITIONS) {
-    await prisma.variable.upsert({
-      where: { key: variable.key },
-      update: {
-        label: variable.label,
-        type: variable.type,
-      },
-      create: {
-        key: variable.key,
-        label: variable.label,
-        type: variable.type,
-      },
-    });
-  }
-
-  await prisma.company.create({
-    data: {
+  // ── Sample company ─────────────────────────────────────────────────────────
+  await prisma.company.upsert({
+    where: { id: "seed-company-1" },
+    update: {},
+    create: {
+      id: "seed-company-1",
       englishName: "Test Traders Pvt. Ltd.",
       nepaliName: "टेस्ट ट्रेडर्स प्रा. लि.",
       ownerType: "SINGLE",
@@ -40,9 +42,10 @@ async function main() {
       },
     },
   });
+  console.log("Seeded sample company.");
 }
 
 main()
-  .then(() => console.log("Seeded."))
+  .then(() => console.log("Done."))
   .catch((e) => console.error(e))
   .finally(() => prisma.$disconnect());

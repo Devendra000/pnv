@@ -19,6 +19,7 @@ export interface Witness {
   address?: string | null;
   citizenship?: string | null;
   jariJilla?: string | null;
+  ownerIndex?: number | null; // 1-based index of the owner this witness belongs to; null = general
   order: number;
 }
 

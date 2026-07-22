@@ -39,6 +39,7 @@ CREATE TABLE "company_witnesses" (
     "address" TEXT,
     "citizenship" TEXT,
     "jari_jilla" TEXT,
+    "owner_index" INTEGER,
     "order" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "company_witnesses_pkey" PRIMARY KEY ("id")

@@ -5,14 +5,41 @@ import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Variable } from '@/lib/types';
-import { isRuntimeCompanyVariableKey } from '@/lib/companyVariables';
+import { isSystemVariableKey, COMPANY_VARIABLE_DEFINITIONS } from '@/lib/companyVariables';
 import { useState, useMemo } from 'react';
-import { Plus, X, Search } from 'lucide-react';
+import { Plus, X, Search, Lock, Repeat2 } from 'lucide-react';
+
+// ── Loop field definitions ────────────────────────────────────────────────────
+// These keys work ONLY inside their respective loop blocks in the .docx template.
+// They are NOT stored in the DB — they're resolved at template-generation time.
+
+const OWNERS_LOOP_FIELDS = [
+  { key: 'sn',                   description: 'Row number (1, 2, 3 …)' },
+  { key: 'owner_name',           description: "Owner's full name" },
+  { key: 'owner_father_name',    description: "Owner's father's name" },
+  { key: 'owner_address',        description: "Owner's address" },
+  { key: 'owner_citizenship',    description: "Owner's citizenship number" },
+  { key: 'owner_jari_jilla',     description: "Owner's citizenship issuing district" },
+  { key: 'owner_shares',         description: "Owner's share amount" },
+  { key: 'owner_share_percentage', description: "Owner's share percentage" },
+];
+
+const WITNESSES_LOOP_FIELDS = [
+  { key: 'sn',                   description: 'Row number (1, 2, 3 …)' },
+  { key: 'witness_name',         description: "Witness's full name" },
+  { key: 'witness_father_name',  description: "Witness's father's name" },
+  { key: 'witness_address',      description: "Witness's address" },
+  { key: 'witness_citizenship',  description: "Witness's citizenship number" },
+  { key: 'witness_jari_jilla',   description: "Witness's citizenship issuing district" },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function VariablesPage() {
   const { variables, addVariable, updateVariable, deleteVariable, loading } =
     useAppDataContext();
 
+  const [activeTab, setActiveTab] = useState<'manual' | 'auto'>('manual');
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,32 +47,52 @@ export default function VariablesPage() {
     key: string;
     label: string;
     type: Variable['type'];
-  }>({
-    key: '',
-    label: '',
-    type: 'text',
-  });
+  }>({ key: '', label: '', type: 'text' });
 
-  const filteredVariables = useMemo(() => {
+  const query = searchQuery.toLowerCase().trim();
+
+  // Manual / Custom variables (excludes all system/auto variables)
+  const filteredManualVariables = useMemo(() => {
     return variables.filter((v) => {
-      if (isRuntimeCompanyVariableKey(v.key)) {
-        return false;
-      }
-
+      if (isSystemVariableKey(v.key)) return false;
+      if (!query) return true;
       return (
-        v.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.label.toLowerCase().includes(searchQuery.toLowerCase())
+        v.key.toLowerCase().includes(query) ||
+        v.label.toLowerCase().includes(query)
       );
     });
-  }, [variables, searchQuery]);
+  }, [variables, query]);
+
+  // Auto-mapped flat variables
+  const filteredAutoDefinitions = useMemo(() => {
+    if (!query) return COMPANY_VARIABLE_DEFINITIONS;
+    return COMPANY_VARIABLE_DEFINITIONS.filter(
+      (def) =>
+        def.key.toLowerCase().includes(query) ||
+        def.label.toLowerCase().includes(query) ||
+        ('description' in def && (def.description as string).toLowerCase().includes(query))
+    );
+  }, [query]);
+
+  // Owners loop fields
+  const filteredOwnersLoop = useMemo(() => {
+    if (!query) return OWNERS_LOOP_FIELDS;
+    return OWNERS_LOOP_FIELDS.filter(
+      (f) => f.key.toLowerCase().includes(query) || f.description.toLowerCase().includes(query)
+    );
+  }, [query]);
+
+  // Witnesses loop fields
+  const filteredWitnessesLoop = useMemo(() => {
+    if (!query) return WITNESSES_LOOP_FIELDS;
+    return WITNESSES_LOOP_FIELDS.filter(
+      (f) => f.key.toLowerCase().includes(query) || f.description.toLowerCase().includes(query)
+    );
+  }, [query]);
 
   const handleAdd = () => {
     if (newVariable.key.trim() && newVariable.label.trim()) {
-      addVariable({
-        key: newVariable.key.trim(),
-        label: newVariable.label.trim(),
-        type: newVariable.type,
-      });
+      addVariable({ key: newVariable.key.trim(), label: newVariable.label.trim(), type: newVariable.type });
       setNewVariable({ key: '', label: '', type: 'text' });
       setIsAdding(false);
     }
@@ -53,23 +100,25 @@ export default function VariablesPage() {
 
   const handleUpdate = (id: string) => {
     if (newVariable.key.trim() && newVariable.label.trim()) {
-      updateVariable(id, {
-        key: newVariable.key.trim(),
-        label: newVariable.label.trim(),
-        type: newVariable.type,
-      });
+      updateVariable(id, { key: newVariable.key.trim(), label: newVariable.label.trim(), type: newVariable.type });
       setEditingId(null);
       setNewVariable({ key: '', label: '', type: 'text' });
     }
+  };
+
+  const cancelForm = () => {
+    setIsAdding(false);
+    setEditingId(null);
+    setNewVariable({ key: '', label: '', type: 'text' });
   };
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-background">
       <PageHeader
         title="Template Variables"
-        description="Manage variables used in document templates"
+        description="Reference guide for all available template keys and how to use them"
         actions={
-          !isAdding && !editingId && (
+          activeTab === 'manual' && !isAdding && !editingId && (
             <Button
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
               onClick={() => setIsAdding(true)}
@@ -81,173 +130,290 @@ export default function VariablesPage() {
         }
       />
 
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Search Bar */}
-        <div className="mb-6 flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2">
-          <Search className="w-5 h-5 text-slate-500 flex-shrink-0" />
-          <Input
-            type="text"
-            placeholder="Search variables..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent border-none focus:outline-none text-foreground placeholder:text-slate-500 shadow-none focus-visible:ring-0"
-          />
+      <div className="max-w-4xl mx-auto p-6 space-y-6">
+        {/* Search Bar & Tab Navigation */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2">
+            <Search className="w-5 h-5 text-slate-500 flex-shrink-0" />
+            <Input
+              type="text"
+              placeholder="Search variables across keys, labels & descriptions…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 bg-transparent border-none focus:outline-none text-foreground placeholder:text-slate-500 shadow-none focus-visible:ring-0"
+            />
+          </div>
+
+          <div className="flex border-b border-slate-200 dark:border-slate-800">
+            <button
+              onClick={() => setActiveTab('manual')}
+              className={`flex items-center gap-2 px-5 py-2.5 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === 'manual'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              Manual Variables
+              <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-600 dark:text-slate-400 font-mono">
+                {filteredManualVariables.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('auto')}
+              className={`flex items-center gap-2 px-5 py-2.5 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === 'auto'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              Auto & Loop Variables
+              <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-600 dark:text-slate-400 font-mono">
+                {filteredAutoDefinitions.length + filteredOwnersLoop.length + filteredWitnessesLoop.length}
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* Add/Edit Form */}
-        {(isAdding || editingId) && (
-          <div className="mb-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">
-              {editingId ? 'Edit Variable' : 'New Variable'}
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Variable Key (e.g. {"[CompanyName]"}) <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  value={newVariable.key}
-                  onChange={(e) =>
-                    setNewVariable({ ...newVariable, key: e.target.value })
-                  }
-                  placeholder="e.g., CompanyName, RegistrationDate"
-                  className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-foreground"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Label / Description <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  value={newVariable.label}
-                  onChange={(e) =>
-                    setNewVariable({
-                      ...newVariable,
-                      label: e.target.value,
-                    })
-                  }
-                  placeholder="What this variable represents"
-                  className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-foreground"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Data Type
-                </label>
-                <select
-                  value={newVariable.type}
-                  onChange={(e) =>
-                    setNewVariable({
-                      ...newVariable,
-                      type: e.target.value as Variable['type'],
-                    })
-                  }
-                  className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="text">Text</option>
-                  <option value="number">Number</option>
-                  <option value="date">Date</option>
-                  <option value="list">List</option>
-                </select>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => {
-                    if (editingId) {
-                      handleUpdate(editingId);
-                    } else {
-                      handleAdd();
-                    }
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                >
-                  {editingId ? 'Update' : 'Create'} Variable
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-slate-200 dark:border-slate-700 text-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
-                  onClick={() => {
-                    setIsAdding(false);
-                    setEditingId(null);
-                    setNewVariable({
-                      key: '',
-                      label: '',
-                      type: 'text',
-                    });
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Variables List */}
-        <div className="space-y-3">
-          {loading ? (
-            <div className="text-center py-8 text-slate-500">Loading variables...</div>
-          ) : filteredVariables.length === 0 ? (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-8 text-center">
-              <p className="text-slate-500">
-                {searchQuery
-                  ? 'No variables found matching your search'
-                  : 'No variables yet. Create one to get started!'}
+        {/* ── TAB 1: MANUAL (CUSTOM) VARIABLES ── */}
+        {activeTab === 'manual' && (
+          <section className="space-y-6">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Custom Variables</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Variables you create manually. Use them in templates with <code className="text-xs bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{`{{key}}`}</code>.
               </p>
             </div>
-          ) : (
-            filteredVariables.map((variable) => (
-              <div
-                key={variable.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:border-blue-500/50 transition-colors"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">
-                      {variable.key}
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Type: <span className="font-mono">{variable.type}</span>
-                    </p>
-                    {variable.label && (
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-                        {variable.label}
-                      </p>
-                    )}
+
+            {/* Add / Edit form */}
+            {(isAdding || editingId) && (
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-6 space-y-4">
+                <h3 className="text-lg font-semibold text-foreground">
+                  {editingId ? 'Edit Variable' : 'New Variable'}
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Variable Key <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={newVariable.key}
+                      onChange={(e) => setNewVariable({ ...newVariable, key: e.target.value })}
+                      placeholder="e.g., fiscal_year, ward_number"
+                      className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-foreground"
+                    />
                   </div>
-                  <div className="flex gap-2 ml-4">
-                    <Button
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                      onClick={() => {
-                        setEditingId(variable.id);
-                        setNewVariable({
-                          key: variable.key,
-                          label: variable.label,
-                          type: variable.type,
-                        });
-                        setIsAdding(false);
-                      }}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Label <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={newVariable.label}
+                      onChange={(e) => setNewVariable({ ...newVariable, label: e.target.value })}
+                      placeholder="Human-readable name shown in the form"
+                      className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-foreground"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Type</label>
+                    <select
+                      value={newVariable.type}
+                      onChange={(e) => setNewVariable({ ...newVariable, type: e.target.value as Variable['type'] })}
+                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-600"
                     >
-                      Edit
+                      <option value="text">Text</option>
+                      <option value="number">Number</option>
+                      <option value="date">Date</option>
+                      <option value="list">List</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => editingId ? handleUpdate(editingId) : handleAdd()}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                    >
+                      {editingId ? 'Update' : 'Create'} Variable
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-red-200 dark:border-red-900/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                      onClick={() => deleteVariable(variable.id)}
+                    <Button variant="outline" onClick={cancelForm}
+                      className="border-slate-200 dark:border-slate-700 text-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
-                      <X className="w-4 h-4" />
+                      Cancel
                     </Button>
                   </div>
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            )}
+
+            {/* List */}
+            <div className="space-y-2">
+              {loading ? (
+                <div className="text-center py-8 text-slate-500">Loading…</div>
+              ) : filteredManualVariables.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-8 text-center">
+                  <p className="text-slate-500">
+                    {searchQuery ? 'No custom variables match your search.' : 'No custom variables yet. Create one above.'}
+                  </p>
+                </div>
+              ) : (
+                filteredManualVariables.map((variable) => (
+                  <div key={variable.id}
+                    className="flex items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 hover:border-blue-500/50 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <code className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">{`{{${variable.key}}}`}</code>
+                        <span className="rounded-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                          {variable.type}
+                        </span>
+                      </div>
+                      {variable.label && (
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{variable.label}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => { setEditingId(variable.id); setNewVariable({ key: variable.key, label: variable.label, type: variable.type }); setIsAdding(false); }}
+                      >Edit</Button>
+                      <Button size="sm" variant="outline"
+                        className="border-red-200 dark:border-red-900/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                        onClick={() => deleteVariable(variable.id)}
+                      ><X className="w-4 h-4" /></Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ── TAB 2: AUTO & LOOP VARIABLES ── */}
+        {activeTab === 'auto' && (
+          <div className="space-y-12">
+            {/* ── Auto-mapped flat variables ── */}
+            <section>
+              <div className="mb-1 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-slate-500" />
+                <h2 className="text-base font-semibold text-foreground">Auto-mapped Variables</h2>
+              </div>
+              <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+                Filled automatically from the company record. Use anywhere in the template — no loop needed.
+              </p>
+              {filteredAutoDefinitions.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-6 text-center text-slate-500">
+                  No auto-mapped variables match &quot;{searchQuery}&quot;
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {filteredAutoDefinitions.map((def) => (
+                    <div key={def.key}
+                      className="flex items-start gap-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-4 py-2.5"
+                    >
+                      <code className="shrink-0 text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">{`{{${def.key}}}`}</code>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{def.label}</span>
+                        {'description' in def && (
+                          <span className="ml-2 text-xs text-slate-400">{(def as { description?: string }).description}</span>
+                        )}
+                      </div>
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                        <Lock className="h-2.5 w-2.5" />auto
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* ── Loop: owners_list ── */}
+            <section>
+              <div className="mb-1 flex items-center gap-2">
+                <Repeat2 className="w-4 h-4 text-emerald-500" />
+                <h2 className="text-base font-semibold text-foreground">Loop — <code className="text-emerald-600 dark:text-emerald-400">{'{#owners_list}'}</code></h2>
+              </div>
+              <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
+                Repeats once per owner. Wrap a table row or paragraph block with the loop tags, then use the fields below inside it.
+              </p>
+              <div className="mb-4 rounded-lg bg-slate-950 px-4 py-3 text-xs font-mono text-slate-300 overflow-x-auto">
+                <span className="text-emerald-400">{'{#owners_list}'}</span>{'  '}
+                <span className="text-yellow-300">{'{{owner_name}}'}</span>{'  '}
+                <span className="text-yellow-300">{'{{owner_father_name}}'}</span>{'  '}
+                <span className="text-yellow-300">{'{{owner_citizenship}}'}</span>{'  '}
+                <span className="text-emerald-400">{'{/owners_list}'}</span>
+              </div>
+              {filteredOwnersLoop.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-6 text-center text-slate-500">
+                  No owner loop fields match &quot;{searchQuery}&quot;
+                </div>
+              ) : (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-100 dark:bg-slate-800/60 text-left">
+                        <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider w-56">Field</th>
+                        <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {filteredOwnersLoop.map((f) => (
+                        <tr key={f.key} className="bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <code className="text-xs font-mono font-semibold text-yellow-600 dark:text-yellow-400">{`{{${f.key}}}`}</code>
+                          </td>
+                          <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-400">{f.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            {/* ── Loop: witnesses_list ── */}
+            <section>
+              <div className="mb-1 flex items-center gap-2">
+                <Repeat2 className="w-4 h-4 text-violet-500" />
+                <h2 className="text-base font-semibold text-foreground">Loop — <code className="text-violet-600 dark:text-violet-400">{'{#witnesses_list}'}</code></h2>
+              </div>
+              <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
+                Repeats once per witness (flat list of all witnesses). Use when you need all witnesses in a table regardless of which owner they belong to.
+              </p>
+              <div className="mb-4 rounded-lg bg-slate-950 px-4 py-3 text-xs font-mono text-slate-300 overflow-x-auto">
+                <span className="text-violet-400">{'{#witnesses_list}'}</span>{'  '}
+                <span className="text-yellow-300">{'{{witness_name}}'}</span>{'  '}
+                <span className="text-yellow-300">{'{{witness_father_name}}'}</span>{'  '}
+                <span className="text-yellow-300">{'{{witness_citizenship}}'}</span>{'  '}
+                <span className="text-violet-400">{'{/witnesses_list}'}</span>
+              </div>
+              {filteredWitnessesLoop.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-6 text-center text-slate-500">
+                  No witness loop fields match &quot;{searchQuery}&quot;
+                </div>
+              ) : (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-100 dark:bg-slate-800/60 text-left">
+                        <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider w-56">Field</th>
+                        <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {filteredWitnessesLoop.map((f) => (
+                        <tr key={f.key} className="bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <code className="text-xs font-mono font-semibold text-yellow-600 dark:text-yellow-400">{`{{${f.key}}}`}</code>
+                          </td>
+                          <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-400">{f.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
       </div>
     </div>
   );

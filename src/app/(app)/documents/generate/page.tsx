@@ -46,6 +46,33 @@ function replacePlaceholders(template: string, values: Record<string, unknown>) 
   });
 }
 
+function renderNestedContent(content: string, item: Record<string, unknown>): string {
+  let result = content;
+
+  // Find any nested loop sections within this item's content and expand them first
+  const sectionPattern = /(?:\{\{|\[)\s*#\s*([A-Za-z0-9_.]+)\s*(?:\}\}|\])[\s\S]*?(?:\{\{|\[)\s*\/\s*\1\s*(?:\}\}|\])/g;
+  const nestedKeys = new Set<string>();
+  for (const match of content.matchAll(sectionPattern)) {
+    nestedKeys.add(match[1]);
+  }
+
+  for (const key of nestedKeys) {
+    const subItems = item[key];
+    if (Array.isArray(subItems)) {
+      result = renderLoopSection(result, key, subItems as Array<Record<string, unknown>>);
+    } else {
+      // No data for this nested key — collapse the block to empty
+      const emptyPattern = new RegExp(
+        `(?:\\{\\{|\\[)\\s*#\\s*${key}\\s*(?:\\}\\}|\\])([\\s\\S]*?)(?:\\{\\{|\\[)\\s*\\/\\s*${key}\\s*(?:\\}\\}|\\])`,
+        'g'
+      );
+      result = result.replace(emptyPattern, '');
+    }
+  }
+
+  return replacePlaceholders(result, item);
+}
+
 function renderLoopSection(
   template: string,
   sectionKey: string,
@@ -57,7 +84,7 @@ function renderLoopSection(
   );
 
   return template.replace(sectionPattern, (_, sectionContent: string) => {
-    return items.map((item) => replacePlaceholders(sectionContent, item)).join('');
+    return items.map((item) => renderNestedContent(sectionContent, item)).join('');
   });
 }
 
@@ -75,6 +102,7 @@ function renderPreviewTemplate(
 
   return replacePlaceholders(rendered, flatVariables);
 }
+
 
 export default function GenerateDocumentPage() {
   const router = useRouter();

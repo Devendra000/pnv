@@ -55,6 +55,7 @@ model CompanyWitness {
   address     String?
   citizenship String?
   jariJilla   String?  @map("jari_jilla")
+  ownerIndex  Int?     @map("owner_index") // 1-based index of the owner this witness belongs to; null = general
   order       Int      @default(0)
 
   @@map("company_witnesses")

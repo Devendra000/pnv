@@ -21,12 +21,23 @@ export type CompanyRuntimeVariableSource = {
     address?: string | null;
     citizenship?: string | null;
     jariJilla?: string | null;
+    ownerIndex?: number | null; // 1-based owner index; null = general
     order?: number;
   }>;
   objectives: Array<{
     text: string;
     order?: number;
   }>;
+};
+
+export type CompanyTemplateOwnerWitnessRow = {
+  sn: number;
+  witness_index: number;
+  witness_name: string;
+  witness_father_name: string;
+  witness_address: string;
+  witness_citizenship: string;
+  witness_jari_jilla: string;
 };
 
 export type CompanyTemplateOwnerRow = {
@@ -39,6 +50,8 @@ export type CompanyTemplateOwnerRow = {
   owner_jari_jilla: string;
   owner_shares: string;
   owner_share_percentage: string;
+  // Nested loop: witnesses assigned to this specific owner
+  owner_witnesses: CompanyTemplateOwnerWitnessRow[];
 };
 
 export type CompanyTemplateWitnessRow = {
@@ -57,36 +70,23 @@ export type CompanyTemplateData = {
   witnesses_list: CompanyTemplateWitnessRow[];
 };
 
-export const TEMPLATE_LOOP_HELPER_KEYS = new Set(['owners_list', 'witnesses_list', 'sn']);
+export const TEMPLATE_LOOP_HELPER_KEYS = new Set(['owners_list', 'witnesses_list', 'owner_witnesses', 'sn']);
 
 export type CompanyVariableKey =
+  // ── Company scalars ───────────────────────────────────────────────────────
   | 'company_name'
   | 'company_name_np'
   | 'registration_date'
   | 'owner_type'
   | 'owner_count'
-  | 'owner_names'
-  | 'owner_names_list'
-  | 'owner_father_names'
-  | 'owner_father_names_list'
-  | 'owner_citizenships'
-  | 'owner_citizenships_list'
-  | 'owner_districts'
-  | 'owner_districts_list'
-  | 'owner_shares'
-  | 'owner_share_percentage'
-  | 'owner_shares_list'
-  | 'witness_names'
-  | 'witness_names_list'
-  | 'witness_father_names'
-  | 'witness_father_names_list'
-  | 'witness_citizenships'
-  | 'witness_citizenships_list'
-  | 'witness_districts'
-  | 'witness_districts_list'
-  | 'objective_texts'
-  | 'objective_texts_list'
   | 'date_generated'
+  // ── Aggregate inline strings (comma-joined, for use in sentences) ─────────
+  | 'owner_names'
+  | 'witness_names'
+  // ── Objectives (two formats — use whichever fits the template) ────────────
+  | 'objective_texts_inline'
+  | 'objective_texts_numbered'
+  // ── Runtime-only flat keys (single owner/witness, not in DB definitions) ──
   | 'owner_name'
   | 'owner_address'
   | 'owner_father_name'
@@ -112,37 +112,88 @@ export type CompanyVariableKey =
 export type CompanyVariableDefinition = {
   key: CompanyVariableKey;
   label: string;
+  description: string;
   type: 'text' | 'number' | 'date' | 'list';
 };
 
+// ─── Registered template variables ───────────────────────────────────────────
+// These are stored in the DB and auto-filled from the company record.
+// Use these keys in your .docx template: {{company_name}}, {{owner_names}}, etc.
+//
+// For per-row owner/witness data in tables, use LOOP variables instead:
+//   {#owners_list} {{owner_name}} {{owner_father_name}} ... {/owners_list}
+//   {#witnesses_list} {{witness_name}} ... {/witnesses_list}
+// ─────────────────────────────────────────────────────────────────────────────
 export const COMPANY_VARIABLE_DEFINITIONS: CompanyVariableDefinition[] = [
-  { key: 'company_name', label: 'Company Name', type: 'text' },
-  { key: 'company_name_np', label: 'Company Name Nepali', type: 'text' },
-  { key: 'registration_date', label: 'Registration Date', type: 'date' },
-  { key: 'owner_type', label: 'Owner Type', type: 'text' },
-  { key: 'owner_count', label: 'Owner Count', type: 'number' },
-  { key: 'owner_names', label: 'Owner Names', type: 'list' },
-  { key: 'owner_names_list', label: 'Owner Names List', type: 'list' },
-  { key: 'owner_father_names', label: 'Owner Father Names', type: 'list' },
-  { key: 'owner_father_names_list', label: 'Owner Father Names List', type: 'list' },
-  { key: 'owner_citizenships', label: 'Owner Citizenship Numbers', type: 'list' },
-  { key: 'owner_citizenships_list', label: 'Owner Citizenship Numbers List', type: 'list' },
-  { key: 'owner_districts', label: 'Owner Districts', type: 'list' },
-  { key: 'owner_districts_list', label: 'Owner Districts List', type: 'list' },
-  { key: 'owner_shares', label: 'Owner Shares', type: 'list' },
-  { key: 'owner_share_percentage', label: 'Owner Share Percentage', type: 'number' },
-  { key: 'owner_shares_list', label: 'Owner Shares List', type: 'list' },
-  { key: 'witness_names', label: 'Witness Names', type: 'list' },
-  { key: 'witness_names_list', label: 'Witness Names List', type: 'list' },
-  { key: 'witness_father_names', label: 'Witness Father Names', type: 'list' },
-  { key: 'witness_father_names_list', label: 'Witness Father Names List', type: 'list' },
-  { key: 'witness_citizenships', label: 'Witness Citizenship Numbers', type: 'list' },
-  { key: 'witness_citizenships_list', label: 'Witness Citizenship Numbers List', type: 'list' },
-  { key: 'witness_districts', label: 'Witness Districts', type: 'list' },
-  { key: 'witness_districts_list', label: 'Witness Districts List', type: 'list' },
-  { key: 'objective_texts', label: 'Objective Texts', type: 'list' },
-  { key: 'objective_texts_list', label: 'Objective Texts List', type: 'list' },
-  { key: 'date_generated', label: 'Date Generated', type: 'date' },
+
+  // ── Company scalars ───────────────────────────────────────────────────────
+  {
+    key: 'company_name',
+    label: 'Company Name (English)',
+    description: 'The registered English name of the company.',
+    type: 'text',
+  },
+  {
+    key: 'company_name_np',
+    label: 'Company Name (Nepali)',
+    description: 'The registered Nepali name of the company.',
+    type: 'text',
+  },
+  {
+    key: 'registration_date',
+    label: 'Registration Date',
+    description: 'Date the company was registered (YYYY-MM-DD).',
+    type: 'date',
+  },
+  {
+    key: 'owner_type',
+    label: 'Ownership Type',
+    description: 'SINGLE or MULTIPLE.',
+    type: 'text',
+  },
+  {
+    key: 'owner_count',
+    label: 'Number of Owners',
+    description: 'Total count of owners.',
+    type: 'number',
+  },
+  {
+    key: 'date_generated',
+    label: 'Date Generated',
+    description: "Today's date when the document was generated (YYYY-MM-DD).",
+    type: 'date',
+  },
+
+  // ── Inline name strings (for embedding in sentences) ──────────────────────
+  // e.g. "The company is owned by {{owner_names}}."
+  // For per-row data in a table, use {#owners_list}...{/owners_list} loops instead.
+  {
+    key: 'owner_names',
+    label: 'Owner Names (comma-joined)',
+    description: 'All owner names joined by commas. e.g. "Ram Bahadur, Shyam Prasad". Use in sentences, not tables.',
+    type: 'text',
+  },
+  {
+    key: 'witness_names',
+    label: 'Witness Names (comma-joined)',
+    description: 'All witness names joined by commas. e.g. "Hari Lal, Gopal Singh". Use in sentences, not tables.',
+    type: 'text',
+  },
+
+  // ── Business objectives ───────────────────────────────────────────────────
+  // Two formats — pick whichever fits your template layout.
+  {
+    key: 'objective_texts_inline',
+    label: 'Business Objectives (comma-joined)',
+    description: 'All selected objectives in one line, comma-separated. e.g. "Trading, Manufacturing". Use in sentences.',
+    type: 'text',
+  },
+  {
+    key: 'objective_texts_numbered',
+    label: 'Business Objectives (numbered list)',
+    description: 'Each objective on its own numbered line. e.g. "1. Trading\n2. Manufacturing". Paste into a single paragraph/cell.',
+    type: 'list',
+  },
 ];
 
 export type CompanyRuntimeVariableSpec = {
@@ -167,6 +218,10 @@ function getSortedObjectives(company: Pick<CompanyRuntimeVariableSource, 'object
 export function isRuntimeCompanyVariableKey(key: string) {
   return /^(owner|witness)_(name|father_name|address|citizenship|jari_jilla)(?:_\d+)?$/.test(key)
     || /^(owner)_(shares|share_percentage)(?:_\d+)?$/.test(key);
+}
+
+export function isSystemVariableKey(key: string) {
+  return COMPANY_VARIABLE_DEFINITIONS.some((def) => def.key === key) || isRuntimeCompanyVariableKey(key);
 }
 
 export function buildCompanyRuntimeVariableSpecs(
@@ -216,14 +271,14 @@ export function buildCompanyRuntimeVariableSpecs(
 
   if (objectives.length > 0) {
     specs.push({
-      key: 'objective_texts',
-      label: 'Objective Texts',
+      key: 'objective_texts_inline',
+      label: 'Business Objectives — Inline (comma-separated)',
       type: 'list',
       value: objectives.map((objective) => objective.text).join(', '),
     });
     specs.push({
-      key: 'objective_texts_list',
-      label: 'Objective Texts List',
+      key: 'objective_texts_numbered',
+      label: 'Business Objectives — Numbered List',
       type: 'list',
       value: objectives.map((objective, index) => `${index + 1}. ${objective.text}`).join('\n'),
     });
@@ -273,8 +328,11 @@ export function buildCompanyRuntimeVariableValues(company: CompanyRuntimeVariabl
     witness_citizenships_list: witnesses.map((witness, index) => `${index + 1}. ${witness.citizenship || ''}`).join('\n'),
     witness_districts: witnesses.map((witness) => witness.jariJilla || '').filter(Boolean).join(', '),
     witness_districts_list: witnesses.map((witness, index) => `${index + 1}. ${witness.jariJilla || ''}`).join('\n'),
+    // Both old keys (backward compat) and new renamed keys
     objective_texts: objectiveTexts.join(', '),
     objective_texts_list: objectiveTexts.map((text, index) => `${index + 1}. ${text}`).join('\n'),
+    objective_texts_inline: objectiveTexts.join(', '),
+    objective_texts_numbered: objectiveTexts.map((text, index) => `${index + 1}. ${text}`).join('\n'),
     date_generated: new Date().toISOString().split('T')[0],
   };
 
@@ -328,20 +386,37 @@ export function buildCompanyTemplateData(company: CompanyRuntimeVariableSource):
 
   return {
     ...flatVariables,
-    owners_list: owners.map((owner, index) => ({
-      sn: index + 1,
-      owner_index: index + 1,
-      owner_name: owner.name || '',
-      owner_father_name: owner.fatherName || '',
-      owner_address: owner.address || '',
-      owner_citizenship: owner.citizenship || '',
-      owner_jari_jilla: owner.jariJilla || '',
-      owner_shares: owner.shares || '',
-      owner_share_percentage:
-        owner.sharePercentage !== null && owner.sharePercentage !== undefined
-          ? String(owner.sharePercentage)
-          : owner.shares || '',
-    })),
+    owners_list: owners.map((owner, index) => {
+      const ownerSlot = index + 1;
+      // Collect witnesses assigned to this specific owner (by 1-based ownerIndex)
+      const ownerWitnesses = witnesses
+        .filter((w) => w.ownerIndex === ownerSlot)
+        .map((w, wIndex) => ({
+          sn: wIndex + 1,
+          witness_index: wIndex + 1,
+          witness_name: w.name || '',
+          witness_father_name: w.fatherName || '',
+          witness_address: w.address || '',
+          witness_citizenship: w.citizenship || '',
+          witness_jari_jilla: w.jariJilla || '',
+        }));
+
+      return {
+        sn: ownerSlot,
+        owner_index: ownerSlot,
+        owner_name: owner.name || '',
+        owner_father_name: owner.fatherName || '',
+        owner_address: owner.address || '',
+        owner_citizenship: owner.citizenship || '',
+        owner_jari_jilla: owner.jariJilla || '',
+        owner_shares: owner.shares || '',
+        owner_share_percentage:
+          owner.sharePercentage !== null && owner.sharePercentage !== undefined
+            ? String(owner.sharePercentage)
+            : owner.shares || '',
+        owner_witnesses: ownerWitnesses,
+      };
+    }),
     witnesses_list: witnesses.map((witness, index) => ({
       sn: index + 1,
       witness_index: index + 1,

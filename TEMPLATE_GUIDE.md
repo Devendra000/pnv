@@ -157,3 +157,43 @@ For most documents, keep the template in this order:
 If your document uses a signature table and the number of owners or witnesses is unknown, build one table row in Word and wrap that row with a loop section.
 
 Use `owners_list` for owners and `witnesses_list` for witnesses. Inside either loop, `[sn]` is optional and gives you `1, 2, 3, ...` when you want numbering.
+
+## Nested loops — witnesses per owner
+
+When each owner has their own set of witnesses (assigned in the Company form via the **"Belongs to owner"** dropdown), you can nest a `[#owner_witnesses]` loop **inside** the `[#owners_list]` loop.
+
+### How to assign witnesses to owners
+
+1. Open the company record and go to the **Sakshi (Witnesses)** section.
+2. Below each witness's detail card, choose the owner they belong to from the **"Belongs to owner"** dropdown.
+3. Save the company. Witnesses with no owner selected remain in the flat `witnesses_list` only.
+
+### Nested template syntax
+
+```text
+[#owners_list]
+  [owner_name] | [owner_father_name] | [owner_citizenship] | [owner_shares]
+  [#owner_witnesses][witness_name] — [witness_citizenship][/#owner_witnesses]
+[/#owners_list]
+```
+
+### Table layout example
+
+```text
+| संस्थापकको नाम, ठेगाना र सिहछाप | बाबु/पितिको नाम | नागरिकताको प्र.नं. | लिन कबुल गरेको शेयर संख्या | साक्षीको नाम, थर, ठेगाना र सिहछाप | साक्षीको नागरिकताको प्र.नं. |
+|---|---|---|---|---|---|
+| [#owners_list] [owner_name] [owner_address] | [owner_father_name] | [owner_citizenship] / [owner_jari_jilla] | [owner_shares] | [#owner_witnesses][witness_name] [witness_address][/#owner_witnesses] | [#owner_witnesses][witness_citizenship] / [witness_jari_jilla][/#owner_witnesses] [/#owners_list] |
+```
+
+### Available placeholders inside `[#owner_witnesses]`
+
+| Key | Meaning |
+| --- | --- |
+| `witness_name` | Witness full name |
+| `witness_father_name` | Witness father's name |
+| `witness_address` | Witness address |
+| `witness_citizenship` | Witness citizenship number |
+| `witness_jari_jilla` | Witness issuing district |
+| `sn` | Sequential number within this owner's witnesses |
+
+> **Note:** `[#witnesses_list]` still works as a flat, global witness loop and is unaffected by this change.
