@@ -235,10 +235,10 @@ export default function GenerateDocumentPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Panel - Inputs */}
           <div className="lg:col-span-1">
-            <div className="bg-card border border-border rounded-xl p-6 sticky top-20">
-              <h2 className="text-lg font-semibold text-foreground mb-6">
-                Document Inputs
-              </h2>
+              <div className="bg-card border border-border rounded-xl p-6 sticky top-5 max-h-[calc(100vh-6rem)] overflow-y-auto">
+                  <h2 className="text-lg font-semibold text-foreground mb-6">
+                    Document Inputs
+                </h2>
 
               {loading ? (
                 <div className="text-center py-4 text-slate-500">Loading data...</div>
@@ -338,7 +338,7 @@ export default function GenerateDocumentPage() {
                   )}
 
                   {canShowTemplateVariables && (
-                    <div className="mt-6 pt-6 border-t border-border space-y-4">
+                    <div className="mt-6 mb-6 pt-6 border-t border-border space-y-4">
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="font-semibold text-foreground">Template Variables</h3>
                         <Button
