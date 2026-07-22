@@ -14,7 +14,8 @@ enum OwnerType {
 
 model Company {
   id               String              @id @default(cuid())
-  name             String
+  englishName      String              @map("english_name")
+  nepaliName       String              @map("nepali_name")
   ownerType        OwnerType           @default(SINGLE) @map("owner_type")
   registrationDate DateTime?           @map("registration_date")
   createdAt        DateTime            @default(now()) @map("created_at")
@@ -30,24 +31,31 @@ model Company {
 }
 
 model CompanyOwner {
-  id              String   @id @default(cuid())
-  companyId       String   @map("company_id")
-  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  name            String
-  address         String?
-  sharePercentage Float?   @map("share_percentage")
-  order           Int      @default(0)
+  id          String   @id @default(cuid())
+  companyId   String   @map("company_id")
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  fatherName  String?  @map("father_name")
+  address     String?
+  citizenship String?
+  jariJilla   String?  @map("jari_jilla")
+  shares      String?
+  sharePercentage Float? @map("share_percentage")
+  order       Int      @default(0)
 
   @@map("company_owners")
 }
 
 model CompanyWitness {
-  id        String   @id @default(cuid())
-  companyId String   @map("company_id")
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  name      String
-  address   String?
-  order     Int      @default(0)
+  id          String   @id @default(cuid())
+  companyId   String   @map("company_id")
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  fatherName  String?  @map("father_name")
+  address     String?
+  citizenship String?
+  jariJilla   String?  @map("jari_jilla")
+  order       Int      @default(0)
 
   @@map("company_witnesses")
 }
@@ -83,11 +91,11 @@ model Variable {
 }
 
 model CompanyVariableValue {
-  id         String  @id @default(cuid())
-  companyId   String  @map("company_id")
-  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  variableId  String  @map("variable_id")
-  variable    Variable @relation(fields: [variableId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  companyId  String   @map("company_id")
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  variableId String   @map("variable_id")
+  variable   Variable @relation(fields: [variableId], references: [id], onDelete: Cascade)
   value      String
 
   @@unique([companyId, variableId])

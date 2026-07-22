@@ -6,18 +6,7 @@ import { prisma } from './prisma';
 import { promises as fs } from 'fs';
 import path from 'path';
 import {
-  CompanyOwner,
-  CompanyWitness,
-  CompanyObjective,
-  Objective,
-  Variable,
-  Template as DBTemplate,
-  GeneratedDocument as DBDocument,
-} from '@/generated/prisma/client';
-import {
   Company,
-  Owner,
-  Witness,
   CompanyObjectiveTemplate,
   Variable as UIVariable,
   Template,
@@ -27,7 +16,6 @@ import {
 } from './types';
 import {
   buildCompanyRuntimeVariableValues,
-  buildCompanyTemplateData,
 } from '@/lib/companyVariables';
 import { extractDocxTemplateData } from '@/lib/templateParser';
 
@@ -98,11 +86,28 @@ async function ensureVariableForKey(key: string) {
 async function syncCompanyVariableValues(
   companyId: string,
   data: {
-    name: string;
+    englishName: string;
+    nepaliName?: string | null;
     ownerType: 'SINGLE' | 'MULTIPLE';
     registrationDate?: string | Date | null;
-    owners: Array<{ name: string; address?: string | null; sharePercentage?: number | null; order?: number }>;
-    witnesses: Array<{ name: string; address?: string | null; order?: number }>;
+    owners: Array<{
+      name: string;
+      fatherName?: string | null;
+      address?: string | null;
+      citizenship?: string | null;
+      jariJilla?: string | null;
+      shares?: string | null;
+      sharePercentage?: number | null;
+      order?: number;
+    }>;
+    witnesses: Array<{
+      name: string;
+      fatherName?: string | null;
+      address?: string | null;
+      citizenship?: string | null;
+      jariJilla?: string | null;
+      order?: number;
+    }>;
     objectives: Array<{ text: string; order?: number }>;
     variableValues: Array<{ variableId: string; value: string }>;
   }
@@ -345,7 +350,8 @@ export async function fetchAppData(): Promise<{
 
     const companies: Company[] = dbCompanies.map((c) => ({
       id: c.id,
-      name: c.name,
+      englishName: c.englishName,
+      nepaliName: c.nepaliName,
       ownerType: c.ownerType,
       registrationDate: c.registrationDate ? c.registrationDate.toISOString().split('T')[0] : null,
       createdAt: c.createdAt.toISOString(),
@@ -353,14 +359,21 @@ export async function fetchAppData(): Promise<{
       owners: c.owners.map((o) => ({
         id: o.id,
         name: o.name,
+        fatherName: o.fatherName,
         address: o.address,
+        citizenship: o.citizenship,
+        jariJilla: o.jariJilla,
+        shares: o.shares,
         sharePercentage: o.sharePercentage,
         order: o.order,
       })),
       witnesses: c.witnesses.map((w) => ({
         id: w.id,
         name: w.name,
+        fatherName: w.fatherName,
         address: w.address,
+        citizenship: w.citizenship,
+        jariJilla: w.jariJilla,
         order: w.order,
       })),
       objectives: c.objectives.map((o) => ({
@@ -394,7 +407,7 @@ export async function fetchAppData(): Promise<{
       id: v.id,
       key: v.key,
       label: v.label,
-      type: v.type as any,
+      type: v.type as UIVariable['type'],
     }));
 
     // 4. Fetch Templates & read files
@@ -434,7 +447,7 @@ export async function fetchAppData(): Promise<{
           templateId: d.templateId,
           templateName: d.template?.name || 'Unknown Template',
           companyId: d.companyId,
-          companyName: d.company?.name || 'Unknown Company',
+          companyName: d.company?.englishName || 'Unknown Company',
           docxUrl: d.docxUrl,
           pdfUrl: d.pdfUrl,
           generatedAt: d.generatedAt.toISOString(),
@@ -483,21 +496,29 @@ export async function fetchAppData(): Promise<{
 export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'documentCount'>): Promise<Company> {
   const c = await prisma.company.create({
     data: {
-      name: data.name,
+      englishName: data.englishName,
+      nepaliName: data.nepaliName || '',
       ownerType: data.ownerType,
       registrationDate: data.registrationDate ? new Date(data.registrationDate) : null,
       owners: {
         create: data.owners.map((o, idx) => ({
           name: o.name,
+          fatherName: o.fatherName || null,
           address: o.address || null,
-          sharePercentage: o.sharePercentage || null,
+          citizenship: o.citizenship || null,
+          jariJilla: o.jariJilla || null,
+          shares: o.shares || null,
+          sharePercentage: o.sharePercentage ?? null,
           order: idx,
         })),
       },
       witnesses: {
         create: data.witnesses.map((w, idx) => ({
           name: w.name,
+          fatherName: w.fatherName || null,
           address: w.address || null,
+          citizenship: w.citizenship || null,
+          jariJilla: w.jariJilla || null,
           order: idx,
         })),
       },
@@ -541,13 +562,32 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
 
   return {
     id: reloaded.id,
-    name: reloaded.name,
+    englishName: reloaded.englishName,
+    nepaliName: reloaded.nepaliName,
     ownerType: reloaded.ownerType,
     registrationDate: reloaded.registrationDate ? reloaded.registrationDate.toISOString().split('T')[0] : null,
     createdAt: reloaded.createdAt.toISOString(),
     updatedAt: reloaded.updatedAt.toISOString(),
-    owners: reloaded.owners.map((o) => ({ id: o.id, name: o.name, address: o.address, sharePercentage: o.sharePercentage, order: o.order })),
-    witnesses: reloaded.witnesses.map((w) => ({ id: w.id, name: w.name, address: w.address, order: w.order })),
+    owners: reloaded.owners.map((o) => ({
+      id: o.id,
+      name: o.name,
+      fatherName: o.fatherName,
+      address: o.address,
+      citizenship: o.citizenship,
+      jariJilla: o.jariJilla,
+      shares: o.shares,
+      sharePercentage: o.sharePercentage,
+      order: o.order,
+    })),
+    witnesses: reloaded.witnesses.map((w) => ({
+      id: w.id,
+      name: w.name,
+      fatherName: w.fatherName,
+      address: w.address,
+      citizenship: w.citizenship,
+      jariJilla: w.jariJilla,
+      order: w.order,
+    })),
     objectives: reloaded.objectives.map((o) => ({ id: o.id, companyId: o.companyId, sourceObjectiveId: o.sourceObjectiveId, text: o.text, order: o.order })),
     variableValues: mapCompanyVariableValues(reloaded.variableValues),
     documentCount: reloaded.documents.length,
@@ -568,21 +608,29 @@ export async function updateCompanyAction(
   const c = await prisma.company.update({
     where: { id },
     data: {
-      name: data.name,
+      englishName: data.englishName,
+      nepaliName: data.nepaliName || '',
       ownerType: data.ownerType,
       registrationDate: data.registrationDate ? new Date(data.registrationDate) : null,
       owners: {
         create: data.owners.map((o, idx) => ({
           name: o.name,
+          fatherName: o.fatherName || null,
           address: o.address || null,
-          sharePercentage: o.sharePercentage || null,
+          citizenship: o.citizenship || null,
+          jariJilla: o.jariJilla || null,
+          shares: o.shares || null,
+          sharePercentage: o.sharePercentage ?? null,
           order: idx,
         })),
       },
       witnesses: {
         create: data.witnesses.map((w, idx) => ({
           name: w.name,
+          fatherName: w.fatherName || null,
           address: w.address || null,
+          citizenship: w.citizenship || null,
+          jariJilla: w.jariJilla || null,
           order: idx,
         })),
       },
@@ -626,13 +674,32 @@ export async function updateCompanyAction(
 
   return {
     id: reloaded.id,
-    name: reloaded.name,
+    englishName: reloaded.englishName,
+    nepaliName: reloaded.nepaliName,
     ownerType: reloaded.ownerType,
     registrationDate: reloaded.registrationDate ? reloaded.registrationDate.toISOString().split('T')[0] : null,
     createdAt: reloaded.createdAt.toISOString(),
     updatedAt: reloaded.updatedAt.toISOString(),
-    owners: reloaded.owners.map((o) => ({ id: o.id, name: o.name, address: o.address, sharePercentage: o.sharePercentage, order: o.order })),
-    witnesses: reloaded.witnesses.map((w) => ({ id: w.id, name: w.name, address: w.address, order: w.order })),
+    owners: reloaded.owners.map((o) => ({
+      id: o.id,
+      name: o.name,
+      fatherName: o.fatherName,
+      address: o.address,
+      citizenship: o.citizenship,
+      jariJilla: o.jariJilla,
+      shares: o.shares,
+      sharePercentage: o.sharePercentage,
+      order: o.order,
+    })),
+    witnesses: reloaded.witnesses.map((w) => ({
+      id: w.id,
+      name: w.name,
+      fatherName: w.fatherName,
+      address: w.address,
+      citizenship: w.citizenship,
+      jariJilla: w.jariJilla,
+      order: w.order,
+    })),
     objectives: reloaded.objectives.map((o) => ({ id: o.id, companyId: o.companyId, sourceObjectiveId: o.sourceObjectiveId, text: o.text, order: o.order })),
     variableValues: mapCompanyVariableValues(reloaded.variableValues),
     documentCount: reloaded.documents.length,
@@ -694,7 +761,7 @@ export async function createVariableAction(data: Omit<UIVariable, 'id'>): Promis
     id: v.id,
     key: v.key,
     label: v.label,
-    type: v.type as any,
+    type: v.type as UIVariable['type'],
   };
 }
 
@@ -711,7 +778,7 @@ export async function updateVariableAction(id: string, data: Omit<UIVariable, 'i
     id: v.id,
     key: v.key,
     label: v.label,
-    type: v.type as any,
+    type: v.type as UIVariable['type'],
   };
 }
 
@@ -748,7 +815,7 @@ export async function createTemplateAction(data: { name: string; fileName: strin
     id: v.id,
     key: v.key,
     label: v.label,
-    type: v.type as any,
+    type: v.type as UIVariable['type'],
   })));
 
   return {
@@ -784,7 +851,7 @@ export async function updateTemplateAction(id: string, data: { name: string; fil
     id: v.id,
     key: v.key,
     label: v.label,
-    type: v.type as any,
+    type: v.type as UIVariable['type'],
   })));
 
   return {
@@ -858,7 +925,7 @@ export async function createDocumentAction(data: {
     templateId: d.templateId,
     templateName: d.template?.name || 'Unknown Template',
     companyId: d.companyId,
-    companyName: d.company?.name || 'Unknown Company',
+    companyName: d.company?.englishName || 'Unknown Company',
     docxUrl,
     generatedAt: d.generatedAt.toISOString(),
     content: data.content,

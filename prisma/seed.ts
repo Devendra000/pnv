@@ -32,7 +32,8 @@ async function main() {
 
   await prisma.company.create({
     data: {
-      name: "Test Traders Pvt. Ltd.",
+      englishName: "Test Traders Pvt. Ltd.",
+      nepaliName: "टेस्ट ट्रेडर्स प्रा. लि.",
       ownerType: "SINGLE",
       owners: {
         create: [{ name: "Ram Sharma", address: "Kathmandu", order: 0 }],
@@ -44,4 +45,4 @@ async function main() {
 main()
   .then(() => console.log("Seeded."))
   .catch((e) => console.error(e))
-.finally(() => prisma.$disconnect());
+  .finally(() => prisma.$disconnect());

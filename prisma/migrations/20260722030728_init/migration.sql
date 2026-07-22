@@ -4,7 +4,8 @@ CREATE TYPE "OwnerType" AS ENUM ('SINGLE', 'MULTIPLE');
 -- CreateTable
 CREATE TABLE "companies" (
     "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
+    "english_name" TEXT NOT NULL,
+    "nepali_name" TEXT NOT NULL,
     "owner_type" "OwnerType" NOT NULL DEFAULT 'SINGLE',
     "registration_date" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -18,8 +19,11 @@ CREATE TABLE "company_owners" (
     "id" TEXT NOT NULL,
     "company_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "father_name" TEXT,
     "address" TEXT,
-    "share_percentage" DOUBLE PRECISION,
+    "citizenship" TEXT,
+    "jari_jilla" TEXT,
+    "shares" TEXT,
     "order" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "company_owners_pkey" PRIMARY KEY ("id")
@@ -30,7 +34,10 @@ CREATE TABLE "company_witnesses" (
     "id" TEXT NOT NULL,
     "company_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "father_name" TEXT,
     "address" TEXT,
+    "citizenship" TEXT,
+    "jari_jilla" TEXT,
     "order" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "company_witnesses_pkey" PRIMARY KEY ("id")
@@ -67,6 +74,16 @@ CREATE TABLE "variables" (
 );
 
 -- CreateTable
+CREATE TABLE "company_variable_values" (
+    "id" TEXT NOT NULL,
+    "company_id" TEXT NOT NULL,
+    "variable_id" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+
+    CONSTRAINT "company_variable_values_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "templates" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -91,6 +108,9 @@ CREATE TABLE "generated_documents" (
 -- CreateIndex
 CREATE UNIQUE INDEX "variables_key_key" ON "variables"("key");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "company_variable_values_company_id_variable_id_key" ON "company_variable_values"("company_id", "variable_id");
+
 -- AddForeignKey
 ALTER TABLE "company_owners" ADD CONSTRAINT "company_owners_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -99,6 +119,12 @@ ALTER TABLE "company_witnesses" ADD CONSTRAINT "company_witnesses_company_id_fke
 
 -- AddForeignKey
 ALTER TABLE "company_objectives" ADD CONSTRAINT "company_objectives_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "company_variable_values" ADD CONSTRAINT "company_variable_values_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "company_variable_values" ADD CONSTRAINT "company_variable_values_variable_id_fkey" FOREIGN KEY ("variable_id") REFERENCES "variables"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "generated_documents" ADD CONSTRAINT "generated_documents_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "templates"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

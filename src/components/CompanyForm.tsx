@@ -1,19 +1,211 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Company, CompanyObjectiveTemplate, Owner, Witness } from '@/lib/types';
 import { Variable } from '@/lib/types';
+import {
+  buildCompanyRuntimeVariableValues,
+} from '@/lib/companyVariables';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DynamicList } from '@/components/DynamicList';
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft, BadgeInfo, Building2, FileText, Plus, Trash2, UserRound, Users } from 'lucide-react';
 import Link from 'next/link';
 
 interface CompanyFormProps {
   company?: Company;
   objectives: CompanyObjectiveTemplate[];
   variables: Variable[];
-  onSubmit: (company: any) => void;
+  onSubmit: (company: CompanyFormSubmission) => void;
+}
+
+type CompanyFormSubmission = {
+  englishName: string;
+  nepaliName: string | null;
+  ownerType: 'SINGLE' | 'MULTIPLE';
+  registrationDate: string | null;
+  owners: Array<{
+    name: string;
+    fatherName: string | null;
+    address: string | null;
+    citizenship: string | null;
+    jariJilla: string | null;
+    shares: string | null;
+    sharePercentage: number | null;
+    order: number;
+  }>;
+  witnesses: Array<{
+    name: string;
+    fatherName: string | null;
+    address: string | null;
+    citizenship: string | null;
+    jariJilla: string | null;
+    order: number;
+  }>;
+  objectives: Array<{
+    sourceObjectiveId: string | null;
+    text: string;
+    order: number;
+  }>;
+  variableValues: Array<{
+    variableId: string;
+    value: string;
+  }>;
+};
+
+type PersonEditorProps = {
+  label: string;
+  person: Owner | Witness;
+  onChange: (next: Owner | Witness) => void;
+  onRemove?: () => void;
+  removable?: boolean;
+  showShares?: boolean;
+};
+
+function SectionCard({
+  title,
+  description,
+  icon,
+  children,
+}: {
+  title: string;
+  description: string;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 shadow-sm shadow-slate-200/50 backdrop-blur">
+      <div className="border-b border-slate-200/80 bg-slate-50/80 px-6 py-5">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
+            {icon}
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+            <p className="mt-1 text-sm text-slate-500">{description}</p>
+          </div>
+        </div>
+      </div>
+      <div className="px-6 py-6">{children}</div>
+    </section>
+  );
+}
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return <label className="mb-2 block text-sm font-medium text-slate-700">{children}</label>;
+}
+
+function PersonEditor({
+  label,
+  person,
+  onChange,
+  onRemove,
+  removable = false,
+  showShares = false,
+}: PersonEditorProps) {
+  const updateField = (field: keyof Owner | keyof Witness, value: string | number | null) => {
+    onChange({
+      ...person,
+      [field]: value,
+    } as Owner | Witness);
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-900">{label}</p>
+          <p className="text-xs text-slate-500">Fill the details that will appear in documents.</p>
+        </div>
+        {removable && onRemove ? (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
+          >
+            <Trash2 className="h-4 w-4" />
+            Remove
+          </button>
+        ) : null}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div>
+          <FieldLabel>Name *</FieldLabel>
+          <Input
+            value={person.name || ''}
+            onChange={(event) => updateField('name', event.target.value)}
+            placeholder="Full name"
+            required
+            className="bg-white"
+          />
+        </div>
+        <div>
+          <FieldLabel>Father&apos;s Name</FieldLabel>
+          <Input
+            value={person.fatherName || ''}
+            onChange={(event) => updateField('fatherName', event.target.value)}
+            placeholder="Father's name"
+            className="bg-white"
+          />
+        </div>
+        <div className="lg:col-span-2">
+          <FieldLabel>Address</FieldLabel>
+          <Input
+            value={person.address || ''}
+            onChange={(event) => updateField('address', event.target.value)}
+            placeholder="Address"
+            className="bg-white"
+          />
+        </div>
+        <div>
+          <FieldLabel>Citizenship No.</FieldLabel>
+          <Input
+            value={person.citizenship || ''}
+            onChange={(event) => updateField('citizenship', event.target.value)}
+            placeholder="Citizenship number"
+            className="bg-white"
+          />
+        </div>
+        <div>
+          <FieldLabel>District</FieldLabel>
+          <Input
+            value={person.jariJilla || ''}
+            onChange={(event) => updateField('jariJilla', event.target.value)}
+            placeholder="District"
+            className="bg-white"
+          />
+        </div>
+        {showShares && (
+          <>
+            <div>
+              <FieldLabel>Shares</FieldLabel>
+              <Input
+                value={(person as Owner).shares || ''}
+                onChange={(event) => updateField('shares', event.target.value)}
+                placeholder="Shares"
+                className="bg-white"
+              />
+            </div>
+            <div>
+              <FieldLabel>Share Percentage</FieldLabel>
+              <Input
+                type="number"
+                value={(person as Owner).sharePercentage ?? ''}
+                onChange={(event) =>
+                  updateField(
+                    'sharePercentage',
+                    event.target.value === '' ? null : Number(event.target.value)
+                  )
+                }
+                placeholder="Share percentage"
+                className="bg-white"
+              />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function CompanyForm({
@@ -22,119 +214,135 @@ export function CompanyForm({
   variables,
   onSubmit,
 }: CompanyFormProps) {
-  const [formData, setFormData] = useState<{
-    name: string;
-    registrationDate: string;
-    ownerType: 'SINGLE' | 'MULTIPLE';
-  }>({
+  const createBlankOwner = (id: string, order: number): Owner => ({
+    id,
     name: '',
-    registrationDate: '',
-    ownerType: 'SINGLE',
+    fatherName: '',
+    address: '',
+    citizenship: '',
+    jariJilla: '',
+    shares: '',
+    sharePercentage: null,
+    order,
   });
 
-  const [owners, setOwners] = useState<Owner[]>([]);
-  const [primaryWitness, setPrimaryWitness] = useState<Witness>({
-    id: 'wit-primary',
+  const createBlankWitness = (id: string, order: number): Witness => ({
+    id,
     name: '',
+    fatherName: '',
     address: '',
-    order: 0,
+    citizenship: '',
+    jariJilla: '',
+    order,
   });
-  const [additionalWitnesses, setAdditionalWitnesses] = useState<Witness[]>([]);
-  const [selectedObjectives, setSelectedObjectives] = useState<string[]>([]);
-  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+
+  const [formData, setFormData] = useState<{
+    englishName: string;
+    nepaliName: string;
+    registrationDate: string;
+    ownerType: 'SINGLE' | 'MULTIPLE';
+  }>(() => ({
+    englishName: company?.englishName || '',
+    nepaliName: company?.nepaliName || '',
+    registrationDate: company?.registrationDate
+      ? (typeof company.registrationDate === 'string'
+          ? company.registrationDate.split('T')[0]
+          : new Date(company.registrationDate).toISOString().split('T')[0])
+      : '',
+    ownerType: company?.ownerType || 'SINGLE',
+  }));
+
+  const [owners, setOwners] = useState<Owner[]>(() => {
+    if (company && company.owners.length > 0) {
+      return company.owners;
+    }
+
+    return [createBlankOwner('own-0', 0)];
+  });
+
+  const [witnesses, setWitnesses] = useState<Witness[]>(() => {
+    if (company && company.witnesses.length > 0) {
+      return company.witnesses;
+    }
+
+    return [createBlankWitness('wit-0', 0)];
+  });
+
+  const [selectedObjectives, setSelectedObjectives] = useState<string[]>(() =>
+    company?.objectives ? company.objectives.map((objective) => objective.sourceObjectiveId || '') : []
+  );
+
+  const [variableValues, setVariableValues] = useState<Record<string, string>>(() => {
+    const initialValues = Object.fromEntries(
+      variables.map((variable) => [variable.id, ''])
+    ) as Record<string, string>;
+
+    if (!company) {
+      return initialValues;
+    }
+
+    return company.variableValues.reduce((accumulator, entry) => {
+      accumulator[entry.variableId] = entry.value;
+      return accumulator;
+    }, initialValues);
+  });
 
   const setOwnerType = (ownerType: 'SINGLE' | 'MULTIPLE') => {
     setFormData((current) => ({ ...current, ownerType }));
 
     if (ownerType === 'SINGLE') {
-      setOwners((current) => current.slice(0, 1));
-    }
-  };
-
-  const setSingleOwnerField = (field: 'name' | 'address', value: string) => {
-    setOwners((current) => {
-      const existing = current[0];
-
-      if (!existing) {
-        return [
-          {
-            id: `own-${Date.now()}`,
-            name: field === 'name' ? value : '',
-            address: field === 'address' ? value : '',
-            order: 0,
-          },
-        ];
-      }
-
-      return [
-        {
-          ...existing,
-          [field]: value,
-          order: 0,
-        },
-      ];
-    });
-  };
-
-  const clearSingleOwner = () => {
-    setOwners([]);
-  };
-
-  useEffect(() => {
-    const initialValues = Object.fromEntries(
-      variables.map((variable) => [variable.id, ''])
-    ) as Record<string, string>;
-
-    if (company) {
-      setFormData({
-        name: company.name,
-        registrationDate: company.registrationDate
-          ? (typeof company.registrationDate === 'string'
-              ? company.registrationDate.split('T')[0]
-              : new Date(company.registrationDate).toISOString().split('T')[0])
-          : '',
-        ownerType: company.ownerType,
-      });
-      setOwners(company.owners || []);
-      setPrimaryWitness(
-        company.witnesses?.[0] || {
-          id: 'wit-primary',
-          name: '',
-          address: '',
-          order: 0,
-        }
-      );
-      setAdditionalWitnesses(company.witnesses ? company.witnesses.slice(1) : []);
-      setSelectedObjectives(
-        company.objectives ? company.objectives.map((o) => o.sourceObjectiveId || '') : []
-      );
-      setVariableValues(
-        company.variableValues.reduce((accumulator, entry) => {
-          accumulator[entry.variableId] = entry.value;
-          return accumulator;
-        }, initialValues)
-      );
+      setOwners((current) => (current.length > 0 ? current.slice(0, 1) : [createBlankOwner('own-0', 0)]));
+      setWitnesses((current) => (current.length > 0 ? current : [createBlankWitness('wit-0', 0)]));
       return;
     }
-    setVariableValues(initialValues);
-  }, [company, variables]);
 
+    setOwners((current) => (current.length > 0 ? current : [createBlankOwner('own-0', 0), createBlankOwner('own-1', 1)]));
+  };
+
+  // Build runtime values from current form state (owners, witnesses, objectives)
+  const runtimeValues = buildCompanyRuntimeVariableValues({
+    englishName: formData.englishName,
+    nepaliName: formData.nepaliName,
+    ownerType: formData.ownerType,
+    registrationDate: formData.registrationDate,
+    owners,
+    witnesses,
+    objectives: selectedObjectives.map((id) => ({ text: objectives.find((o) => o.id === id)?.text || '' })),
+  });
+
+  const resolvedVariableValues = variables.map((variable) => ({
+    variableId: variable.id,
+    value: variableValues[variable.id] || runtimeValues[variable.key] || '',
+  }));
+
+  // Sync variables that correspond to company runtime keys so users are not asked for them
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const formattedCompany = {
-      name: formData.name,
+      englishName: formData.englishName,
+      nepaliName: formData.nepaliName || null,
       ownerType: formData.ownerType,
       registrationDate: formData.registrationDate || null,
       owners: owners.map((o, idx) => ({
         name: o.name,
+        fatherName: o.fatherName || null,
         address: o.address || null,
-        sharePercentage: o.sharePercentage || null,
+        citizenship: o.citizenship || null,
+        jariJilla: o.jariJilla || null,
+        shares: o.shares || null,
+        sharePercentage:
+          o.sharePercentage !== null && o.sharePercentage !== undefined
+            ? o.sharePercentage
+            : null,
         order: idx,
       })),
-      witnesses: [primaryWitness, ...additionalWitnesses].map((w, idx) => ({
+      witnesses: witnesses.map((w, idx) => ({
         name: w.name,
+        fatherName: w.fatherName || null,
         address: w.address || null,
+        citizenship: w.citizenship || null,
+        jariJilla: w.jariJilla || null,
         order: idx,
       })),
       objectives: selectedObjectives.map((objId, idx) => ({
@@ -142,286 +350,303 @@ export function CompanyForm({
         text: objectives.find((o) => o.id === objId)?.text || '',
         order: idx,
       })),
-      variableValues: variables.map((variable) => ({
-        variableId: variable.id,
-        value: variableValues[variable.id] || '',
-      })),
+      variableValues: resolvedVariableValues,
     };
 
     onSubmit(formattedCompany);
   };
 
+  const totalVariableFields = variables.length;
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <Link href="/companies">
-        <Button variant="ghost" className="mb-4 text-foreground hover:bg-slate-100 dark:hover:bg-slate-800">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Companies
-        </Button>
-      </Link>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h2 className="text-xl font-bold text-foreground mb-4">Basic Information</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Company Name *
-              </label>
-              <Input
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                required
-                className="bg-white dark:bg-slate-800"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Registration Date
-              </label>
-              <Input
-                type="date"
-                value={formData.registrationDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, registrationDate: e.target.value })
-                }
-                className="bg-white dark:bg-slate-800 text-foreground"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Ownership Type */}
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h2 className="text-xl font-bold text-foreground mb-4">Ownership Structure</h2>
-          <div className="space-y-4">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="ownershipType"
-                checked={formData.ownerType === 'SINGLE'}
-                onChange={() => setOwnerType('SINGLE')}
-                className="w-4 h-4 accent-blue-600"
-              />
-              <span className="text-foreground">Single Owner</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="ownershipType"
-                checked={formData.ownerType === 'MULTIPLE'}
-                onChange={() => setOwnerType('MULTIPLE')}
-                className="w-4 h-4 accent-blue-600"
-              />
-              <span className="text-foreground">Multiple Owners</span>
-            </label>
-          </div>
-        </div>
-
-        {/* Owners */}
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          {formData.ownerType === 'SINGLE' ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-medium text-foreground">Owner</h3>
-                  <p className="text-xs text-slate-500">Single owner mode allows exactly one owner.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={clearSingleOwner}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-foreground transition-colors"
-                  aria-label="Clear owner"
-                >
-                  <X className="h-4 w-4" />
-                  Clear
-                </button>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Owner Name *
-                </label>
-                <Input
-                  value={owners[0]?.name || ''}
-                  onChange={(e) => setSingleOwnerField('name', e.target.value)}
-                  placeholder="Enter owner name"
-                  className="bg-white dark:bg-slate-800"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Address (optional)
-                </label>
-                <Input
-                  value={owners[0]?.address || ''}
-                  onChange={(e) => setSingleOwnerField('address', e.target.value)}
-                  placeholder="Enter owner address"
-                  className="bg-white dark:bg-slate-800"
-                />
-              </div>
-            </div>
-          ) : (
-            <DynamicList
-              items={owners}
-              onAdd={(name, address) => {
-                setOwners([
-                  ...owners,
-                  { id: `own-${Date.now()}`, name, address, order: owners.length },
-                ]);
-              }}
-              onRemove={(id) => setOwners(owners.filter((o) => o.id !== id))}
-              label="Owners"
-              showAddress={true}
-            />
-          )}
-        </div>
-
-        {/* Witnesses */}
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-xl font-bold text-foreground mb-4">Primary Witness</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Witness Name *
-                  </label>
-                  <Input
-                    value={primaryWitness.name}
-                    onChange={(e) =>
-                      setPrimaryWitness((current) => ({ ...current, name: e.target.value }))
-                    }
-                    placeholder="Enter witness name"
-                    className="bg-white dark:bg-slate-800"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Address (optional)
-                  </label>
-                  <Input
-                    value={primaryWitness.address || ''}
-                    onChange={(e) =>
-                      setPrimaryWitness((current) => ({ ...current, address: e.target.value }))
-                    }
-                    placeholder="Enter witness address"
-                    className="bg-white dark:bg-slate-800"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <DynamicList
-              items={additionalWitnesses}
-              onAdd={(name, address) => {
-                setAdditionalWitnesses([
-                  ...additionalWitnesses,
-                  { id: `wit-${Date.now()}`, name, address, order: additionalWitnesses.length + 1 },
-                ]);
-              }}
-              onRemove={(id) => setAdditionalWitnesses(additionalWitnesses.filter((w) => w.id !== id))}
-              label="Additional Witnesses"
-              showAddress={true}
-            />
-          </div>
-        </div>
-
-        {/* Objectives */}
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h2 className="text-xl font-bold text-foreground mb-4">Business Objectives</h2>
-          <div className="space-y-2">
-            {objectives.map((obj) => (
-              <label
-                key={obj.id}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedObjectives.includes(obj.id)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedObjectives([...selectedObjectives, obj.id]);
-                    } else {
-                      setSelectedObjectives(
-                        selectedObjectives.filter((o) => o !== obj.id)
-                      );
-                    }
-                  }}
-                  className="w-4 h-4 accent-blue-600"
-                />
-                <div>
-                  <p className="font-medium text-foreground">{obj.text}</p>
-                </div>
-              </label>
-            ))}
-            {objectives.length === 0 && (
-              <p className="text-sm text-slate-500">No objectives configured yet. Add them in the Objectives section.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Variable Values */}
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h2 className="text-xl font-bold text-foreground mb-4">Variable Values</h2>
-          {variables.length > 0 ? (
-            <div className="space-y-4">
-              {variables.map((variable) => {
-                const inputType = variable.type === 'date' ? 'date' : variable.type === 'number' ? 'number' : 'text';
-
-                return (
-                  <div key={variable.id}>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      {variable.label}
-                    </label>
-                    {variable.type === 'list' ? (
-                      <textarea
-                        value={variableValues[variable.id] || ''}
-                        onChange={(e) =>
-                          setVariableValues((current) => ({
-                            ...current,
-                            [variable.id]: e.target.value,
-                          }))
-                        }
-                        placeholder={`Enter ${variable.key}`}
-                        className="w-full min-h-24 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-600 resize-y"
-                      />
-                    ) : (
-                      <Input
-                        type={inputType}
-                        value={variableValues[variable.id] || ''}
-                        onChange={(e) =>
-                          setVariableValues((current) => ({
-                            ...current,
-                            [variable.id]: e.target.value,
-                          }))
-                        }
-                        placeholder={`Enter ${variable.key}`}
-                        className="bg-white dark:bg-slate-800"
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-sm text-slate-500">No variables configured yet.</p>
-          )}
-        </div>
-
-        {/* Submit */}
-        <div className="flex gap-3 justify-end">
-          <Link href="/companies">
-            <Button variant="outline" className="border-slate-200 dark:border-slate-700 text-foreground hover:bg-slate-100 dark:hover:bg-slate-800">Cancel</Button>
-          </Link>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white" type="submit">
-            {company ? 'Update Company' : 'Create Company'}
+    <div className="mx-auto max-w-7xl">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <Link href="/companies">
+          <Button variant="ghost" className="px-0 text-slate-600 hover:bg-transparent hover:text-slate-950">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Companies
           </Button>
+        </Link>
+        <div className="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-slate-500 shadow-sm sm:block">
+          Separated company form
         </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-6">
+          <SectionCard
+            title="Company Detail"
+            description="Keep the company identity fields grouped together for quick entry and easier review."
+            icon={<Building2 className="h-5 w-5" />}
+          >
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div>
+                <FieldLabel>Company Name (English) *</FieldLabel>
+                <Input
+                  value={formData.englishName}
+                  onChange={(event) => setFormData({ ...formData, englishName: event.target.value })}
+                  required
+                  placeholder="Company name in English"
+                  className="bg-white"
+                />
+              </div>
+              <div>
+                <FieldLabel>Company Name (Nepali)</FieldLabel>
+                <Input
+                  value={formData.nepaliName}
+                  onChange={(event) => setFormData({ ...formData, nepaliName: event.target.value })}
+                  placeholder="Company name in Nepali"
+                  className="bg-white"
+                />
+              </div>
+              <div>
+                <FieldLabel>Registration Date</FieldLabel>
+                <Input
+                  type="date"
+                  value={formData.registrationDate}
+                  onChange={(event) =>
+                    setFormData({ ...formData, registrationDate: event.target.value })
+                  }
+                  className="bg-white"
+                />
+              </div>
+              <div>
+                <FieldLabel>Ownership Structure</FieldLabel>
+                <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                  <button
+                    type="button"
+                    onClick={() => setOwnerType('SINGLE')}
+                    className={`rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                      formData.ownerType === 'SINGLE'
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'bg-white text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Single Owner
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOwnerType('MULTIPLE')}
+                    className={`rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                      formData.ownerType === 'MULTIPLE'
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'bg-white text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Multiple Owners
+                  </button>
+                </div>
+              </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title="Owners (Shareholders)"
+            description="Enter the owner details in clearly separated blocks, matching the document placeholders."
+            icon={<Users className="h-5 w-5" />}
+          >
+            <div className="space-y-4">
+              {owners.map((owner, index) => (
+                <PersonEditor
+                  key={owner.id}
+                  label={`Owner ${index + 1}`}
+                  person={owner}
+                  onChange={(nextOwner) =>
+                    setOwners((current) => current.map((item, itemIndex) => (itemIndex === index ? (nextOwner as Owner) : item)))
+                  }
+                  onRemove={
+                    formData.ownerType === 'MULTIPLE' && owners.length > 1
+                      ? () => setOwners((current) => current.filter((_, itemIndex) => itemIndex !== index))
+                      : undefined
+                  }
+                  removable={formData.ownerType === 'MULTIPLE' && owners.length > 1}
+                  showShares={true}
+                />
+              ))}
+
+              {formData.ownerType === 'MULTIPLE' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-dashed border-slate-300 bg-white py-6 text-slate-700 hover:bg-slate-50"
+                  onClick={() =>
+                    setOwners((current) => [
+                      ...current,
+                      createBlankOwner(`own-${Date.now()}`, current.length),
+                    ])
+                  }
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Owner
+                </Button>
+              )}
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title="Sakshi (Witnesses)"
+            description="Keep witness data separated and easy to scan while preparing documents."
+            icon={<UserRound className="h-5 w-5" />}
+          >
+            <div className="space-y-4">
+              {witnesses.map((witness, index) => (
+                <PersonEditor
+                  key={witness.id}
+                  label={index === 0 ? 'Primary Witness' : `Witness ${index + 1}`}
+                  person={witness}
+                  onChange={(nextWitness) =>
+                    setWitnesses((current) => current.map((item, itemIndex) => (itemIndex === index ? (nextWitness as Witness) : item)))
+                  }
+                  onRemove={witnesses.length > 1 ? () => setWitnesses((current) => current.filter((_, itemIndex) => itemIndex !== index)) : undefined}
+                  removable={witnesses.length > 1}
+                />
+              ))}
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-dashed border-slate-300 bg-white py-6 text-slate-700 hover:bg-slate-50"
+                onClick={() =>
+                  setWitnesses((current) => [
+                    ...current,
+                    createBlankWitness(`wit-${Date.now()}`, current.length),
+                  ])
+                }
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Witness
+              </Button>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title="Business Objectives"
+            description="Pick the objectives that should be merged into the generated document."
+            icon={<FileText className="h-5 w-5" />}
+          >
+            <div className="space-y-3">
+              {objectives.length > 0 ? (
+                objectives.map((obj) => (
+                  <label
+                    key={obj.id}
+                    className="flex cursor-pointer items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 transition-colors hover:bg-slate-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedObjectives.includes(obj.id)}
+                      onChange={(event) => {
+                        if (event.target.checked) {
+                          setSelectedObjectives([...selectedObjectives, obj.id]);
+                        } else {
+                          setSelectedObjectives(selectedObjectives.filter((id) => id !== obj.id));
+                        }
+                      }}
+                      className="mt-1 h-4 w-4 accent-slate-900"
+                    />
+                    <div>
+                      <p className="font-medium text-slate-900">{obj.text}</p>
+                    </div>
+                  </label>
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">No objectives configured yet. Add them in the Objectives section.</p>
+              )}
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title="Variable Values"
+            description="Fill any remaining document variables that are not derived automatically from the company record."
+            icon={<BadgeInfo className="h-5 w-5" />}
+          >
+            {variables.length > 0 ? (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {variables.map((variable) => {
+                  const inputType = variable.type === 'date' ? 'date' : variable.type === 'number' ? 'number' : 'text';
+                  const derivedValue = runtimeValues[variable.key] || '';
+
+                  return (
+                    <div key={variable.id} className={variable.type === 'list' ? 'lg:col-span-2' : ''}>
+                      <FieldLabel>{variable.label}</FieldLabel>
+                      {variable.type === 'list' ? (
+                        <textarea
+                          value={variableValues[variable.id] || derivedValue}
+                          onChange={(event) =>
+                            setVariableValues((current) => ({
+                              ...current,
+                              [variable.id]: event.target.value,
+                            }))
+                          }
+                          placeholder={`Enter ${variable.key}`}
+                          className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition-shadow focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
+                        />
+                      ) : (
+                        <Input
+                          type={inputType}
+                          value={variableValues[variable.id] || derivedValue}
+                          onChange={(event) =>
+                            setVariableValues((current) => ({
+                              ...current,
+                              [variable.id]: event.target.value,
+                            }))
+                          }
+                          placeholder={`Enter ${variable.key}`}
+                          className="bg-white"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">No variables configured yet.</p>
+            )}
+          </SectionCard>
+        </div>
+
+        <aside className="xl:sticky xl:top-6 xl:self-start">
+          <div className="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-2xl shadow-slate-300/40">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Live summary</p>
+            <h3 className="mt-2 text-2xl font-semibold">Ready to generate</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Keep the form sections separated so each document part can be scanned quickly before saving.
+            </p>
+
+            <div className="mt-6 space-y-3 text-sm">
+              <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
+                <span className="text-slate-400">Company name</span>
+                <span className="font-medium text-white">{formData.englishName || 'Not set'}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
+                <span className="text-slate-400">Owners</span>
+                <span className="font-medium text-white">{owners.length}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
+                <span className="text-slate-400">Witnesses</span>
+                <span className="font-medium text-white">{witnesses.length}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
+                <span className="text-slate-400">Selected objectives</span>
+                <span className="font-medium text-white">{selectedObjectives.length}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
+                <span className="text-slate-400">Variable fields</span>
+                <span className="font-medium text-white">{totalVariableFields}</span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3">
+              <Button className="h-12 bg-white text-slate-950 hover:bg-slate-100" type="submit">
+                {company ? 'Update Company' : 'Create Company'}
+              </Button>
+              <Link href="/companies">
+                <Button variant="outline" className="h-12 w-full border-slate-700 bg-transparent text-white hover:bg-white/10">
+                  Cancel
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </aside>
       </form>
     </div>
   );

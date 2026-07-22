@@ -42,7 +42,7 @@ export default function CompanyDetailPage() {
   return (
     <div className="h-full flex flex-col">
       <PageHeader
-        title={`Edit Company: ${company.name}`}
+        title={`Edit Company: ${company.englishName}`}
         description="Update company information"
       />
       <div className="flex-1 p-6">

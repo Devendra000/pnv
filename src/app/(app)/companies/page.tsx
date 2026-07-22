@@ -16,7 +16,7 @@ export default function CompaniesPage() {
 
   const filteredCompanies = useMemo(() => {
     return companies.filter((company) => {
-      const matchesSearch = company.name
+      const matchesSearch = company.englishName
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
       return matchesSearch;
@@ -25,7 +25,7 @@ export default function CompaniesPage() {
 
   const columns: Column<Company>[] = [
     {
-      key: 'name',
+      key: 'englishName',
       label: 'Company Name',
       render: (value) => (
         <span className="font-medium text-foreground">{value}</span>

@@ -3,7 +3,11 @@ import { OwnerType } from '@/generated/prisma/client';
 export interface Owner {
   id: string;
   name: string;
+  fatherName?: string | null;
   address?: string | null;
+  citizenship?: string | null;
+  jariJilla?: string | null;
+  shares?: string | null;
   sharePercentage?: number | null;
   order: number;
 }
@@ -11,7 +15,10 @@ export interface Owner {
 export interface Witness {
   id: string;
   name: string;
+  fatherName?: string | null;
   address?: string | null;
+  citizenship?: string | null;
+  jariJilla?: string | null;
   order: number;
 }
 
@@ -40,7 +47,8 @@ export interface CompanyVariableValue {
 
 export interface Company {
   id: string;
-  name: string;
+  englishName: string;
+  nepaliName?: string | null;
   ownerType: OwnerType; // 'SINGLE' | 'MULTIPLE'
   registrationDate?: string | Date | null;
   createdAt: string | Date;

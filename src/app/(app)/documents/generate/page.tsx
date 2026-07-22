@@ -212,7 +212,7 @@ export default function GenerateDocumentPage() {
 
     await addDocument({
       companyId: selectedCompanyRecord.id,
-      companyName: selectedCompanyRecord.name,
+      companyName: selectedCompanyRecord.englishName,
       templateId: selectedTemplateRecord.id,
       templateName: selectedTemplateRecord.name,
       content: previewContent,
@@ -262,7 +262,7 @@ export default function GenerateDocumentPage() {
                       <option value="">Choose a company...</option>
                       {companies.map((company) => (
                         <option key={company.id} value={company.id}>
-                          {company.name}
+                          {company.englishName}
                         </option>
                       ))}
                     </select>
@@ -310,7 +310,7 @@ export default function GenerateDocumentPage() {
                         <div>
                           <p className="text-muted-foreground mb-1">Name</p>
                           <p className="text-foreground font-medium">
-                            {selectedCompanyRecord.name}
+                            {selectedCompanyRecord.englishName}
                           </p>
                         </div>
                         <div>
