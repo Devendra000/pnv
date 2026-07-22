@@ -73,15 +73,15 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 shadow-sm shadow-slate-200/50 backdrop-blur">
-      <div className="border-b border-slate-200/80 bg-slate-50/80 px-6 py-5">
+    <section className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/60 shadow-sm shadow-black/20 backdrop-blur">
+      <div className="border-b border-slate-800 bg-slate-900/40 px-6 py-5">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
+          <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-800 text-white shadow-sm">
             {icon}
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-            <p className="mt-1 text-sm text-slate-500">{description}</p>
+            <h2 className="text-lg font-semibold text-white">{title}</h2>
+            <p className="mt-1 text-sm text-slate-400">{description}</p>
           </div>
         </div>
       </div>
@@ -91,7 +91,7 @@ function SectionCard({
 }
 
 function FieldLabel({ children }: { children: ReactNode }) {
-  return <label className="mb-2 block text-sm font-medium text-slate-700">{children}</label>;
+  return <label className="mb-2 block text-sm font-medium text-slate-300">{children}</label>;
 }
 
 function PersonEditor({
@@ -110,17 +110,17 @@ function PersonEditor({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+    <div className="rounded-2xl border border-slate-800 bg-slate-800/30 p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-900">{label}</p>
-          <p className="text-xs text-slate-500">Fill the details that will appear in documents.</p>
+          <p className="text-sm font-semibold text-white">{label}</p>
+          <p className="text-xs text-slate-400">Fill the details that will appear in documents.</p>
         </div>
         {removable && onRemove ? (
           <button
             type="button"
             onClick={onRemove}
-            className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
+            className="inline-flex items-center gap-1 rounded-full border border-rose-900/60 bg-rose-950/30 px-3 py-1.5 text-sm font-medium text-rose-400 transition-colors hover:bg-rose-950/60"
           >
             <Trash2 className="h-4 w-4" />
             Remove
@@ -136,7 +136,7 @@ function PersonEditor({
             onChange={(event) => updateField('name', event.target.value)}
             placeholder="Full name"
             required
-            className="bg-white"
+            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
         <div>
@@ -145,7 +145,7 @@ function PersonEditor({
             value={person.fatherName || ''}
             onChange={(event) => updateField('fatherName', event.target.value)}
             placeholder="Father's name"
-            className="bg-white"
+            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
         <div className="lg:col-span-2">
@@ -154,7 +154,7 @@ function PersonEditor({
             value={person.address || ''}
             onChange={(event) => updateField('address', event.target.value)}
             placeholder="Address"
-            className="bg-white"
+            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
         <div>
@@ -163,7 +163,7 @@ function PersonEditor({
             value={person.citizenship || ''}
             onChange={(event) => updateField('citizenship', event.target.value)}
             placeholder="Citizenship number"
-            className="bg-white"
+            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
         <div>
@@ -172,7 +172,7 @@ function PersonEditor({
             value={person.jariJilla || ''}
             onChange={(event) => updateField('jariJilla', event.target.value)}
             placeholder="District"
-            className="bg-white"
+            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
         {showShares && (
@@ -183,7 +183,7 @@ function PersonEditor({
                 value={(person as Owner).shares || ''}
                 onChange={(event) => updateField('shares', event.target.value)}
                 placeholder="Shares"
-                className="bg-white"
+                className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
               />
             </div>
             <div>
@@ -198,7 +198,7 @@ function PersonEditor({
                   )
                 }
                 placeholder="Share percentage"
-                className="bg-white"
+                className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
               />
             </div>
           </>
@@ -362,12 +362,12 @@ export function CompanyForm({
     <div className="mx-auto max-w-7xl">
       <div className="mb-6 flex items-center justify-between gap-4">
         <Link href="/companies">
-          <Button variant="ghost" className="px-0 text-slate-600 hover:bg-transparent hover:text-slate-950">
+          <Button variant="ghost" className="px-0 text-slate-400 hover:bg-transparent hover:text-white">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Companies
           </Button>
         </Link>
-        <div className="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-slate-500 shadow-sm sm:block">
+        <div className="hidden rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-slate-400 shadow-sm sm:block">
           Separated company form
         </div>
       </div>
@@ -387,7 +387,7 @@ export function CompanyForm({
                   onChange={(event) => setFormData({ ...formData, englishName: event.target.value })}
                   required
                   placeholder="Company name in English"
-                  className="bg-white"
+                  className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
                 />
               </div>
               <div>
@@ -396,7 +396,7 @@ export function CompanyForm({
                   value={formData.nepaliName}
                   onChange={(event) => setFormData({ ...formData, nepaliName: event.target.value })}
                   placeholder="Company name in Nepali"
-                  className="bg-white"
+                  className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
                 />
               </div>
               <div>
@@ -407,19 +407,19 @@ export function CompanyForm({
                   onChange={(event) =>
                     setFormData({ ...formData, registrationDate: event.target.value })
                   }
-                  className="bg-white"
+                  className="border-slate-700 bg-slate-950/60 text-white [color-scheme:dark]"
                 />
               </div>
               <div>
                 <FieldLabel>Ownership Structure</FieldLabel>
-                <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-700 bg-slate-950/40 p-2">
                   <button
                     type="button"
                     onClick={() => setOwnerType('SINGLE')}
                     className={`rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
                       formData.ownerType === 'SINGLE'
-                        ? 'bg-slate-900 text-white shadow-sm'
-                        : 'bg-white text-slate-600 hover:text-slate-900'
+                        ? 'bg-slate-100 text-slate-900 shadow-sm'
+                        : 'bg-transparent text-slate-400 hover:text-white'
                     }`}
                   >
                     Single Owner
@@ -429,8 +429,8 @@ export function CompanyForm({
                     onClick={() => setOwnerType('MULTIPLE')}
                     className={`rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
                       formData.ownerType === 'MULTIPLE'
-                        ? 'bg-slate-900 text-white shadow-sm'
-                        : 'bg-white text-slate-600 hover:text-slate-900'
+                        ? 'bg-slate-100 text-slate-900 shadow-sm'
+                        : 'bg-transparent text-slate-400 hover:text-white'
                     }`}
                   >
                     Multiple Owners
@@ -468,7 +468,7 @@ export function CompanyForm({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-dashed border-slate-300 bg-white py-6 text-slate-700 hover:bg-slate-50"
+                  className="w-full border-dashed border-slate-700 bg-transparent py-6 text-slate-300 hover:bg-slate-800/40"
                   onClick={() =>
                     setOwners((current) => [
                       ...current,
@@ -505,7 +505,7 @@ export function CompanyForm({
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-dashed border-slate-300 bg-white py-6 text-slate-700 hover:bg-slate-50"
+                className="w-full border-dashed border-slate-700 bg-transparent py-6 text-slate-300 hover:bg-slate-800/40"
                 onClick={() =>
                   setWitnesses((current) => [
                     ...current,
@@ -529,7 +529,7 @@ export function CompanyForm({
                 objectives.map((obj) => (
                   <label
                     key={obj.id}
-                    className="flex cursor-pointer items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 transition-colors hover:bg-slate-50"
+                    className="flex cursor-pointer items-start gap-4 rounded-2xl border border-slate-800 bg-slate-800/30 p-4 transition-colors hover:bg-slate-800/50"
                   >
                     <input
                       type="checkbox"
@@ -541,15 +541,15 @@ export function CompanyForm({
                           setSelectedObjectives(selectedObjectives.filter((id) => id !== obj.id));
                         }
                       }}
-                      className="mt-1 h-4 w-4 accent-slate-900"
+                      className="mt-1 h-4 w-4 accent-slate-100"
                     />
                     <div>
-                      <p className="font-medium text-slate-900">{obj.text}</p>
+                      <p className="font-medium text-white">{obj.text}</p>
                     </div>
                   </label>
                 ))
               ) : (
-                <p className="text-sm text-slate-500">No objectives configured yet. Add them in the Objectives section.</p>
+                <p className="text-sm text-slate-400">No objectives configured yet. Add them in the Objectives section.</p>
               )}
             </div>
           </SectionCard>
@@ -578,7 +578,7 @@ export function CompanyForm({
                             }))
                           }
                           placeholder={`Enter ${variable.key}`}
-                          className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition-shadow focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
+                          className="min-h-28 w-full rounded-2xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-white placeholder:text-slate-500 outline-none transition-shadow focus:border-slate-500 focus:ring-2 focus:ring-slate-700"
                         />
                       ) : (
                         <Input
@@ -591,7 +591,7 @@ export function CompanyForm({
                             }))
                           }
                           placeholder={`Enter ${variable.key}`}
-                          className="bg-white"
+                          className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
                         />
                       )}
                     </div>
@@ -599,16 +599,16 @@ export function CompanyForm({
                 })}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">No variables configured yet.</p>
+              <p className="text-sm text-slate-400">No variables configured yet.</p>
             )}
           </SectionCard>
         </div>
 
-        <aside className="xl:sticky xl:top-6 xl:self-start">
-          <div className="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-2xl shadow-slate-300/40">
+        <aside className="sticky top-6 self-start">
+          <div className="rounded-3xl border border-slate-800 bg-slate-950 p-6 text-white shadow-2xl shadow-black/40">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Live summary</p>
             <h3 className="mt-2 text-2xl font-semibold">Ready to generate</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
+            <p className="mt-2 text-sm leading-6 text-slate-400">
               Keep the form sections separated so each document part can be scanned quickly before saving.
             </p>
 
