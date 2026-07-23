@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Company,
   CompanyObjectiveTemplate,
+  ObjectiveCategory,
   Variable,
   Template,
   Document,
@@ -15,6 +16,9 @@ import {
   updateCompanyAction,
   deleteCompanyAction,
   saveCompanyVariableValuesAction,
+  createObjectiveCategoryAction,
+  updateObjectiveCategoryAction,
+  deleteObjectiveCategoryAction,
   createObjectiveAction,
   updateObjectiveAction,
   deleteObjectiveAction,
@@ -30,6 +34,7 @@ import {
 
 export const useAppData = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [objectiveCategories, setObjectiveCategories] = useState<ObjectiveCategory[]>([]);
   const [objectives, setObjectives] = useState<CompanyObjectiveTemplate[]>([]);
   const [variables, setVariables] = useState<Variable[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -44,6 +49,7 @@ export const useAppData = () => {
         const data = await fetchAppData();
         if (active) {
           setCompanies(data.companies);
+          setObjectiveCategories(data.objectiveCategories);
           setObjectives(data.objectives);
           setVariables(data.variables);
           setTemplates(data.templates);
@@ -126,10 +132,46 @@ export const useAppData = () => {
     }
   }, []);
 
+  // Objective Category operations
+  const addObjectiveCategory = useCallback(async (cat: { name: string; description?: string; order?: number }) => {
+    try {
+      const created = await createObjectiveCategoryAction(cat);
+      setObjectiveCategories((prev) => [...prev, created].sort((a, b) => a.order - b.order));
+    } catch (error) {
+      console.error('Error adding objective category:', error);
+    }
+  }, []);
+
+  const updateObjectiveCategory = useCallback(async (id: string, updates: { name: string; description?: string; order?: number }) => {
+    try {
+      const updated = await updateObjectiveCategoryAction(id, updates);
+      setObjectiveCategories((prev) =>
+        prev.map((c) => (c.id === id ? updated : c)).sort((a, b) => a.order - b.order)
+      );
+      // Re-fetch app data to update category name on objectives
+      const data = await fetchAppData();
+      setObjectives(data.objectives);
+    } catch (error) {
+      console.error('Error updating objective category:', error);
+    }
+  }, []);
+
+  const deleteObjectiveCategory = useCallback(async (id: string) => {
+    try {
+      await deleteObjectiveCategoryAction(id);
+      setObjectiveCategories((prev) => prev.filter((c) => c.id !== id));
+      // Re-fetch objectives to update null category relations
+      const data = await fetchAppData();
+      setObjectives(data.objectives);
+    } catch (error) {
+      console.error('Error deleting objective category:', error);
+    }
+  }, []);
+
   // Objectives operations
   const addObjective = useCallback(async (objective: Omit<CompanyObjectiveTemplate, 'id' | 'createdAt'>) => {
     try {
-      const created = await createObjectiveAction(objective.text);
+      const created = await createObjectiveAction(objective.text, objective.categoryId);
       setObjectives((prev) => [...prev, created]);
     } catch (error) {
       console.error('Error adding objective:', error);
@@ -138,16 +180,18 @@ export const useAppData = () => {
 
   const updateObjective = useCallback(async (id: string, updates: Partial<CompanyObjectiveTemplate>) => {
     try {
-      if (updates.text !== undefined) {
-        const updated = await updateObjectiveAction(id, updates.text);
-        setObjectives((prev) =>
-          prev.map((o) => (o.id === id ? updated : o))
-        );
-      }
+      const existing = objectives.find((o) => o.id === id);
+      const text = updates.text !== undefined ? updates.text : existing?.text || '';
+      const categoryId = updates.categoryId !== undefined ? updates.categoryId : existing?.categoryId;
+
+      const updated = await updateObjectiveAction(id, text, categoryId);
+      setObjectives((prev) =>
+        prev.map((o) => (o.id === id ? updated : o))
+      );
     } catch (error) {
       console.error('Error updating objective:', error);
     }
-  }, []);
+  }, [objectives]);
 
   const deleteObjective = useCallback(async (id: string) => {
     try {
@@ -276,6 +320,7 @@ export const useAppData = () => {
 
   return {
     companies,
+    objectiveCategories,
     objectives,
     variables,
     templates,
@@ -287,6 +332,9 @@ export const useAppData = () => {
     updateCompany,
     saveCompanyVariableValues,
     deleteCompany,
+    addObjectiveCategory,
+    updateObjectiveCategory,
+    deleteObjectiveCategory,
     addObjective,
     updateObjective,
     deleteObjective,

@@ -61,10 +61,23 @@ model CompanyWitness {
   @@map("company_witnesses")
 }
 
+model ObjectiveCategory {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  order       Int         @default(0)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  objectives  Objective[]
+
+  @@map("objective_categories")
+}
+
 model Objective {
-  id        String   @id @default(cuid())
-  text      String
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String             @id @default(cuid())
+  categoryId String?            @map("category_id")
+  category   ObjectiveCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  text       String
+  createdAt  DateTime           @default(now()) @map("created_at")
 
   @@map("objectives")
 }

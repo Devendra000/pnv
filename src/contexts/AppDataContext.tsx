@@ -5,6 +5,7 @@ import { useAppData } from '@/hooks/useAppData';
 import {
   Company,
   CompanyObjectiveTemplate,
+  ObjectiveCategory,
   Variable,
   Template,
   Document,
@@ -14,6 +15,7 @@ import { CompanyTemplateData } from '@/lib/companyVariables';
 
 interface AppDataContextType {
   companies: Company[];
+  objectiveCategories: ObjectiveCategory[];
   objectives: CompanyObjectiveTemplate[];
   variables: Variable[];
   templates: Template[];
@@ -25,6 +27,9 @@ interface AppDataContextType {
   updateCompany: (id: string, updates: Partial<Company>) => Promise<void>;
   saveCompanyVariableValues: (companyId: string, values: Array<{ variableId: string; value: string }>) => Promise<unknown>;
   deleteCompany: (id: string) => Promise<void>;
+  addObjectiveCategory: (cat: { name: string; description?: string; order?: number }) => Promise<void>;
+  updateObjectiveCategory: (id: string, updates: { name: string; description?: string; order?: number }) => Promise<void>;
+  deleteObjectiveCategory: (id: string) => Promise<void>;
   addObjective: (objective: Omit<CompanyObjectiveTemplate, 'id' | 'createdAt'>) => Promise<void>;
   updateObjective: (id: string, updates: Partial<CompanyObjectiveTemplate>) => Promise<void>;
   deleteObjective: (id: string) => Promise<void>;

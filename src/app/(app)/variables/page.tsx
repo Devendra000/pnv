@@ -14,14 +14,19 @@ import { Plus, X, Search, Lock, Repeat2 } from 'lucide-react';
 // They are NOT stored in the DB — they're resolved at template-generation time.
 
 const OWNERS_LOOP_FIELDS = [
-  { key: 'sn',                   description: 'Row number (1, 2, 3 …)' },
-  { key: 'owner_name',           description: "Owner's full name" },
-  { key: 'owner_father_name',    description: "Owner's father's name" },
-  { key: 'owner_address',        description: "Owner's address" },
-  { key: 'owner_citizenship',    description: "Owner's citizenship number" },
-  { key: 'owner_jari_jilla',     description: "Owner's citizenship issuing district" },
-  { key: 'owner_shares',         description: "Owner's share amount" },
-  { key: 'owner_share_percentage', description: "Owner's share percentage" },
+  { key: 'sn',                         description: 'Row number (1, 2, 3 …)' },
+  { key: 'owner_name',                 description: "Owner's full name" },
+  { key: 'owner_father_name',          description: "Owner's father's name" },
+  { key: 'owner_address',              description: "Owner's address" },
+  { key: 'owner_citizenship',          description: "Owner's citizenship number" },
+  { key: 'owner_jari_jilla',           description: "Owner's citizenship issuing district" },
+  { key: 'owner_shares',               description: "Owner's share amount" },
+  { key: 'owner_share_percentage',     description: "Owner's share percentage" },
+  { key: 'owner_witness_name',         description: "Name of the witness assigned directly to this owner" },
+  { key: 'owner_witness_father_name',  description: "Father's name of the witness assigned directly to this owner" },
+  { key: 'owner_witness_address',      description: "Address of the witness assigned directly to this owner" },
+  { key: 'owner_witness_citizenship',  description: "Citizenship number of the witness assigned directly to this owner" },
+  { key: 'owner_witness_jari_jilla',   description: "Citizenship issuing district of the witness assigned directly to this owner" },
 ];
 
 const WITNESSES_LOOP_FIELDS = [
@@ -181,7 +186,7 @@ export default function VariablesPage() {
             <div>
               <h2 className="text-base font-semibold text-foreground">Custom Variables</h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Variables you create manually. Use them in templates with <code className="text-xs bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{`{{key}}`}</code>.
+                Variables you create manually. Use them in templates with <code className="text-xs bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{`[key]`}</code>.
               </p>
             </div>
 
@@ -261,7 +266,7 @@ export default function VariablesPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <code className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">{`{{${variable.key}}}`}</code>
+                        <code className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">{`[${variable.key}]`}</code>
                         <span className="rounded-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
                           {variable.type}
                         </span>
@@ -308,7 +313,7 @@ export default function VariablesPage() {
                     <div key={def.key}
                       className="flex items-start gap-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-4 py-2.5"
                     >
-                      <code className="shrink-0 text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">{`{{${def.key}}}`}</code>
+                      <code className="shrink-0 text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">{`[${def.key}]`}</code>
                       <div className="flex-1 min-w-0">
                         <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{def.label}</span>
                         {'description' in def && (
@@ -328,17 +333,17 @@ export default function VariablesPage() {
             <section>
               <div className="mb-1 flex items-center gap-2">
                 <Repeat2 className="w-4 h-4 text-emerald-500" />
-                <h2 className="text-base font-semibold text-foreground">Loop — <code className="text-emerald-600 dark:text-emerald-400">{'{#owners_list}'}</code></h2>
+                <h2 className="text-base font-semibold text-foreground">Loop — <code className="text-emerald-600 dark:text-emerald-400">{'[#owners_list]'}</code></h2>
               </div>
               <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
                 Repeats once per owner. Wrap a table row or paragraph block with the loop tags, then use the fields below inside it.
               </p>
               <div className="mb-4 rounded-lg bg-slate-950 px-4 py-3 text-xs font-mono text-slate-300 overflow-x-auto">
-                <span className="text-emerald-400">{'{#owners_list}'}</span>{'  '}
-                <span className="text-yellow-300">{'{{owner_name}}'}</span>{'  '}
-                <span className="text-yellow-300">{'{{owner_father_name}}'}</span>{'  '}
-                <span className="text-yellow-300">{'{{owner_citizenship}}'}</span>{'  '}
-                <span className="text-emerald-400">{'{/owners_list}'}</span>
+                <span className="text-emerald-400">{'[#owners_list]'}</span>{'  '}
+                <span className="text-yellow-300">{'[owner_name]'}</span>{'  '}
+                <span className="text-yellow-300">{'[owner_father_name]'}</span>{'  '}
+                <span className="text-yellow-300">{'[owner_citizenship]'}</span>{'  '}
+                <span className="text-emerald-400">{'[/owners_list]'}</span>
               </div>
               {filteredOwnersLoop.length === 0 ? (
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-6 text-center text-slate-500">
@@ -357,7 +362,7 @@ export default function VariablesPage() {
                       {filteredOwnersLoop.map((f) => (
                         <tr key={f.key} className="bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                           <td className="px-4 py-2.5">
-                            <code className="text-xs font-mono font-semibold text-yellow-600 dark:text-yellow-400">{`{{${f.key}}}`}</code>
+                            <code className="text-xs font-mono font-semibold text-yellow-600 dark:text-yellow-400">{`[${f.key}]`}</code>
                           </td>
                           <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-400">{f.description}</td>
                         </tr>
@@ -372,17 +377,17 @@ export default function VariablesPage() {
             <section>
               <div className="mb-1 flex items-center gap-2">
                 <Repeat2 className="w-4 h-4 text-violet-500" />
-                <h2 className="text-base font-semibold text-foreground">Loop — <code className="text-violet-600 dark:text-violet-400">{'{#witnesses_list}'}</code></h2>
+                <h2 className="text-base font-semibold text-foreground">Loop — <code className="text-violet-600 dark:text-violet-400">{'[#witnesses_list]'}</code></h2>
               </div>
               <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
                 Repeats once per witness (flat list of all witnesses). Use when you need all witnesses in a table regardless of which owner they belong to.
               </p>
               <div className="mb-4 rounded-lg bg-slate-950 px-4 py-3 text-xs font-mono text-slate-300 overflow-x-auto">
-                <span className="text-violet-400">{'{#witnesses_list}'}</span>{'  '}
-                <span className="text-yellow-300">{'{{witness_name}}'}</span>{'  '}
-                <span className="text-yellow-300">{'{{witness_father_name}}'}</span>{'  '}
-                <span className="text-yellow-300">{'{{witness_citizenship}}'}</span>{'  '}
-                <span className="text-violet-400">{'{/witnesses_list}'}</span>
+                <span className="text-violet-400">{'[#witnesses_list]'}</span>{'  '}
+                <span className="text-yellow-300">{'[witness_name]'}</span>{'  '}
+                <span className="text-yellow-300">{'[witness_father_name]'}</span>{'  '}
+                <span className="text-yellow-300">{'[witness_citizenship]'}</span>{'  '}
+                <span className="text-violet-400">{'[/witnesses_list]'}</span>
               </div>
               {filteredWitnessesLoop.length === 0 ? (
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-6 text-center text-slate-500">
@@ -401,7 +406,7 @@ export default function VariablesPage() {
                       {filteredWitnessesLoop.map((f) => (
                         <tr key={f.key} className="bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                           <td className="px-4 py-2.5">
-                            <code className="text-xs font-mono font-semibold text-yellow-600 dark:text-yellow-400">{`{{${f.key}}}`}</code>
+                            <code className="text-xs font-mono font-semibold text-yellow-600 dark:text-yellow-400">{`[${f.key}]`}</code>
                           </td>
                           <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-400">{f.description}</td>
                         </tr>

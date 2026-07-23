@@ -8,6 +8,7 @@ import path from 'path';
 import {
   Company,
   CompanyObjectiveTemplate,
+  ObjectiveCategory,
   Variable as UIVariable,
   Template,
   Document,
@@ -357,6 +358,7 @@ async function extractTemplateData(relativeUrl: string, variables: UIVariable[])
 // Fetch all app data
 export async function fetchAppData(): Promise<{
   companies: Company[];
+  objectiveCategories: ObjectiveCategory[];
   objectives: CompanyObjectiveTemplate[];
   variables: UIVariable[];
   templates: Template[];
@@ -419,13 +421,52 @@ export async function fetchAppData(): Promise<{
       documentCount: c.documents.length,
     }));
 
-    // 2. Fetch Global Objectives
+    // 2. Fetch Objective Categories (seed defaults if empty)
+    let dbCategories = await prisma.objectiveCategory.findMany({
+      orderBy: { order: 'asc' },
+    });
+
+    if (dbCategories.length === 0) {
+      const defaultCategories = [
+        { name: 'Information Technology & Software', description: 'Software development, IT consulting, cloud services, data processing', order: 1 },
+        { name: 'Hotel, Tourism & Hospitality', description: 'Hotels, resorts, travel agencies, trekking, tour operators', order: 2 },
+        { name: 'Banks, Finance & Insurance', description: 'Banking, financial institutions, microfinance, insurance, cooperative services', order: 3 },
+        { name: 'Agriculture, Forestry & Livestock', description: 'Farming, agro-processing, livestock, organic farming, forestry', order: 4 },
+        { name: 'Manufacturing, Processing & Production', description: 'Industrial manufacturing, goods processing, packaging, assembly', order: 5 },
+        { name: 'Trading, Commerce & Retail', description: 'Import, export, wholesale, retail trade, distribution', order: 6 },
+        { name: 'Energy, Hydropower & Natural Resources', description: 'Hydropower plants, solar energy, renewable energy, natural resources', order: 7 },
+        { name: 'Healthcare, Medical & Pharmaceuticals', description: 'Hospitals, clinics, medical equipment, pharmaceutical trade', order: 8 },
+        { name: 'Education, Training & Research', description: 'Schools, colleges, vocational institutes, research centers', order: 9 },
+        { name: 'General & Services', description: 'General business objectives and multi-sector operations', order: 10 },
+      ];
+
+      await prisma.objectiveCategory.createMany({
+        data: defaultCategories,
+      });
+
+      dbCategories = await prisma.objectiveCategory.findMany({
+        orderBy: { order: 'asc' },
+      });
+    }
+
+    const objectiveCategories: ObjectiveCategory[] = dbCategories.map((c) => ({
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      order: c.order,
+      createdAt: c.createdAt.toISOString(),
+    }));
+
+    // 3. Fetch Global Objectives
     const dbObjectives = await prisma.objective.findMany({
+      include: { category: true },
       orderBy: { createdAt: 'asc' },
     });
 
     const objectives: CompanyObjectiveTemplate[] = dbObjectives.map((o) => ({
       id: o.id,
+      categoryId: o.categoryId,
+      categoryName: o.category?.name || null,
       text: o.text,
       createdAt: o.createdAt.toISOString(),
     }));
@@ -500,6 +541,7 @@ export async function fetchAppData(): Promise<{
 
     return {
       companies,
+      objectiveCategories,
       objectives,
       variables,
       templates,
@@ -510,6 +552,7 @@ export async function fetchAppData(): Promise<{
     console.error('Error fetching app data:', error);
     return {
       companies: [],
+      objectiveCategories: [],
       objectives: [],
       variables: [],
       templates: [],
@@ -757,25 +800,77 @@ export async function deleteCompanyAction(id: string): Promise<void> {
   await prisma.company.delete({ where: { id } });
 }
 
+// Objective Category mutations
+export async function createObjectiveCategoryAction(data: { name: string; description?: string; order?: number }): Promise<ObjectiveCategory> {
+  const cat = await prisma.objectiveCategory.create({
+    data: {
+      name: data.name,
+      description: data.description || null,
+      order: data.order ?? 0,
+    },
+  });
+  return {
+    id: cat.id,
+    name: cat.name,
+    description: cat.description,
+    order: cat.order,
+    createdAt: cat.createdAt.toISOString(),
+  };
+}
+
+export async function updateObjectiveCategoryAction(id: string, data: { name: string; description?: string; order?: number }): Promise<ObjectiveCategory> {
+  const cat = await prisma.objectiveCategory.update({
+    where: { id },
+    data: {
+      name: data.name,
+      description: data.description || null,
+      order: data.order ?? 0,
+    },
+  });
+  return {
+    id: cat.id,
+    name: cat.name,
+    description: cat.description,
+    order: cat.order,
+    createdAt: cat.createdAt.toISOString(),
+  };
+}
+
+export async function deleteObjectiveCategoryAction(id: string): Promise<void> {
+  await prisma.objectiveCategory.delete({ where: { id } });
+}
+
 // Objective mutations
-export async function createObjectiveAction(text: string): Promise<CompanyObjectiveTemplate> {
+export async function createObjectiveAction(text: string, categoryId?: string | null): Promise<CompanyObjectiveTemplate> {
   const o = await prisma.objective.create({
-    data: { text },
+    data: {
+      text,
+      categoryId: categoryId || null,
+    },
+    include: { category: true },
   });
   return {
     id: o.id,
+    categoryId: o.categoryId,
+    categoryName: o.category?.name || null,
     text: o.text,
     createdAt: o.createdAt.toISOString(),
   };
 }
 
-export async function updateObjectiveAction(id: string, text: string): Promise<CompanyObjectiveTemplate> {
+export async function updateObjectiveAction(id: string, text: string, categoryId?: string | null): Promise<CompanyObjectiveTemplate> {
   const o = await prisma.objective.update({
     where: { id },
-    data: { text },
+    data: {
+      text,
+      categoryId: categoryId || null,
+    },
+    include: { category: true },
   });
   return {
     id: o.id,
+    categoryId: o.categoryId,
+    categoryName: o.category?.name || null,
     text: o.text,
     createdAt: o.createdAt.toISOString(),
   };

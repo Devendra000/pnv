@@ -23,8 +23,18 @@ export interface Witness {
   order: number;
 }
 
+export interface ObjectiveCategory {
+  id: string;
+  name: string;
+  description?: string | null;
+  order: number;
+  createdAt?: string | Date;
+}
+
 export interface CompanyObjectiveTemplate {
   id: string;
+  categoryId?: string | null;
+  categoryName?: string | null;
   text: string;
   createdAt?: string | Date;
 }

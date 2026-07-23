@@ -3,13 +3,14 @@
 import { useState, type ReactNode } from 'react';
 import { Company, CompanyObjectiveTemplate, Owner, Witness } from '@/lib/types';
 import { Variable } from '@/lib/types';
+import { useAppDataContext } from '@/contexts/AppDataContext';
 import {
   buildCompanyRuntimeVariableValues,
   isRuntimeCompanyVariableKey,
 } from '@/lib/companyVariables';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, BadgeInfo, Building2, FileText, Lock, Plus, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, BadgeInfo, Building2, FileText, Lock, Plus, Trash2, Users, Search, Tag, Check, Filter } from 'lucide-react';
 import Link from 'next/link';
 
 interface CompanyFormProps {
@@ -277,6 +278,11 @@ export function CompanyForm({
     }
     return [{ ...createBlankWitness('wit-0', 0), ownerIndex: 1 }];
   });
+
+  const { objectiveCategories = [] } = useAppDataContext();
+  const [activeCategoryId, setActiveCategoryId] = useState<string | 'ALL'>('ALL');
+  const [objectiveSearchQuery, setObjectiveSearchQuery] = useState('');
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
   const [selectedObjectives, setSelectedObjectives] = useState<string[]>(() =>
     company?.objectives ? company.objectives.map((objective) => objective.sourceObjectiveId || '') : []
@@ -549,36 +555,175 @@ export function CompanyForm({
 
           <SectionCard
             title="Business Objectives"
-            description="Pick the objectives that should be merged into the generated document."
+            description="Select objectives categorized by government sectors for document generation."
             icon={<FileText className="h-5 w-5" />}
           >
-            <div className="space-y-3">
-              {objectives.length > 0 ? (
-                objectives.map((obj) => (
-                  <label
-                    key={obj.id}
-                    className="flex cursor-pointer items-start gap-4 rounded-2xl border border-slate-800 bg-slate-800/30 p-4 transition-colors hover:bg-slate-800/50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedObjectives.includes(obj.id)}
-                      onChange={(event) => {
-                        if (event.target.checked) {
-                          setSelectedObjectives([...selectedObjectives, obj.id]);
-                        } else {
-                          setSelectedObjectives(selectedObjectives.filter((id) => id !== obj.id));
-                        }
-                      }}
-                      className="mt-1 h-4 w-4 accent-slate-100"
-                    />
-                    <div>
-                      <p className="font-medium text-white">{obj.text}</p>
-                    </div>
-                  </label>
-                ))
-              ) : (
-                <p className="text-sm text-slate-400">No objectives configured yet. Add them in the Objectives section.</p>
+            <div className="space-y-5">
+              {/* Category Search & Filter Toolbar */}
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search objectives or categories..."
+                    value={objectiveSearchQuery}
+                    onChange={(e) => setObjectiveSearchQuery(e.target.value)}
+                    className="pl-10 border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowSelectedOnly(!showSelectedOnly)}
+                  className={`border-slate-700 font-medium ${
+                    showSelectedOnly
+                      ? 'bg-blue-600/20 text-blue-400 border-blue-500/50'
+                      : 'bg-slate-900/60 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <Filter className="mr-2 h-4 w-4" />
+                  {showSelectedOnly
+                    ? `Showing Selected (${selectedObjectives.length})`
+                    : `Show Selected Only (${selectedObjectives.length})`}
+                </Button>
+              </div>
+
+              {/* Category Selection Grid / Pills */}
+              {!showSelectedOnly && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Government Categories (Click to filter)
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setActiveCategoryId('ALL')}
+                      className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all ${
+                        activeCategoryId === 'ALL'
+                          ? 'border-blue-500 bg-blue-600/20 text-white shadow-md'
+                          : 'border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700 hover:bg-slate-800/40'
+                      }`}
+                    >
+                      <span className="text-xs font-semibold text-white">All Categories</span>
+                      <div className="mt-1 flex items-center justify-between w-full text-[11px]">
+                        <span>{objectives.length} objectives</span>
+                        {selectedObjectives.length > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-400 font-medium">
+                            {selectedObjectives.length} selected
+                          </span>
+                        )}
+                      </div>
+                    </button>
+
+                    {objectiveCategories.map((cat) => {
+                      const catObjs = objectives.filter((o) => o.categoryId === cat.id);
+                      const catSelectedCount = catObjs.filter((o) =>
+                        selectedObjectives.includes(o.id)
+                      ).length;
+                      const isActive = activeCategoryId === cat.id;
+
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setActiveCategoryId(cat.id)}
+                          className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all ${
+                            isActive
+                              ? 'border-blue-500 bg-blue-600/20 text-white shadow-md'
+                              : 'border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700 hover:bg-slate-800/40'
+                          }`}
+                        >
+                          <span className="text-xs font-semibold text-white truncate w-full">
+                            {cat.name}
+                          </span>
+                          <div className="mt-1 flex items-center justify-between w-full text-[11px]">
+                            <span>{catObjs.length} objectives</span>
+                            {catSelectedCount > 0 && (
+                              <span className="px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-400 font-medium">
+                                {catSelectedCount} selected
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
+
+              {/* Objectives List under Active Category / Filter */}
+              <div className="space-y-3 pt-2">
+                {(() => {
+                  const filteredList = objectives.filter((obj) => {
+                    if (showSelectedOnly && !selectedObjectives.includes(obj.id)) {
+                      return false;
+                    }
+                    const matchesCategory =
+                      activeCategoryId === 'ALL' || obj.categoryId === activeCategoryId;
+                    const matchesSearch =
+                      !objectiveSearchQuery.trim() ||
+                      obj.text.toLowerCase().includes(objectiveSearchQuery.toLowerCase()) ||
+                      (obj.categoryName &&
+                        obj.categoryName.toLowerCase().includes(objectiveSearchQuery.toLowerCase()));
+
+                    return matchesCategory && matchesSearch;
+                  });
+
+                  if (filteredList.length === 0) {
+                    return (
+                      <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/30 p-8 text-center">
+                        <p className="text-sm text-slate-400">
+                          {showSelectedOnly
+                            ? 'No objectives selected yet.'
+                            : objectiveSearchQuery || activeCategoryId !== 'ALL'
+                            ? 'No objectives found under this category or search query.'
+                            : 'No objectives configured.'}
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return filteredList.map((obj) => {
+                    const isChecked = selectedObjectives.includes(obj.id);
+                    return (
+                      <label
+                        key={obj.id}
+                        className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-4 transition-all ${
+                          isChecked
+                            ? 'border-blue-500/70 bg-blue-950/20 shadow-sm shadow-blue-500/10'
+                            : 'border-slate-800 bg-slate-800/30 hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(event) => {
+                            if (event.target.checked) {
+                              setSelectedObjectives([...selectedObjectives, obj.id]);
+                            } else {
+                              setSelectedObjectives(
+                                selectedObjectives.filter((id) => id !== obj.id)
+                              );
+                            }
+                          }}
+                          className="mt-1 h-4 w-4 accent-blue-500 rounded"
+                        />
+                        <div className="flex-1 space-y-1">
+                          {obj.categoryName && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-400 uppercase tracking-wider">
+                              <Tag className="h-3 w-3" />
+                              {obj.categoryName}
+                            </span>
+                          )}
+                          <p className="text-sm font-medium text-white leading-relaxed">
+                            {obj.text}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  });
+                })()}
+              </div>
             </div>
           </SectionCard>
 

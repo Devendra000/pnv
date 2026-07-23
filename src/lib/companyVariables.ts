@@ -50,6 +50,17 @@ export type CompanyTemplateOwnerRow = {
   owner_jari_jilla: string;
   owner_shares: string;
   owner_share_percentage: string;
+  // Direct witness fields assigned to this specific owner
+  owner_witness_name: string;
+  owner_witness_father_name: string;
+  owner_witness_address: string;
+  owner_witness_citizenship: string;
+  owner_witness_jari_jilla: string;
+  witness_name: string;
+  witness_father_name: string;
+  witness_address: string;
+  witness_citizenship: string;
+  witness_jari_jilla: string;
   // Nested loop: witnesses assigned to this specific owner
   owner_witnesses: CompanyTemplateOwnerWitnessRow[];
 };
@@ -118,11 +129,11 @@ export type CompanyVariableDefinition = {
 
 // ─── Registered template variables ───────────────────────────────────────────
 // These are stored in the DB and auto-filled from the company record.
-// Use these keys in your .docx template: {{company_name}}, {{owner_names}}, etc.
+// Use these keys in your .docx template: [company_name], [owner_names], etc.
 //
 // For per-row owner/witness data in tables, use LOOP variables instead:
-//   {#owners_list} {{owner_name}} {{owner_father_name}} ... {/owners_list}
-//   {#witnesses_list} {{witness_name}} ... {/witnesses_list}
+//   [#owners_list] [owner_name] [owner_father_name] ... [/owners_list]
+//   [#witnesses_list] [witness_name] ... [/witnesses_list]
 // ─────────────────────────────────────────────────────────────────────────────
 export const COMPANY_VARIABLE_DEFINITIONS: CompanyVariableDefinition[] = [
 
@@ -165,8 +176,8 @@ export const COMPANY_VARIABLE_DEFINITIONS: CompanyVariableDefinition[] = [
   },
 
   // ── Inline name strings (for embedding in sentences) ──────────────────────
-  // e.g. "The company is owned by {{owner_names}}."
-  // For per-row data in a table, use {#owners_list}...{/owners_list} loops instead.
+  // e.g. "The company is owned by [owner_names]."
+  // For per-row data in a table, use [#owners_list]...[/owners_list] loops instead.
   {
     key: 'owner_names',
     label: 'Owner Names (comma-joined)',
@@ -346,6 +357,13 @@ export function buildCompanyRuntimeVariableValues(company: CompanyRuntimeVariabl
     variables.owner_share_percentage = owners[0]?.sharePercentage !== null && owners[0]?.sharePercentage !== undefined
       ? String(owners[0].sharePercentage)
       : owners[0]?.shares || '';
+
+    const firstOwnerWitness = witnesses.find((w) => w.ownerIndex === 1) || witnesses[0];
+    variables.owner_witness_name = firstOwnerWitness?.name || '';
+    variables.owner_witness_father_name = firstOwnerWitness?.fatherName || '';
+    variables.owner_witness_address = firstOwnerWitness?.address || '';
+    variables.owner_witness_citizenship = firstOwnerWitness?.citizenship || '';
+    variables.owner_witness_jari_jilla = firstOwnerWitness?.jariJilla || '';
   }
 
   if (witnesses.length === 1) {
@@ -358,6 +376,7 @@ export function buildCompanyRuntimeVariableValues(company: CompanyRuntimeVariabl
 
   owners.forEach((owner, index) => {
     const slot = index + 1;
+    const ownerWitness = witnesses.find((w) => w.ownerIndex === slot);
     variables[`owner_name_${slot}`] = owner.name || '';
     variables[`owner_father_name_${slot}`] = owner.fatherName || '';
     variables[`owner_address_${slot}`] = owner.address || '';
@@ -367,6 +386,18 @@ export function buildCompanyRuntimeVariableValues(company: CompanyRuntimeVariabl
     variables[`owner_share_percentage_${slot}`] = owner.sharePercentage !== null && owner.sharePercentage !== undefined
       ? String(owner.sharePercentage)
       : owner.shares || '';
+
+    variables[`owner_witness_name_${slot}`] = ownerWitness?.name || '';
+    variables[`owner_witness_father_name_${slot}`] = ownerWitness?.fatherName || '';
+    variables[`owner_witness_address_${slot}`] = ownerWitness?.address || '';
+    variables[`owner_witness_citizenship_${slot}`] = ownerWitness?.citizenship || '';
+    variables[`owner_witness_jari_jilla_${slot}`] = ownerWitness?.jariJilla || '';
+
+    variables[`owner_${slot}_witness_name`] = ownerWitness?.name || '';
+    variables[`owner_${slot}_witness_father_name`] = ownerWitness?.fatherName || '';
+    variables[`owner_${slot}_witness_address`] = ownerWitness?.address || '';
+    variables[`owner_${slot}_witness_citizenship`] = ownerWitness?.citizenship || '';
+    variables[`owner_${slot}_witness_jari_jilla`] = ownerWitness?.jariJilla || '';
   });
 
   witnesses.forEach((witness, index) => {
@@ -401,6 +432,13 @@ export function buildCompanyTemplateData(company: CompanyRuntimeVariableSource):
           witness_jari_jilla: w.jariJilla || '',
         }));
 
+      const primaryWitness = ownerWitnesses[0];
+      const witnessName = primaryWitness?.witness_name || '';
+      const witnessFatherName = primaryWitness?.witness_father_name || '';
+      const witnessAddress = primaryWitness?.witness_address || '';
+      const witnessCitizenship = primaryWitness?.witness_citizenship || '';
+      const witnessJariJilla = primaryWitness?.witness_jari_jilla || '';
+
       return {
         sn: ownerSlot,
         owner_index: ownerSlot,
@@ -414,6 +452,16 @@ export function buildCompanyTemplateData(company: CompanyRuntimeVariableSource):
           owner.sharePercentage !== null && owner.sharePercentage !== undefined
             ? String(owner.sharePercentage)
             : owner.shares || '',
+        owner_witness_name: witnessName,
+        owner_witness_father_name: witnessFatherName,
+        owner_witness_address: witnessAddress,
+        owner_witness_citizenship: witnessCitizenship,
+        owner_witness_jari_jilla: witnessJariJilla,
+        witness_name: witnessName,
+        witness_father_name: witnessFatherName,
+        witness_address: witnessAddress,
+        witness_citizenship: witnessCitizenship,
+        witness_jari_jilla: witnessJariJilla,
         owner_witnesses: ownerWitnesses,
       };
     }),

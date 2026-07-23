@@ -406,7 +406,7 @@ export default function GenerateDocumentPage() {
                               <div className="flex items-center justify-between gap-3">
                                 <div>
                                   <p className="font-medium text-foreground">{variable.label}</p>
-                                  <p className="text-xs font-mono text-muted-foreground">{`{{${variable.key}}}`}</p>
+                                  <p className="text-xs font-mono text-muted-foreground">{`[${variable.key}]`}</p>
                                   {variable.source === 'detected' && (
                                     <p className="text-xs text-amber-500">Not in database yet, but detected in template.</p>
                                   )}
