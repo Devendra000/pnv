@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, useCallback, type ReactNode } from 'react';
 import { Company, CompanyObjectiveTemplate, Owner, Witness } from '@/lib/types';
 import { Variable } from '@/lib/types';
 import { useAppDataContext } from '@/contexts/AppDataContext';
@@ -109,6 +109,83 @@ function FieldLabel({ children, variableTag }: { children: ReactNode; variableTa
   );
 }
 
+/**
+ * Nepali BS date input with auto-dash insertion: YYYY-MM-DD
+ * Dashes are inserted automatically after year (4 digits) and month (2 digits).
+ */
+function NepaliDateInput({
+  value,
+  onChange,
+  required,
+  placeholder = 'B.S. YYYY-MM-DD',
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  required?: boolean;
+  placeholder?: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const format = useCallback((raw: string): string => {
+    // Strip everything except digits
+    const digits = raw.replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 4) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+  }, []);
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const formatted = format(e.target.value);
+      onChange(formatted);
+    },
+    [format, onChange],
+  );
+
+  // Prevent typing non-digit characters
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (
+      e.key.length === 1 &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey &&
+      !/\d/.test(e.key)
+    ) {
+      e.preventDefault();
+    }
+  }, []);
+
+  const isValid = !value || /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const isComplete = value.length === 10;
+
+  return (
+    <div className="relative">
+      <input
+        ref={inputRef}
+        type="text"
+        inputMode="numeric"
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        required={required}
+        maxLength={10}
+        className={[
+          'flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors',
+          'bg-slate-950/60 text-white placeholder:text-slate-500',
+          'focus-visible:outline-none focus-visible:ring-1',
+          isComplete && !isValid
+            ? 'border-rose-600 focus-visible:ring-rose-600'
+            : 'border-slate-700 focus-visible:ring-slate-400',
+        ].join(' ')}
+      />
+      {isComplete && !isValid && (
+        <p className="mt-1 text-[11px] text-rose-400">Format must be YYYY-MM-DD</p>
+      )}
+    </div>
+  );
+}
+
 function PersonEditor({
   label,
   person,
@@ -161,25 +238,24 @@ function PersonEditor({
         </div>
         {isOwner && (
           <div>
-            <FieldLabel variableTag={`owner_father_name${tagSuffix}`}>Father&apos;s Name</FieldLabel>
+            <FieldLabel variableTag={`owner_father_name${tagSuffix}`}>Father&apos;s Name *</FieldLabel>
             <Input
               value={(person as Owner).fatherName || ''}
               onChange={(event) => updateField('fatherName', event.target.value)}
               placeholder="Father's name"
+              required
               className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
             />
           </div>
         )}
         <div>
           <FieldLabel variableTag={`${prefix}_citizenship_jari_date${tagSuffix}`}>
-            Citizenship Issued Date {isOwner ? '*' : ''}
+            Citizenship Issued Date (B.S.) *
           </FieldLabel>
-          <Input
+          <NepaliDateInput
             value={person.citizenshipJariDate || ''}
-            onChange={(event) => updateField('citizenshipJariDate', event.target.value)}
-            placeholder="e.g. 2080-01-15"
-            required={isOwner}
-            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+            onChange={(val) => updateField('citizenshipJariDate', val)}
+            required
           />
         </div>
         <div>
@@ -192,29 +268,32 @@ function PersonEditor({
           />
         </div>
         <div className="lg:col-span-2">
-          <FieldLabel variableTag={`${prefix}_address${tagSuffix}`}>Address</FieldLabel>
+          <FieldLabel variableTag={`${prefix}_address${tagSuffix}`}>Address {isOwner ? '*' : ''}</FieldLabel>
           <Input
             value={person.address || ''}
             onChange={(event) => updateField('address', event.target.value)}
             placeholder="Address"
+            required={isOwner}
             className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
         <div>
-          <FieldLabel variableTag={`${prefix}_citizenship${tagSuffix}`}>Citizenship No.</FieldLabel>
+          <FieldLabel variableTag={`${prefix}_citizenship${tagSuffix}`}>Citizenship No. *</FieldLabel>
           <Input
             value={person.citizenship || ''}
             onChange={(event) => updateField('citizenship', event.target.value)}
             placeholder="Citizenship number"
+            required
             className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
         <div>
-          <FieldLabel variableTag={`${prefix}_jari_jilla${tagSuffix}`}>Jari Jilla</FieldLabel>
+          <FieldLabel variableTag={`${prefix}_jari_jilla${tagSuffix}`}>Jari Jilla *</FieldLabel>
           <Input
             value={person.jariJilla || ''}
             onChange={(event) => updateField('jariJilla', event.target.value)}
             placeholder="Jari Jilla (Issuing District)"
+            required
             className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
@@ -448,10 +527,11 @@ export function CompanyForm({
                 />
               </div>
               <div>
-                <FieldLabel variableTag="company_name_np">Company Name (Nepali)</FieldLabel>
+                <FieldLabel variableTag="company_name_np">Company Name (Nepali) *</FieldLabel>
                 <Input
                   value={formData.nepaliName}
                   onChange={(event) => setFormData({ ...formData, nepaliName: event.target.value })}
+                  required
                   placeholder="Company name in Nepali"
                   className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
                 />

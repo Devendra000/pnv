@@ -17,6 +17,7 @@ import {
 } from './types';
 import {
   buildCompanyRuntimeVariableValues,
+  COMPANY_VARIABLE_DEFINITIONS,
 } from '@/lib/companyVariables';
 import { extractDocxTemplateData, cleanDocxZipTags } from '@/lib/templateParser';
 
@@ -114,25 +115,41 @@ async function syncCompanyVariableValues(
     variableValues: Array<{ variableId: string; value: string }>;
   }
 ) {
-  const derivedValues = buildCompanyRuntimeVariableValues(data);
+  // Only the registered scalar/aggregate keys are persisted.
+  // Per-slot indexed keys (owner_name_1, witness_name_2, etc.) are
+  // computed at render time and must NOT be stored as DB variables.
+  const DEFINED_KEYS = new Set(COMPANY_VARIABLE_DEFINITIONS.map((d) => d.key));
+
+  const allDerived = buildCompanyRuntimeVariableValues(data);
+
+  // Only keep the keys that are in COMPANY_VARIABLE_DEFINITIONS
+  const derivedValues: Record<string, string> = {};
+  for (const key of DEFINED_KEYS) {
+    if (allDerived[key] !== undefined) {
+      derivedValues[key] = allDerived[key];
+    }
+  }
+
+  // Also apply any manual overrides from the user (variables page entries),
+  // but only for non-system keys that the user explicitly set.
   const variableIds = data.variableValues.map((entry) => entry.variableId);
-  const variables = variableIds.length
+  const dbVariables = variableIds.length
     ? await prisma.variable.findMany({ where: { id: { in: variableIds } } })
     : [];
-  const variableKeyById = new Map(variables.map((variable) => [variable.id, variable.key]));
+  const variableKeyById = new Map(dbVariables.map((v) => [v.id, v.key]));
 
   for (const entry of data.variableValues) {
     const key = variableKeyById.get(entry.variableId);
-    if (!key || entry.value.trim() === '') {
+    // Only persist user manual variables — skip system/defined keys and empties
+    if (!key || entry.value.trim() === '' || DEFINED_KEYS.has(key as never)) {
       continue;
     }
-
     derivedValues[key] = entry.value;
   }
 
   const keys = Object.keys(derivedValues);
   const savedVariables = await Promise.all(keys.map((key) => ensureVariableForKey(key)));
-  const variableIdByKey = new Map(savedVariables.map((variable) => [variable.key, variable.id]));
+  const variableIdByKey = new Map(savedVariables.map((v) => [v.key, v.id]));
 
   await prisma.companyVariableValue.deleteMany({ where: { companyId } });
 
@@ -570,8 +587,50 @@ export async function fetchAppData(): Promise<{
   }
 }
 
+// ── Validation ────────────────────────────────────────────────────────────────
+
+function required(value: string | null | undefined, label: string) {
+  if (!value || value.trim() === '') {
+    throw new Error(`${label} is required.`);
+  }
+}
+
+function validateCompanyData(data: Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'documentCount'>) {
+  // Company-level
+  required(data.englishName, 'Company English Name');
+  required(data.nepaliName, 'Company Nepali Name');
+
+  // Owners
+  data.owners.forEach((o, idx) => {
+    const label = (field: string) => `Owner ${idx + 1}: ${field}`;
+    required(o.name, label('Name'));
+    required((o as { fatherName?: string | null }).fatherName, label("Father's Name"));
+    required(o.address, label('Address'));
+    required(o.citizenship, label('Citizenship No.'));
+    required(o.jariJilla, label('Jari Jilla'));
+    required(o.citizenshipJariDate, label('Citizenship Issued Date'));
+    if (o.citizenshipJariDate && !/^\d{4}-\d{2}-\d{2}$/.test(o.citizenshipJariDate)) {
+      throw new Error(`Owner ${idx + 1}: Citizenship Issued Date must be in YYYY-MM-DD format.`);
+    }
+  });
+
+  // Witnesses
+  data.witnesses.forEach((w, idx) => {
+    const label = (field: string) => `Witness ${idx + 1}: ${field}`;
+    required(w.name, label('Name'));
+    required(w.citizenship, label('Citizenship No.'));
+    required(w.jariJilla, label('Jari Jilla'));
+    required(w.citizenshipJariDate, label('Citizenship Issued Date'));
+    if (w.citizenshipJariDate && !/^\d{4}-\d{2}-\d{2}$/.test(w.citizenshipJariDate)) {
+      throw new Error(`Witness ${idx + 1}: Citizenship Issued Date must be in YYYY-MM-DD format.`);
+    }
+  });
+}
+
 // Company mutations
 export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'documentCount'>): Promise<Company> {
+  validateCompanyData(data);
+
   const c = await prisma.company.create({
     data: {
       englishName: data.englishName,
@@ -679,6 +738,8 @@ export async function updateCompanyAction(
   id: string,
   data: Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'documentCount'>
 ): Promise<Company> {
+  validateCompanyData(data);
+
   await prisma.$transaction([
     prisma.companyOwner.deleteMany({ where: { companyId: id } }),
     prisma.companyWitness.deleteMany({ where: { companyId: id } }),
