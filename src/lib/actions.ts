@@ -90,23 +90,24 @@ async function syncCompanyVariableValues(
     englishName: string;
     nepaliName?: string | null;
     ownerType: 'SINGLE' | 'MULTIPLE';
-    registrationDate?: string | Date | null;
     owners: Array<{
       name: string;
       fatherName?: string | null;
       address?: string | null;
       citizenship?: string | null;
       jariJilla?: string | null;
+      citizenshipJariDate?: string | null;
+      phoneNumber?: string | null;
       shares?: string | null;
-      sharePercentage?: number | null;
       order?: number;
     }>;
     witnesses: Array<{
       name: string;
-      fatherName?: string | null;
       address?: string | null;
       citizenship?: string | null;
       jariJilla?: string | null;
+      citizenshipJariDate?: string | null;
+      phoneNumber?: string | null;
       order?: number;
     }>;
     objectives: Array<{ text: string; order?: number }>;
@@ -386,7 +387,6 @@ export async function fetchAppData(): Promise<{
       englishName: c.englishName,
       nepaliName: c.nepaliName,
       ownerType: c.ownerType,
-      registrationDate: c.registrationDate ? c.registrationDate.toISOString().split('T')[0] : null,
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),
       owners: c.owners.map((o) => ({
@@ -396,17 +396,19 @@ export async function fetchAppData(): Promise<{
         address: o.address,
         citizenship: o.citizenship,
         jariJilla: o.jariJilla,
+        citizenshipJariDate: o.citizenshipJariDate,
+        phoneNumber: o.phoneNumber,
         shares: o.shares,
-        sharePercentage: o.sharePercentage,
         order: o.order,
       })),
       witnesses: c.witnesses.map((w) => ({
         id: w.id,
         name: w.name,
-        fatherName: w.fatherName,
         address: w.address,
         citizenship: w.citizenship,
         jariJilla: w.jariJilla,
+        citizenshipJariDate: w.citizenshipJariDate,
+        phoneNumber: w.phoneNumber,
         ownerIndex: w.ownerIndex,
         order: w.order,
       })),
@@ -575,7 +577,6 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
       englishName: data.englishName,
       nepaliName: data.nepaliName || '',
       ownerType: data.ownerType,
-      registrationDate: data.registrationDate ? new Date(data.registrationDate) : null,
       owners: {
         create: data.owners.map((o, idx) => ({
           name: o.name,
@@ -583,18 +584,20 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
           address: o.address || null,
           citizenship: o.citizenship || null,
           jariJilla: o.jariJilla || null,
+          citizenshipJariDate: o.citizenshipJariDate || null,
+          phoneNumber: o.phoneNumber || null,
           shares: o.shares || null,
-          sharePercentage: o.sharePercentage ?? null,
           order: idx,
         })),
       },
       witnesses: {
         create: data.witnesses.map((w, idx) => ({
           name: w.name,
-          fatherName: w.fatherName || null,
           address: w.address || null,
           citizenship: w.citizenship || null,
           jariJilla: w.jariJilla || null,
+          citizenshipJariDate: w.citizenshipJariDate || null,
+          phoneNumber: w.phoneNumber || null,
           ownerIndex: (w as { ownerIndex?: number | null }).ownerIndex ?? null,
           order: idx,
         })),
@@ -618,7 +621,6 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
 
   await syncCompanyVariableValues(c.id, {
     ...data,
-    registrationDate: data.registrationDate ?? null,
     variableValues: data.variableValues,
   });
 
@@ -642,7 +644,6 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
     englishName: reloaded.englishName,
     nepaliName: reloaded.nepaliName,
     ownerType: reloaded.ownerType,
-    registrationDate: reloaded.registrationDate ? reloaded.registrationDate.toISOString().split('T')[0] : null,
     createdAt: reloaded.createdAt.toISOString(),
     updatedAt: reloaded.updatedAt.toISOString(),
     owners: reloaded.owners.map((o) => ({
@@ -652,17 +653,19 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
       address: o.address,
       citizenship: o.citizenship,
       jariJilla: o.jariJilla,
+      citizenshipJariDate: o.citizenshipJariDate,
+      phoneNumber: o.phoneNumber,
       shares: o.shares,
-      sharePercentage: o.sharePercentage,
       order: o.order,
     })),
     witnesses: reloaded.witnesses.map((w) => ({
       id: w.id,
       name: w.name,
-      fatherName: w.fatherName,
       address: w.address,
       citizenship: w.citizenship,
       jariJilla: w.jariJilla,
+      citizenshipJariDate: w.citizenshipJariDate,
+      phoneNumber: w.phoneNumber,
       ownerIndex: w.ownerIndex,
       order: w.order,
     })),
@@ -689,7 +692,6 @@ export async function updateCompanyAction(
       englishName: data.englishName,
       nepaliName: data.nepaliName || '',
       ownerType: data.ownerType,
-      registrationDate: data.registrationDate ? new Date(data.registrationDate) : null,
       owners: {
         create: data.owners.map((o, idx) => ({
           name: o.name,
@@ -697,18 +699,20 @@ export async function updateCompanyAction(
           address: o.address || null,
           citizenship: o.citizenship || null,
           jariJilla: o.jariJilla || null,
+          citizenshipJariDate: o.citizenshipJariDate || null,
+          phoneNumber: o.phoneNumber || null,
           shares: o.shares || null,
-          sharePercentage: o.sharePercentage ?? null,
           order: idx,
         })),
       },
       witnesses: {
         create: data.witnesses.map((w, idx) => ({
           name: w.name,
-          fatherName: w.fatherName || null,
           address: w.address || null,
           citizenship: w.citizenship || null,
           jariJilla: w.jariJilla || null,
+          citizenshipJariDate: w.citizenshipJariDate || null,
+          phoneNumber: w.phoneNumber || null,
           ownerIndex: (w as { ownerIndex?: number | null }).ownerIndex ?? null,
           order: idx,
         })),
@@ -732,7 +736,6 @@ export async function updateCompanyAction(
 
   await syncCompanyVariableValues(c.id, {
     ...data,
-    registrationDate: data.registrationDate ?? null,
     variableValues: data.variableValues,
   });
 
@@ -756,7 +759,6 @@ export async function updateCompanyAction(
     englishName: reloaded.englishName,
     nepaliName: reloaded.nepaliName,
     ownerType: reloaded.ownerType,
-    registrationDate: reloaded.registrationDate ? reloaded.registrationDate.toISOString().split('T')[0] : null,
     createdAt: reloaded.createdAt.toISOString(),
     updatedAt: reloaded.updatedAt.toISOString(),
     owners: reloaded.owners.map((o) => ({
@@ -766,17 +768,19 @@ export async function updateCompanyAction(
       address: o.address,
       citizenship: o.citizenship,
       jariJilla: o.jariJilla,
+      citizenshipJariDate: o.citizenshipJariDate,
+      phoneNumber: o.phoneNumber,
       shares: o.shares,
-      sharePercentage: o.sharePercentage,
       order: o.order,
     })),
     witnesses: reloaded.witnesses.map((w) => ({
       id: w.id,
       name: w.name,
-      fatherName: w.fatherName,
       address: w.address,
       citizenship: w.citizenship,
       jariJilla: w.jariJilla,
+      citizenshipJariDate: w.citizenshipJariDate,
+      phoneNumber: w.phoneNumber,
       ownerIndex: w.ownerIndex,
       order: w.order,
     })),

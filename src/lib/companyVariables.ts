@@ -4,23 +4,24 @@ export type CompanyRuntimeVariableSource = {
   englishName: string;
   nepaliName?: string | null;
   ownerType: Company['ownerType'];
-  registrationDate?: string | Date | null;
   owners: Array<{
     name: string;
     fatherName?: string | null;
     address?: string | null;
     citizenship?: string | null;
     jariJilla?: string | null;
+    citizenshipJariDate?: string | null;
+    phoneNumber?: string | null;
     shares?: string | null;
-    sharePercentage?: number | null;
     order?: number;
   }>;
   witnesses: Array<{
     name: string;
-    fatherName?: string | null;
     address?: string | null;
     citizenship?: string | null;
     jariJilla?: string | null;
+    citizenshipJariDate?: string | null;
+    phoneNumber?: string | null;
     ownerIndex?: number | null; // 1-based owner index; null = general
     order?: number;
   }>;
@@ -34,10 +35,11 @@ export type CompanyTemplateOwnerWitnessRow = {
   sn: number;
   witness_index: number;
   witness_name: string;
-  witness_father_name: string;
   witness_address: string;
   witness_citizenship: string;
   witness_jari_jilla: string;
+  witness_citizenship_jari_date: string;
+  witness_phone_number: string;
 };
 
 export type CompanyTemplateOwnerRow = {
@@ -48,19 +50,22 @@ export type CompanyTemplateOwnerRow = {
   owner_address: string;
   owner_citizenship: string;
   owner_jari_jilla: string;
+  owner_citizenship_jari_date: string;
+  owner_phone_number: string;
   owner_shares: string;
-  owner_share_percentage: string;
   // Direct witness fields assigned to this specific owner
   owner_witness_name: string;
-  owner_witness_father_name: string;
   owner_witness_address: string;
   owner_witness_citizenship: string;
   owner_witness_jari_jilla: string;
+  owner_witness_citizenship_jari_date: string;
+  owner_witness_phone_number: string;
   witness_name: string;
-  witness_father_name: string;
   witness_address: string;
   witness_citizenship: string;
   witness_jari_jilla: string;
+  witness_citizenship_jari_date: string;
+  witness_phone_number: string;
   // Nested loop: witnesses assigned to this specific owner
   owner_witnesses: CompanyTemplateOwnerWitnessRow[];
 };
@@ -69,10 +74,11 @@ export type CompanyTemplateWitnessRow = {
   sn: number;
   witness_index: number;
   witness_name: string;
-  witness_father_name: string;
   witness_address: string;
   witness_citizenship: string;
   witness_jari_jilla: string;
+  witness_citizenship_jari_date: string;
+  witness_phone_number: string;
 };
 
 export type CompanyTemplateData = {
@@ -87,7 +93,6 @@ export type CompanyVariableKey =
   // ── Company scalars ───────────────────────────────────────────────────────
   | 'company_name'
   | 'company_name_np'
-  | 'registration_date'
   | 'owner_type'
   | 'owner_count'
   | 'date_generated'
@@ -103,22 +108,29 @@ export type CompanyVariableKey =
   | 'owner_father_name'
   | 'owner_citizenship'
   | 'owner_jari_jilla'
+  | 'owner_citizenship_jari_date'
+  | 'owner_phone_number'
   | 'owner_shares'
   | 'witness_name'
   | 'witness_address'
-  | 'witness_father_name'
   | 'witness_citizenship'
   | 'witness_jari_jilla'
+  | 'witness_citizenship_jari_date'
+  | 'witness_phone_number'
   | `owner_name_${number}`
   | `owner_father_name_${number}`
   | `owner_address_${number}`
   | `owner_citizenship_${number}`
   | `owner_jari_jilla_${number}`
+  | `owner_citizenship_jari_date_${number}`
+  | `owner_phone_number_${number}`
   | `owner_shares_${number}`
-  | `owner_share_percentage_${number}`
   | `witness_name_${number}`
-  | `witness_father_name_${number}`
-  | `witness_address_${number}`;
+  | `witness_address_${number}`
+  | `witness_citizenship_${number}`
+  | `witness_jari_jilla_${number}`
+  | `witness_citizenship_jari_date_${number}`
+  | `witness_phone_number_${number}`;
 
 export type CompanyVariableDefinition = {
   key: CompanyVariableKey;
@@ -149,12 +161,6 @@ export const COMPANY_VARIABLE_DEFINITIONS: CompanyVariableDefinition[] = [
     label: 'Company Name (Nepali)',
     description: 'The registered Nepali name of the company.',
     type: 'text',
-  },
-  {
-    key: 'registration_date',
-    label: 'Registration Date',
-    description: 'Date the company was registered (YYYY-MM-DD).',
-    type: 'date',
   },
   {
     key: 'owner_type',
@@ -227,8 +233,8 @@ function getSortedObjectives(company: Pick<CompanyRuntimeVariableSource, 'object
 }
 
 export function isRuntimeCompanyVariableKey(key: string) {
-  return /^(owner|witness)_(name|father_name|address|citizenship|jari_jilla)(?:_\d+)?$/.test(key)
-    || /^(owner)_(shares|share_percentage)(?:_\d+)?$/.test(key);
+  return /^(owner|witness)_(name|father_name|address|citizenship|jari_jilla|citizenship_jari_date|phone_number)(?:_\d+)?$/.test(key)
+    || /^(owner)_(shares)(?:_\d+)?$/.test(key);
 }
 
 export function isSystemVariableKey(key: string) {
@@ -254,13 +260,7 @@ export function buildCompanyRuntimeVariableSpecs(
       const slot = index + 1;
       specs.push(
         { key: `owner_name_${slot}`, label: `Owner Name ${slot}`, type: 'text', value: owner.name || '' },
-        { key: `owner_address_${slot}`, label: `Owner Address ${slot}`, type: 'text', value: owner.address || '' },
-        {
-          key: `owner_share_percentage_${slot}`,
-          label: `Owner Share Percentage ${slot}`,
-          type: 'number',
-          value: owner.sharePercentage !== null && owner.sharePercentage !== undefined ? String(owner.sharePercentage) : '',
-        }
+        { key: `owner_address_${slot}`, label: `Owner Address ${slot}`, type: 'text', value: owner.address || '' }
       );
     });
   }
@@ -310,11 +310,6 @@ export function buildCompanyRuntimeVariableValues(company: CompanyRuntimeVariabl
   const variables: Record<string, string> = {
     company_name: company.englishName || '',
     company_name_np: company.nepaliName || '',
-    registration_date: company.registrationDate
-      ? (typeof company.registrationDate === 'string'
-          ? company.registrationDate.split('T')[0]
-          : company.registrationDate.toISOString().split('T')[0])
-      : '',
     owner_type: company.ownerType,
     owner_count: String(owners.length),
     owner_names: ownerNames.join(', '),
@@ -325,21 +320,22 @@ export function buildCompanyRuntimeVariableValues(company: CompanyRuntimeVariabl
     owner_citizenships_list: owners.map((owner, index) => `${index + 1}. ${owner.citizenship || ''}`).join('\n'),
     owner_districts: owners.map((owner) => owner.jariJilla || '').filter(Boolean).join(', '),
     owner_districts_list: owners.map((owner, index) => `${index + 1}. ${owner.jariJilla || ''}`).join('\n'),
+    owner_citizenship_jari_dates: owners.map((owner) => owner.citizenshipJariDate || '').filter(Boolean).join(', '),
+    owner_citizenship_jari_dates_list: owners.map((owner, index) => `${index + 1}. ${owner.citizenshipJariDate || ''}`).join('\n'),
+    owner_phone_numbers: owners.map((owner) => owner.phoneNumber || '').filter(Boolean).join(', '),
+    owner_phone_numbers_list: owners.map((owner, index) => `${index + 1}. ${owner.phoneNumber || ''}`).join('\n'),
     owner_shares: owners.map((owner) => owner.shares || '').filter(Boolean).join(', '),
     owner_shares_list: owners.map((owner, index) => `${index + 1}. ${owner.shares || ''}`).join('\n'),
-    owner_share_percentage: owners
-      .map((owner) => (owner.sharePercentage !== null && owner.sharePercentage !== undefined ? String(owner.sharePercentage) : ''))
-      .filter(Boolean)
-      .join(', '),
     witness_names: witnessNames.join(', '),
     witness_names_list: witnessNames.map((name, index) => `${index + 1}. ${name}`).join('\n'),
-    witness_father_names: witnesses.map((witness) => witness.fatherName || '').filter(Boolean).join(', '),
-    witness_father_names_list: witnesses.map((witness, index) => `${index + 1}. ${witness.fatherName || ''}`).join('\n'),
     witness_citizenships: witnesses.map((witness) => witness.citizenship || '').filter(Boolean).join(', '),
     witness_citizenships_list: witnesses.map((witness, index) => `${index + 1}. ${witness.citizenship || ''}`).join('\n'),
     witness_districts: witnesses.map((witness) => witness.jariJilla || '').filter(Boolean).join(', '),
     witness_districts_list: witnesses.map((witness, index) => `${index + 1}. ${witness.jariJilla || ''}`).join('\n'),
-    // Both old keys (backward compat) and new renamed keys
+    witness_citizenship_jari_dates: witnesses.map((witness) => witness.citizenshipJariDate || '').filter(Boolean).join(', '),
+    witness_citizenship_jari_dates_list: witnesses.map((witness, index) => `${index + 1}. ${witness.citizenshipJariDate || ''}`).join('\n'),
+    witness_phone_numbers: witnesses.map((witness) => witness.phoneNumber || '').filter(Boolean).join(', '),
+    witness_phone_numbers_list: witnesses.map((witness, index) => `${index + 1}. ${witness.phoneNumber || ''}`).join('\n'),
     objective_texts: objectiveTexts.join(', '),
     objective_texts_list: objectiveTexts.map((text, index) => `${index + 1}. ${text}`).join('\n'),
     objective_texts_inline: objectiveTexts.join(', '),
@@ -353,25 +349,26 @@ export function buildCompanyRuntimeVariableValues(company: CompanyRuntimeVariabl
     variables.owner_father_name = owners[0]?.fatherName || '';
     variables.owner_citizenship = owners[0]?.citizenship || '';
     variables.owner_jari_jilla = owners[0]?.jariJilla || '';
+    variables.owner_citizenship_jari_date = owners[0]?.citizenshipJariDate || '';
+    variables.owner_phone_number = owners[0]?.phoneNumber || '';
     variables.owner_shares = owners[0]?.shares || '';
-    variables.owner_share_percentage = owners[0]?.sharePercentage !== null && owners[0]?.sharePercentage !== undefined
-      ? String(owners[0].sharePercentage)
-      : owners[0]?.shares || '';
 
     const firstOwnerWitness = witnesses.find((w) => w.ownerIndex === 1) || witnesses[0];
     variables.owner_witness_name = firstOwnerWitness?.name || '';
-    variables.owner_witness_father_name = firstOwnerWitness?.fatherName || '';
     variables.owner_witness_address = firstOwnerWitness?.address || '';
     variables.owner_witness_citizenship = firstOwnerWitness?.citizenship || '';
     variables.owner_witness_jari_jilla = firstOwnerWitness?.jariJilla || '';
+    variables.owner_witness_citizenship_jari_date = firstOwnerWitness?.citizenshipJariDate || '';
+    variables.owner_witness_phone_number = firstOwnerWitness?.phoneNumber || '';
   }
 
   if (witnesses.length === 1) {
     variables.witness_name = witnesses[0]?.name || '';
     variables.witness_address = witnesses[0]?.address || '';
-    variables.witness_father_name = witnesses[0]?.fatherName || '';
     variables.witness_citizenship = witnesses[0]?.citizenship || '';
     variables.witness_jari_jilla = witnesses[0]?.jariJilla || '';
+    variables.witness_citizenship_jari_date = witnesses[0]?.citizenshipJariDate || '';
+    variables.witness_phone_number = witnesses[0]?.phoneNumber || '';
   }
 
   owners.forEach((owner, index) => {
@@ -382,29 +379,33 @@ export function buildCompanyRuntimeVariableValues(company: CompanyRuntimeVariabl
     variables[`owner_address_${slot}`] = owner.address || '';
     variables[`owner_citizenship_${slot}`] = owner.citizenship || '';
     variables[`owner_jari_jilla_${slot}`] = owner.jariJilla || '';
+    variables[`owner_citizenship_jari_date_${slot}`] = owner.citizenshipJariDate || '';
+    variables[`owner_phone_number_${slot}`] = owner.phoneNumber || '';
     variables[`owner_shares_${slot}`] = owner.shares || '';
-    variables[`owner_share_percentage_${slot}`] = owner.sharePercentage !== null && owner.sharePercentage !== undefined
-      ? String(owner.sharePercentage)
-      : owner.shares || '';
 
     variables[`owner_witness_name_${slot}`] = ownerWitness?.name || '';
-    variables[`owner_witness_father_name_${slot}`] = ownerWitness?.fatherName || '';
     variables[`owner_witness_address_${slot}`] = ownerWitness?.address || '';
     variables[`owner_witness_citizenship_${slot}`] = ownerWitness?.citizenship || '';
     variables[`owner_witness_jari_jilla_${slot}`] = ownerWitness?.jariJilla || '';
+    variables[`owner_witness_citizenship_jari_date_${slot}`] = ownerWitness?.citizenshipJariDate || '';
+    variables[`owner_witness_phone_number_${slot}`] = ownerWitness?.phoneNumber || '';
 
     variables[`owner_${slot}_witness_name`] = ownerWitness?.name || '';
-    variables[`owner_${slot}_witness_father_name`] = ownerWitness?.fatherName || '';
     variables[`owner_${slot}_witness_address`] = ownerWitness?.address || '';
     variables[`owner_${slot}_witness_citizenship`] = ownerWitness?.citizenship || '';
     variables[`owner_${slot}_witness_jari_jilla`] = ownerWitness?.jariJilla || '';
+    variables[`owner_${slot}_witness_citizenship_jari_date`] = ownerWitness?.citizenshipJariDate || '';
+    variables[`owner_${slot}_witness_phone_number`] = ownerWitness?.phoneNumber || '';
   });
 
   witnesses.forEach((witness, index) => {
     const slot = index + 1;
     variables[`witness_name_${slot}`] = witness.name || '';
-    variables[`witness_father_name_${slot}`] = witness.fatherName || '';
     variables[`witness_address_${slot}`] = witness.address || '';
+    variables[`witness_citizenship_${slot}`] = witness.citizenship || '';
+    variables[`witness_jari_jilla_${slot}`] = witness.jariJilla || '';
+    variables[`witness_citizenship_jari_date_${slot}`] = witness.citizenshipJariDate || '';
+    variables[`witness_phone_number_${slot}`] = witness.phoneNumber || '';
   });
 
   return variables;
@@ -426,18 +427,20 @@ export function buildCompanyTemplateData(company: CompanyRuntimeVariableSource):
           sn: wIndex + 1,
           witness_index: wIndex + 1,
           witness_name: w.name || '',
-          witness_father_name: w.fatherName || '',
           witness_address: w.address || '',
           witness_citizenship: w.citizenship || '',
           witness_jari_jilla: w.jariJilla || '',
+          witness_citizenship_jari_date: w.citizenshipJariDate || '',
+          witness_phone_number: w.phoneNumber || '',
         }));
 
       const primaryWitness = ownerWitnesses[0];
       const witnessName = primaryWitness?.witness_name || '';
-      const witnessFatherName = primaryWitness?.witness_father_name || '';
       const witnessAddress = primaryWitness?.witness_address || '';
       const witnessCitizenship = primaryWitness?.witness_citizenship || '';
       const witnessJariJilla = primaryWitness?.witness_jari_jilla || '';
+      const witnessCitizenshipJariDate = primaryWitness?.witness_citizenship_jari_date || '';
+      const witnessPhoneNumber = primaryWitness?.witness_phone_number || '';
 
       return {
         sn: ownerSlot,
@@ -447,21 +450,21 @@ export function buildCompanyTemplateData(company: CompanyRuntimeVariableSource):
         owner_address: owner.address || '',
         owner_citizenship: owner.citizenship || '',
         owner_jari_jilla: owner.jariJilla || '',
+        owner_citizenship_jari_date: owner.citizenshipJariDate || '',
+        owner_phone_number: owner.phoneNumber || '',
         owner_shares: owner.shares || '',
-        owner_share_percentage:
-          owner.sharePercentage !== null && owner.sharePercentage !== undefined
-            ? String(owner.sharePercentage)
-            : owner.shares || '',
         owner_witness_name: witnessName,
-        owner_witness_father_name: witnessFatherName,
         owner_witness_address: witnessAddress,
         owner_witness_citizenship: witnessCitizenship,
         owner_witness_jari_jilla: witnessJariJilla,
+        owner_witness_citizenship_jari_date: witnessCitizenshipJariDate,
+        owner_witness_phone_number: witnessPhoneNumber,
         witness_name: witnessName,
-        witness_father_name: witnessFatherName,
         witness_address: witnessAddress,
         witness_citizenship: witnessCitizenship,
         witness_jari_jilla: witnessJariJilla,
+        witness_citizenship_jari_date: witnessCitizenshipJariDate,
+        witness_phone_number: witnessPhoneNumber,
         owner_witnesses: ownerWitnesses,
       };
     }),
@@ -469,10 +472,11 @@ export function buildCompanyTemplateData(company: CompanyRuntimeVariableSource):
       sn: index + 1,
       witness_index: index + 1,
       witness_name: witness.name || '',
-      witness_father_name: witness.fatherName || '',
       witness_address: witness.address || '',
       witness_citizenship: witness.citizenship || '',
       witness_jari_jilla: witness.jariJilla || '',
+      witness_citizenship_jari_date: witness.citizenshipJariDate || '',
+      witness_phone_number: witness.phoneNumber || '',
     })),
   };
 }

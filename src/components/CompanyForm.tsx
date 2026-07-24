@@ -24,23 +24,24 @@ type CompanyFormSubmission = {
   englishName: string;
   nepaliName: string | null;
   ownerType: 'SINGLE' | 'MULTIPLE';
-  registrationDate: string | null;
   owners: Array<{
     name: string;
     fatherName: string | null;
     address: string | null;
     citizenship: string | null;
     jariJilla: string | null;
+    citizenshipJariDate: string | null;
+    phoneNumber: string | null;
     shares: string | null;
-    sharePercentage: number | null;
     order: number;
   }>;
   witnesses: Array<{
     name: string;
-    fatherName: string | null;
     address: string | null;
     citizenship: string | null;
     jariJilla: string | null;
+    citizenshipJariDate: string | null;
+    phoneNumber: string | null;
     ownerIndex: number | null; // 1-based index of the owner this witness belongs to; null = general
     order: number;
   }>;
@@ -61,7 +62,9 @@ type PersonEditorProps = {
   onChange: (next: Owner | Witness) => void;
   onRemove?: () => void;
   removable?: boolean;
+  isOwner?: boolean;
   showShares?: boolean;
+  slot?: number;
 };
 
 function SectionCard({
@@ -93,8 +96,17 @@ function SectionCard({
   );
 }
 
-function FieldLabel({ children }: { children: ReactNode }) {
-  return <label className="mb-2 block text-sm font-medium text-slate-300">{children}</label>;
+function FieldLabel({ children, variableTag }: { children: ReactNode; variableTag?: string }) {
+  return (
+    <div className="mb-2 flex items-center justify-between gap-2">
+      <label className="text-sm font-medium text-slate-300">{children}</label>
+      {variableTag ? (
+        <span className="font-mono text-[11px] font-semibold text-amber-400 bg-amber-950/40 border border-amber-800/50 px-1.5 py-0.5 rounded shadow-sm">
+          [{variableTag}]
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 function PersonEditor({
@@ -103,8 +115,13 @@ function PersonEditor({
   onChange,
   onRemove,
   removable = false,
+  isOwner = false,
   showShares = false,
+  slot,
 }: PersonEditorProps) {
+  const prefix = isOwner ? 'owner' : 'witness';
+  const tagSuffix = slot ? `_${slot}` : '';
+
   const updateField = (field: keyof Owner | keyof Witness, value: string | number | null) => {
     onChange({
       ...person,
@@ -133,7 +150,7 @@ function PersonEditor({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div>
-          <FieldLabel>Name *</FieldLabel>
+          <FieldLabel variableTag={`${prefix}_name${tagSuffix}`}>Name *</FieldLabel>
           <Input
             value={person.name || ''}
             onChange={(event) => updateField('name', event.target.value)}
@@ -142,17 +159,40 @@ function PersonEditor({
             className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
+        {isOwner && (
+          <div>
+            <FieldLabel variableTag={`owner_father_name${tagSuffix}`}>Father&apos;s Name</FieldLabel>
+            <Input
+              value={(person as Owner).fatherName || ''}
+              onChange={(event) => updateField('fatherName', event.target.value)}
+              placeholder="Father's name"
+              className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+            />
+          </div>
+        )}
         <div>
-          <FieldLabel>Father&apos;s Name</FieldLabel>
+          <FieldLabel variableTag={`${prefix}_citizenship_jari_date${tagSuffix}`}>
+            Citizenship Issued Date {isOwner ? '*' : ''}
+          </FieldLabel>
           <Input
-            value={person.fatherName || ''}
-            onChange={(event) => updateField('fatherName', event.target.value)}
-            placeholder="Father's name"
+            value={person.citizenshipJariDate || ''}
+            onChange={(event) => updateField('citizenshipJariDate', event.target.value)}
+            placeholder="e.g. 2080-01-15"
+            required={isOwner}
+            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+          />
+        </div>
+        <div>
+          <FieldLabel variableTag={`${prefix}_phone_number${tagSuffix}`}>Phone Number</FieldLabel>
+          <Input
+            value={person.phoneNumber || ''}
+            onChange={(event) => updateField('phoneNumber', event.target.value)}
+            placeholder="Phone number"
             className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
         <div className="lg:col-span-2">
-          <FieldLabel>Address</FieldLabel>
+          <FieldLabel variableTag={`${prefix}_address${tagSuffix}`}>Address</FieldLabel>
           <Input
             value={person.address || ''}
             onChange={(event) => updateField('address', event.target.value)}
@@ -161,7 +201,7 @@ function PersonEditor({
           />
         </div>
         <div>
-          <FieldLabel>Citizenship No.</FieldLabel>
+          <FieldLabel variableTag={`${prefix}_citizenship${tagSuffix}`}>Citizenship No.</FieldLabel>
           <Input
             value={person.citizenship || ''}
             onChange={(event) => updateField('citizenship', event.target.value)}
@@ -170,41 +210,24 @@ function PersonEditor({
           />
         </div>
         <div>
-          <FieldLabel>District</FieldLabel>
+          <FieldLabel variableTag={`${prefix}_jari_jilla${tagSuffix}`}>Jari Jilla</FieldLabel>
           <Input
             value={person.jariJilla || ''}
             onChange={(event) => updateField('jariJilla', event.target.value)}
-            placeholder="District"
+            placeholder="Jari Jilla (Issuing District)"
             className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
         {showShares && (
-          <>
-            <div>
-              <FieldLabel>Shares</FieldLabel>
-              <Input
-                value={(person as Owner).shares || ''}
-                onChange={(event) => updateField('shares', event.target.value)}
-                placeholder="Shares"
-                className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
-              />
-            </div>
-            <div>
-              <FieldLabel>Share Percentage</FieldLabel>
-              <Input
-                type="number"
-                value={(person as Owner).sharePercentage ?? ''}
-                onChange={(event) =>
-                  updateField(
-                    'sharePercentage',
-                    event.target.value === '' ? null : Number(event.target.value)
-                  )
-                }
-                placeholder="Share percentage"
-                className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
-              />
-            </div>
-          </>
+          <div>
+            <FieldLabel variableTag={`owner_shares${tagSuffix}`}>Shares</FieldLabel>
+            <Input
+              value={(person as Owner).shares || ''}
+              onChange={(event) => updateField('shares', event.target.value)}
+              placeholder="Shares"
+              className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+            />
+          </div>
         )}
       </div>
     </div>
@@ -224,18 +247,20 @@ export function CompanyForm({
     address: '',
     citizenship: '',
     jariJilla: '',
+    citizenshipJariDate: '',
+    phoneNumber: '',
     shares: '',
-    sharePercentage: null,
     order,
   });
 
   const createBlankWitness = (id: string, order: number): Witness => ({
     id,
     name: '',
-    fatherName: '',
     address: '',
     citizenship: '',
     jariJilla: '',
+    citizenshipJariDate: '',
+    phoneNumber: '',
     ownerIndex: null,
     order,
   });
@@ -243,16 +268,10 @@ export function CompanyForm({
   const [formData, setFormData] = useState<{
     englishName: string;
     nepaliName: string;
-    registrationDate: string;
     ownerType: 'SINGLE' | 'MULTIPLE';
   }>(() => ({
     englishName: company?.englishName || '',
     nepaliName: company?.nepaliName || '',
-    registrationDate: company?.registrationDate
-      ? (typeof company.registrationDate === 'string'
-          ? company.registrationDate.split('T')[0]
-          : new Date(company.registrationDate).toISOString().split('T')[0])
-      : '',
     ownerType: company?.ownerType || 'SINGLE',
   }));
 
@@ -344,7 +363,6 @@ export function CompanyForm({
     englishName: formData.englishName,
     nepaliName: formData.nepaliName,
     ownerType: formData.ownerType,
-    registrationDate: formData.registrationDate,
     owners,
     witnesses,
     objectives: selectedObjectives.map((id) => ({ text: objectives.find((o) => o.id === id)?.text || '' })),
@@ -363,26 +381,24 @@ export function CompanyForm({
       englishName: formData.englishName,
       nepaliName: formData.nepaliName || null,
       ownerType: formData.ownerType,
-      registrationDate: formData.registrationDate || null,
       owners: owners.map((o, idx) => ({
         name: o.name,
         fatherName: o.fatherName || null,
         address: o.address || null,
         citizenship: o.citizenship || null,
         jariJilla: o.jariJilla || null,
+        citizenshipJariDate: o.citizenshipJariDate || null,
+        phoneNumber: o.phoneNumber || null,
         shares: o.shares || null,
-        sharePercentage:
-          o.sharePercentage !== null && o.sharePercentage !== undefined
-            ? o.sharePercentage
-            : null,
         order: idx,
       })),
       witnesses: witnesses.map((w, idx) => ({
         name: w.name,
-        fatherName: w.fatherName || null,
         address: w.address || null,
         citizenship: w.citizenship || null,
         jariJilla: w.jariJilla || null,
+        citizenshipJariDate: w.citizenshipJariDate || null,
+        phoneNumber: w.phoneNumber || null,
         ownerIndex: w.ownerIndex ?? null,
         order: idx,
       })),
@@ -422,7 +438,7 @@ export function CompanyForm({
           >
             <div className="grid gap-4 lg:grid-cols-2">
               <div>
-                <FieldLabel>Company Name (English) *</FieldLabel>
+                <FieldLabel variableTag="company_name">Company Name (English) *</FieldLabel>
                 <Input
                   value={formData.englishName}
                   onChange={(event) => setFormData({ ...formData, englishName: event.target.value })}
@@ -432,7 +448,7 @@ export function CompanyForm({
                 />
               </div>
               <div>
-                <FieldLabel>Company Name (Nepali)</FieldLabel>
+                <FieldLabel variableTag="company_name_np">Company Name (Nepali)</FieldLabel>
                 <Input
                   value={formData.nepaliName}
                   onChange={(event) => setFormData({ ...formData, nepaliName: event.target.value })}
@@ -441,18 +457,7 @@ export function CompanyForm({
                 />
               </div>
               <div>
-                <FieldLabel>Registration Date</FieldLabel>
-                <Input
-                  type="date"
-                  value={formData.registrationDate}
-                  onChange={(event) =>
-                    setFormData({ ...formData, registrationDate: event.target.value })
-                  }
-                  className="border-slate-700 bg-slate-950/60 text-white [color-scheme:dark]"
-                />
-              </div>
-              <div>
-                <FieldLabel>Ownership Structure</FieldLabel>
+                <FieldLabel variableTag="owner_type">Ownership Structure</FieldLabel>
                 <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-700 bg-slate-950/40 p-2">
                   <button
                     type="button"
@@ -506,7 +511,9 @@ export function CompanyForm({
                           : undefined
                       }
                       removable={formData.ownerType === 'MULTIPLE' && owners.length > 1}
+                      isOwner={true}
                       showShares={true}
+                      slot={index + 1}
                     />
                   </div>
 
@@ -526,6 +533,8 @@ export function CompanyForm({
                           )
                         }
                         removable={false}
+                        isOwner={false}
+                        slot={index + 1}
                       />
                     ) : null}
                   </div>

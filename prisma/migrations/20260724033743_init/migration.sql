@@ -7,7 +7,6 @@ CREATE TABLE "companies" (
     "english_name" TEXT NOT NULL,
     "nepali_name" TEXT NOT NULL,
     "owner_type" "OwnerType" NOT NULL DEFAULT 'SINGLE',
-    "registration_date" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -23,8 +22,9 @@ CREATE TABLE "company_owners" (
     "address" TEXT,
     "citizenship" TEXT,
     "jari_jilla" TEXT,
+    "citizenship_jari_date" TEXT,
+    "phone_number" TEXT,
     "shares" TEXT,
-    "share_percentage" DOUBLE PRECISION,
     "order" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "company_owners_pkey" PRIMARY KEY ("id")
@@ -35,10 +35,11 @@ CREATE TABLE "company_witnesses" (
     "id" TEXT NOT NULL,
     "company_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "father_name" TEXT,
     "address" TEXT,
     "citizenship" TEXT,
     "jari_jilla" TEXT,
+    "citizenship_jari_date" TEXT,
+    "phone_number" TEXT,
     "owner_index" INTEGER,
     "order" INTEGER NOT NULL DEFAULT 0,
 
@@ -46,8 +47,20 @@ CREATE TABLE "company_witnesses" (
 );
 
 -- CreateTable
+CREATE TABLE "objective_categories" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "objective_categories_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "objectives" (
     "id" TEXT NOT NULL,
+    "category_id" TEXT,
     "text" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -109,6 +122,9 @@ CREATE TABLE "generated_documents" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "objective_categories_name_key" ON "objective_categories"("name");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "variables_key_key" ON "variables"("key");
 
 -- CreateIndex
@@ -119,6 +135,9 @@ ALTER TABLE "company_owners" ADD CONSTRAINT "company_owners_company_id_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "company_witnesses" ADD CONSTRAINT "company_witnesses_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "objectives" ADD CONSTRAINT "objectives_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "objective_categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "company_objectives" ADD CONSTRAINT "company_objectives_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;

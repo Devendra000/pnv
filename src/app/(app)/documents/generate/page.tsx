@@ -342,14 +342,6 @@ export default function GenerateDocumentPage() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground mb-1">Registration Date</p>
-                          <p className="text-foreground font-medium">
-                            {selectedCompanyRecord.registrationDate
-                              ? new Date(selectedCompanyRecord.registrationDate).toLocaleDateString()
-                              : 'N/A'}
-                          </p>
-                        </div>
-                        <div>
                           <p className="text-muted-foreground mb-1">Ownership Type</p>
                           <p className="text-foreground font-medium font-mono text-xs">
                             {selectedCompanyRecord.ownerType}

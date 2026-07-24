@@ -7,18 +7,20 @@ export interface Owner {
   address?: string | null;
   citizenship?: string | null;
   jariJilla?: string | null;
+  citizenshipJariDate?: string | null;
+  phoneNumber?: string | null;
   shares?: string | null;
-  sharePercentage?: number | null;
   order: number;
 }
 
 export interface Witness {
   id: string;
   name: string;
-  fatherName?: string | null;
   address?: string | null;
   citizenship?: string | null;
   jariJilla?: string | null;
+  citizenshipJariDate?: string | null;
+  phoneNumber?: string | null;
   ownerIndex?: number | null; // 1-based index of the owner this witness belongs to; null = general
   order: number;
 }
@@ -61,7 +63,6 @@ export interface Company {
   englishName: string;
   nepaliName?: string | null;
   ownerType: OwnerType; // 'SINGLE' | 'MULTIPLE'
-  registrationDate?: string | Date | null;
   createdAt: string | Date;
   updatedAt: string | Date;
   owners: Owner[];

@@ -17,7 +17,6 @@ model Company {
   englishName      String              @map("english_name")
   nepaliName       String              @map("nepali_name")
   ownerType        OwnerType           @default(SINGLE) @map("owner_type")
-  registrationDate DateTime?           @map("registration_date")
   createdAt        DateTime            @default(now()) @map("created_at")
   updatedAt        DateTime            @updatedAt @map("updated_at")
 
@@ -31,32 +30,34 @@ model Company {
 }
 
 model CompanyOwner {
-  id          String   @id @default(cuid())
-  companyId   String   @map("company_id")
-  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  name        String
-  fatherName  String?  @map("father_name")
-  address     String?
-  citizenship String?
-  jariJilla   String?  @map("jari_jilla")
-  shares      String?
-  sharePercentage Float? @map("share_percentage")
-  order       Int      @default(0)
+  id                  String   @id @default(cuid())
+  companyId           String   @map("company_id")
+  company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name                String
+  fatherName          String?  @map("father_name")
+  address             String?
+  citizenship         String?
+  jariJilla           String?  @map("jari_jilla")
+  citizenshipJariDate String?  @map("citizenship_jari_date")
+  phoneNumber         String?  @map("phone_number")
+  shares              String?
+  order               Int      @default(0)
 
   @@map("company_owners")
 }
 
 model CompanyWitness {
-  id          String   @id @default(cuid())
-  companyId   String   @map("company_id")
-  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  name        String
-  fatherName  String?  @map("father_name")
-  address     String?
-  citizenship String?
-  jariJilla   String?  @map("jari_jilla")
-  ownerIndex  Int?     @map("owner_index") // 1-based index of the owner this witness belongs to; null = general
-  order       Int      @default(0)
+  id                  String   @id @default(cuid())
+  companyId           String   @map("company_id")
+  company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name                String
+  address             String?
+  citizenship         String?
+  jariJilla           String?  @map("jari_jilla")
+  citizenshipJariDate String?  @map("citizenship_jari_date")
+  phoneNumber         String?  @map("phone_number")
+  ownerIndex          Int?     @map("owner_index") // 1-based index of the owner this witness belongs to; null = general
+  order               Int      @default(0)
 
   @@map("company_witnesses")
 }

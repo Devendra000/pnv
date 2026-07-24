@@ -14,28 +14,31 @@ import { Plus, X, Search, Lock, Repeat2 } from 'lucide-react';
 // They are NOT stored in the DB — they're resolved at template-generation time.
 
 const OWNERS_LOOP_FIELDS = [
-  { key: 'sn',                         description: 'Row number (1, 2, 3 …)' },
-  { key: 'owner_name',                 description: "Owner's full name" },
-  { key: 'owner_father_name',          description: "Owner's father's name" },
-  { key: 'owner_address',              description: "Owner's address" },
-  { key: 'owner_citizenship',          description: "Owner's citizenship number" },
-  { key: 'owner_jari_jilla',           description: "Owner's citizenship issuing district" },
-  { key: 'owner_shares',               description: "Owner's share amount" },
-  { key: 'owner_share_percentage',     description: "Owner's share percentage" },
-  { key: 'owner_witness_name',         description: "Name of the witness assigned directly to this owner" },
-  { key: 'owner_witness_father_name',  description: "Father's name of the witness assigned directly to this owner" },
-  { key: 'owner_witness_address',      description: "Address of the witness assigned directly to this owner" },
-  { key: 'owner_witness_citizenship',  description: "Citizenship number of the witness assigned directly to this owner" },
-  { key: 'owner_witness_jari_jilla',   description: "Citizenship issuing district of the witness assigned directly to this owner" },
+  { key: 'sn',                                  description: 'Row number (1, 2, 3 …)' },
+  { key: 'owner_name',                          description: "Owner's full name" },
+  { key: 'owner_father_name',                   description: "Owner's father's name" },
+  { key: 'owner_address',                       description: "Owner's address" },
+  { key: 'owner_citizenship',                   description: "Owner's citizenship number" },
+  { key: 'owner_jari_jilla',                    description: "Owner's citizenship issuing district" },
+  { key: 'owner_citizenship_jari_date',         description: "Owner's citizenship issued date" },
+  { key: 'owner_phone_number',                  description: "Owner's phone number" },
+  { key: 'owner_shares',                        description: "Owner's share amount" },
+  { key: 'owner_witness_name',                  description: "Name of the witness assigned directly to this owner" },
+  { key: 'owner_witness_address',               description: "Address of the witness assigned directly to this owner" },
+  { key: 'owner_witness_citizenship',           description: "Citizenship number of the witness assigned directly to this owner" },
+  { key: 'owner_witness_jari_jilla',            description: "Citizenship issuing district of the witness assigned directly to this owner" },
+  { key: 'owner_witness_citizenship_jari_date',  description: "Citizenship issued date of the witness assigned directly to this owner" },
+  { key: 'owner_witness_phone_number',          description: "Phone number of the witness assigned directly to this owner" },
 ];
 
 const WITNESSES_LOOP_FIELDS = [
-  { key: 'sn',                   description: 'Row number (1, 2, 3 …)' },
-  { key: 'witness_name',         description: "Witness's full name" },
-  { key: 'witness_father_name',  description: "Witness's father's name" },
-  { key: 'witness_address',      description: "Witness's address" },
-  { key: 'witness_citizenship',  description: "Witness's citizenship number" },
-  { key: 'witness_jari_jilla',   description: "Witness's citizenship issuing district" },
+  { key: 'sn',                            description: 'Row number (1, 2, 3 …)' },
+  { key: 'witness_name',                  description: "Witness's full name" },
+  { key: 'witness_address',               description: "Witness's address" },
+  { key: 'witness_citizenship',           description: "Witness's citizenship number" },
+  { key: 'witness_jari_jilla',            description: "Witness's citizenship issuing district" },
+  { key: 'witness_citizenship_jari_date',   description: "Witness's citizenship issued date" },
+  { key: 'witness_phone_number',           description: "Witness's phone number" },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────

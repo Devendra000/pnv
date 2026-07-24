@@ -32,11 +32,6 @@ export default function CompaniesPage() {
       ),
     },
     {
-      key: 'registrationDate',
-      label: 'Registration Date',
-      render: (value) => (value ? new Date(value).toLocaleDateString() : 'N/A'),
-    },
-    {
       key: 'ownerType',
       label: 'Ownership',
       render: (value, company: Company) =>
