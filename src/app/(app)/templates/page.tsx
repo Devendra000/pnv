@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, X, ChevronDown, ChevronUp, Search, Upload } from 'lucide-react';
 import { extractDocxTemplateData, type ParsedTemplateData } from '@/lib/templateParser';
+import { TemplateHelperModal } from '@/components/TemplateHelperModal';
 
 export default function TemplatesPage() {
   const { templates, addTemplate, updateTemplate, deleteTemplate, loading, variables } =
@@ -101,46 +102,6 @@ export default function TemplatesPage() {
   const visibleDetectedKeys = visiblePreview?.detectedKeys || [];
 
   const [showHelper, setShowHelper] = useState(false);
-  const [helperKey, setHelperKey] = useState('');
-  const [helperMode, setHelperMode] = useState<'single' | 'multiple'>('single');
-  const [includeSN, setIncludeSN] = useState(true);
-  const [generatedSnippet, setGeneratedSnippet] = useState('');
-
-  useEffect(() => {
-    if (!helperKey) return setGeneratedSnippet('');
-
-    const pluralize = (word: string) => {
-      const lower = word.toLowerCase();
-      if (lower.endsWith('ch') || lower.endsWith('sh') || lower.endsWith('x') || lower.endsWith('z') || lower.endsWith('s')) {
-        return word + 'es';
-      }
-      return word + 's';
-    };
-
-    const parts = helperKey.split('_');
-    const prefix = parts[0] || helperKey;
-    const listKey = `${pluralize(prefix)}_list`;
-
-    if (helperMode === 'single') {
-      setGeneratedSnippet(`[${helperKey}]`);
-      return;
-    }
-
-    const snLine = includeSN ? 'SN: [sn]\n' : '';
-    setGeneratedSnippet(`[#${listKey}]\n${snLine}Owner: [${helperKey}]\n[/${listKey}]`);
-  }, [helperKey, helperMode, includeSN]);
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedSnippet);
-      // small feedback
-      // eslint-disable-next-line no-alert
-      alert('Snippet copied to clipboard');
-    } catch (err) {
-      // eslint-disable-next-line no-alert
-      alert('Could not copy to clipboard');
-    }
-  };
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-background">
@@ -170,71 +131,11 @@ export default function TemplatesPage() {
         }
       />
 
-      {showHelper && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowHelper(false)} />
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-6 w-[520px] mx-4">
-            <h3 className="text-lg font-semibold text-foreground">Template Helper</h3>
-            <p className="text-sm text-slate-500 mt-1">Enter a variable key and whether it should be single or repeatable.</p>
-
-            <div className="mt-4 space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Variable key</label>
-                <div className="flex gap-2">
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value) setHelperKey(e.target.value);
-                    }}
-                    className="w-44 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-foreground text-sm px-2 py-2 focus:outline-none"
-                  >
-                    <option value="">Existing variable…</option>
-                    {variables.map((v) => (
-                      <option key={v.id} value={v.key}>
-                        {v.label} ({v.key})
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    value={helperKey}
-                    onChange={(e) => setHelperKey(e.target.value.trim())}
-                    placeholder="e.g., owner_name"
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <label className="inline-flex items-center gap-2">
-                  <input type="radio" name="mode" checked={helperMode === 'single'} onChange={() => setHelperMode('single')} />
-                  <span className="text-sm">Single</span>
-                </label>
-                <label className="inline-flex items-center gap-2">
-                  <input type="radio" name="mode" checked={helperMode === 'multiple'} onChange={() => setHelperMode('multiple')} />
-                  <span className="text-sm">Repeatable (loop)</span>
-                </label>
-              </div>
-
-              {helperMode === 'multiple' && (
-                <label className="inline-flex items-center gap-2">
-                  <input type="checkbox" checked={includeSN} onChange={(e) => setIncludeSN(e.target.checked)} />
-                  <span className="text-sm">Include SN line</span>
-                </label>
-              )}
-
-              <div className="mt-2">
-                <label className="block text-sm font-medium text-foreground mb-2">Generated snippet</label>
-                <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md p-3 font-mono text-sm whitespace-pre-wrap">{generatedSnippet || '—'}</div>
-              </div>
-
-              <div className="flex items-center gap-2 mt-3">
-                <Button onClick={copyToClipboard} className="bg-blue-600 hover:bg-blue-700 text-white">Copy</Button>
-                <Button variant="outline" onClick={() => setShowHelper(false)}>Close</Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <TemplateHelperModal
+        isOpen={showHelper}
+        onClose={() => setShowHelper(false)}
+        variables={variables}
+      />
 
       <div className="max-w-7xl mx-auto p-6">
         <div className="mb-6 flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2">
