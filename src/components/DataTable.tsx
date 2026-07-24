@@ -81,7 +81,11 @@ export function DataTable<T extends { id: string }>({
                     )}
                     {onDelete && (
                       <button
-                        onClick={() => onDelete(row.id)}
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to delete this? This cannot be undone.')) {
+                            onDelete(row.id);
+                          }
+                        }}
                         className="text-slate-500 hover:text-red-600 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />

@@ -17,6 +17,7 @@ import {
 } from './types';
 import {
   buildCompanyRuntimeVariableValues,
+  buildCompanyTemplateData,
   COMPANY_VARIABLE_DEFINITIONS,
 } from '@/lib/companyVariables';
 import { extractDocxTemplateData, cleanDocxZipTags } from '@/lib/templateParser';
@@ -274,11 +275,19 @@ async function renderDocxTemplate(templateId: string, variables: Record<string, 
   const zip = cleanDocxZipTags(new PizZip(templateBuffer));
 
   const mergedData: Record<string, unknown> = {
-    ...createReplacementMap(variables),
     ...(templateData || {}),
   };
 
+  if (mergedData.owners_list && !mergedData.owner_list) {
+    mergedData.owner_list = mergedData.owners_list;
+  }
+
+  const LOOP_KEYS = new Set(['owners_list', 'owner_list', 'witnesses_list', 'owner_witnesses']);
+
   for (const [key, value] of Object.entries(variables)) {
+    if (LOOP_KEYS.has(key)) {
+      continue;
+    }
     if (value !== undefined && value !== null) {
       const valStr = String(value);
       mergedData[key] = valStr;
@@ -349,6 +358,38 @@ export async function saveCompanyVariableValuesAction(
   });
 
   return mapCompanyVariableValues(updatedValues);
+}
+
+/**
+ * Creates a manual Variable record (if it doesn't exist) and saves a company value for it.
+ * Used when a template has a key that isn't in the manual variables DB yet, and the user
+ * wants to promote it to a proper manual variable.
+ */
+export async function addTemplateVariableToManualAction(
+  key: string,
+  label: string,
+  companyId: string,
+  value: string
+): Promise<{ variableId: string }> {
+  const variable = await prisma.variable.upsert({
+    where: { key },
+    update: { label },
+    create: {
+      key,
+      label: label || humanizeVariableKey(key),
+      type: inferVariableType(key),
+    },
+  });
+
+  if (value.trim()) {
+    await prisma.companyVariableValue.upsert({
+      where: { companyId_variableId: { companyId, variableId: variable.id } },
+      update: { value },
+      create: { companyId, variableId: variable.id, value },
+    });
+  }
+
+  return { variableId: variable.id };
 }
 
 async function extractTemplateData(relativeUrl: string, variables: UIVariable[]) {
@@ -1094,10 +1135,39 @@ export async function createDocumentAction(data: {
   variables: Record<string, string>;
   templateData?: Record<string, unknown>;
 }): Promise<Document> {
+  // Ensure template exists in database to prevent FK constraint error
+  let template = await prisma.template.findUnique({ where: { id: data.templateId } });
+  if (!template) {
+    template = await prisma.template.findFirst();
+    if (!template) {
+      throw new Error('Template not found in database. Please upload a template first.');
+    }
+  }
+  const validTemplateId = template.id;
+
+  // Load company data from DB to build complete loop data (owners_list, etc.)
+  const companyRecord = await prisma.company.findUnique({
+    where: { id: data.companyId },
+    include: {
+      owners: { orderBy: { order: 'asc' } },
+      witnesses: { orderBy: { order: 'asc' } },
+      objectives: { orderBy: { order: 'asc' } },
+    },
+  });
+
+  let fullTemplateData: Record<string, unknown> = data.templateData || {};
+  if (companyRecord) {
+    const builtData = buildCompanyTemplateData(companyRecord);
+    fullTemplateData = {
+      ...builtData,
+      ...fullTemplateData,
+    };
+  }
+
   const d = await prisma.generatedDocument.create({
     data: {
       companyId: data.companyId,
-      templateId: data.templateId,
+      templateId: validTemplateId,
       docxUrl: '',
       variables: data.variables as any,
     },
@@ -1110,7 +1180,8 @@ export async function createDocumentAction(data: {
   const docxUrl = `/uploads/generated/${d.id}.docx`;
   const filePath = path.join(process.cwd(), 'public', 'uploads', 'generated', `${d.id}.docx`);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  const docxBuffer = await renderDocxTemplate(data.templateId, data.variables, data.templateData);
+
+  const docxBuffer = await renderDocxTemplate(validTemplateId, data.variables, fullTemplateData);
   await fs.writeFile(filePath, docxBuffer);
 
   await prisma.generatedDocument.update({

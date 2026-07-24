@@ -1,12 +1,44 @@
 import PizZip from 'pizzip';
 import type { Variable } from '@/lib/types';
-import { TEMPLATE_LOOP_HELPER_KEYS } from '@/lib/companyVariables';
+import { COMPANY_VARIABLE_DEFINITIONS } from '@/lib/companyVariables';
 
 export interface ParsedTemplateData {
   content: string;
   detectedKeys: string[];
   matchedVariables: Variable[];
 }
+
+// System/Loop virtual variables dictionary for template parsing
+const SYSTEM_LOOP_VIRTUAL_VARIABLES: Record<string, { label: string; type: Variable['type'] }> = {
+  // Loops
+  owners_list: { label: 'Loop — Owners & Witnesses', type: 'list' },
+  owner_list: { label: 'Loop — Owners & Witnesses', type: 'list' },
+  witnesses_list: { label: 'Loop — Witnesses', type: 'list' },
+  owner_witnesses: { label: 'Loop — Owner Assigned Witnesses', type: 'list' },
+
+  // Loop fields
+  sn: { label: 'S.N. (Loop Row Number)', type: 'number' },
+  owner_name: { label: 'Owner Name (Loop Field)', type: 'text' },
+  owner_father_name: { label: "Owner Father's Name (Loop Field)", type: 'text' },
+  owner_address: { label: 'Owner Address (Loop Field)', type: 'text' },
+  owner_citizenship: { label: 'Owner Citizenship No. (Loop Field)', type: 'text' },
+  owner_jari_jilla: { label: 'Owner Jari Jilla (Loop Field)', type: 'text' },
+  owner_citizenship_jari_date: { label: 'Owner Citizenship Issued Date (Loop Field)', type: 'date' },
+  owner_phone_number: { label: 'Owner Phone Number (Loop Field)', type: 'text' },
+  owner_shares: { label: 'Owner Shares (Loop Field)', type: 'text' },
+  owner_witness_name: { label: 'Assigned Witness Name (Loop Field)', type: 'text' },
+  owner_witness_address: { label: 'Assigned Witness Address (Loop Field)', type: 'text' },
+  owner_witness_citizenship: { label: 'Assigned Witness Citizenship No. (Loop Field)', type: 'text' },
+  owner_witness_jari_jilla: { label: 'Assigned Witness Jari Jilla (Loop Field)', type: 'text' },
+  owner_witness_citizenship_jari_date: { label: 'Assigned Witness Issued Date (Loop Field)', type: 'date' },
+  owner_witness_phone_number: { label: 'Assigned Witness Phone Number (Loop Field)', type: 'text' },
+  witness_name: { label: 'Witness Name (Loop Field)', type: 'text' },
+  witness_address: { label: 'Witness Address (Loop Field)', type: 'text' },
+  witness_citizenship: { label: 'Witness Citizenship No. (Loop Field)', type: 'text' },
+  witness_jari_jilla: { label: 'Witness Jari Jilla (Loop Field)', type: 'text' },
+  witness_citizenship_jari_date: { label: 'Witness Citizenship Issued Date (Loop Field)', type: 'date' },
+  witness_phone_number: { label: 'Witness Phone Number (Loop Field)', type: 'text' },
+};
 
 function collectDocxXml(zip: PizZip) {
   const xmlParts = [
@@ -53,39 +85,15 @@ function decodeDocxText(xml: string) {
 }
 
 function collectDetectedKeys(content: string) {
-  const sectionStack: string[] = [];
   const detectedKeys: string[] = [];
   const seenKeys = new Set<string>();
 
   const tagPattern = /\[\s*([#/^]?)\s*([A-Za-z0-9_.\s]+?)\s*\]/g;
   for (const match of content.matchAll(tagPattern)) {
-    const tagType = match[1];
     const rawKey = match[2];
     const key = rawKey.trim().replace(/\s+/g, '_');
 
     if (!key) continue;
-
-    if (tagType === '#') {
-      sectionStack.push(key);
-      continue;
-    }
-
-    if (tagType === '^') {
-      sectionStack.push(key);
-      continue;
-    }
-
-    if (tagType === '/') {
-      const lastSection = sectionStack[sectionStack.length - 1];
-      if (lastSection === key) {
-        sectionStack.pop();
-      }
-      continue;
-    }
-
-    if (sectionStack.length > 0 || TEMPLATE_LOOP_HELPER_KEYS.has(key)) {
-      continue;
-    }
 
     if (!seenKeys.has(key)) {
       seenKeys.add(key);
@@ -148,6 +156,22 @@ export function extractDocxTemplateData(
   const detectedKeys = collectDetectedKeys(content);
 
   const variableMap = new Map<string, Variable>();
+
+  // 1. Registered auto definitions
+  COMPANY_VARIABLE_DEFINITIONS.forEach((def) => {
+    const v: Variable = { id: `auto-${def.key}`, key: def.key, label: def.label, type: def.type };
+    variableMap.set(def.key, v);
+    variableMap.set(def.key.toLowerCase(), v);
+  });
+
+  // 2. Loop virtual variables
+  Object.entries(SYSTEM_LOOP_VIRTUAL_VARIABLES).forEach(([key, info]) => {
+    const v: Variable = { id: `loop-${key}`, key, label: info.label, type: info.type };
+    variableMap.set(key, v);
+    variableMap.set(key.toLowerCase(), v);
+  });
+
+  // 3. User custom variables from DB (takes precedence)
   for (const variable of variables) {
     variableMap.set(variable.key, variable);
     variableMap.set(variable.key.toLowerCase(), variable);

@@ -77,7 +77,9 @@ export default function DocumentsPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteDocument(doc.id);
+                          if (window.confirm('Are you sure you want to delete this document?')) {
+                            deleteDocument(doc.id);
+                          }
                         }}
                         className="text-slate-500 hover:text-red-600 transition-colors p-2"
                       >

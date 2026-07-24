@@ -225,7 +225,11 @@ export default function ObjectivesPage() {
                       <Edit2 className="w-3 h-3" />
                     </button>
                     <button
-                      onClick={() => deleteObjectiveCategory(cat.id)}
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this objective category?')) {
+                          deleteObjectiveCategory(cat.id);
+                        }
+                      }}
                       title="Delete Category"
                       className="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-red-500 hover:text-white"
                     >
@@ -394,7 +398,11 @@ export default function ObjectivesPage() {
                       size="sm"
                       variant="outline"
                       className="border-red-200 dark:border-red-900/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                      onClick={() => deleteObjective(objective.id)}
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this objective?')) {
+                          deleteObjective(objective.id);
+                        }
+                      }}
                     >
                       <X className="w-4 h-4" />
                     </Button>

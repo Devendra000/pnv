@@ -9,8 +9,10 @@ import { Input } from '@/components/ui/input';
 import {
   buildCompanyRuntimeVariableValues,
   buildCompanyTemplateData,
+  isSystemVariableKey,
   TEMPLATE_LOOP_HELPER_KEYS,
 } from '@/lib/companyVariables';
+import { addTemplateVariableToManualAction } from '@/lib/actions';
 
 function buildInitialVariableDrafts(
   company: { variableValues: Array<{ variableId: string; value: string }> } | undefined,
@@ -97,6 +99,7 @@ function renderPreviewTemplate(
 
   if (templateData) {
     rendered = renderLoopSection(rendered, 'owners_list', templateData.owners_list as Array<Record<string, unknown>>);
+    rendered = renderLoopSection(rendered, 'owner_list', templateData.owners_list as Array<Record<string, unknown>>);
     rendered = renderLoopSection(rendered, 'witnesses_list', templateData.witnesses_list as Array<Record<string, unknown>>);
   }
 
@@ -116,9 +119,7 @@ export default function GenerateDocumentPage() {
   const selectedTemplateRecord = templates.find((template) => template.id === selectedTemplate);
 
   const handleGenerate = () => {
-    if (!selectedCompanyRecord || !selectedTemplateRecord) {
-      alert('Please select both a company and template');
-    }
+    // no-op: selection is enforced via disabled state in the UI
   };
 
   const baseVariables = useMemo(
@@ -160,6 +161,26 @@ export default function GenerateDocumentPage() {
     return [...databaseVariables, ...detectedOnlyVariables];
   }, [selectedTemplateRecord]);
 
+  // Single scalar variables in template (exclude loop block tags & per-row loop fields)
+  const singleTemplateVariables = useMemo<TemplateVariableItem[]>(() => {
+    const LOOP_ROW_FIELDS = new Set([
+      'sn', 'owner_index', 'witness_index',
+      'owner_name', 'owner_father_name', 'owner_address', 'owner_citizenship',
+      'owner_jari_jilla', 'owner_citizenship_jari_date', 'owner_phone_number', 'owner_shares',
+      'owner_witness_name', 'owner_witness_address', 'owner_witness_citizenship',
+      'owner_witness_jari_jilla', 'owner_witness_citizenship_jari_date', 'owner_witness_phone_number',
+      'witness_name', 'witness_address', 'witness_citizenship', 'witness_jari_jilla',
+      'witness_citizenship_jari_date', 'witness_phone_number',
+    ]);
+
+    return templateVariables.filter((v) => {
+      if (TEMPLATE_LOOP_HELPER_KEYS.has(v.key)) return false;
+      if (LOOP_ROW_FIELDS.has(v.key)) return false;
+      if (v.id?.startsWith('loop-')) return false;
+      return true;
+    });
+  }, [templateVariables]);
+
   const resolvedTemplateVariables = useMemo(() => {
     if (!selectedTemplateRecord) {
       return {} as Record<string, string>;
@@ -167,12 +188,20 @@ export default function GenerateDocumentPage() {
 
     return Object.fromEntries(
       templateVariables.map((variable) => {
-        const draftValue = variable.source === 'database' ? variableDrafts[variable.id || ''] ?? '' : variableDrafts[variable.key] ?? '';
+        const draftValue = variableDrafts[variable.key] ?? (variable.id ? variableDrafts[variable.id] : undefined);
         const savedValue = variable.source === 'database' && variable.id ? companyVariableMap.get(variable.id) || '' : '';
-        return [variable.key, draftValue.trim() ? draftValue : savedValue];
+        const autoValue = baseVariables[variable.key] || '';
+
+        const finalValue = draftValue !== undefined && draftValue !== ''
+          ? draftValue
+          : savedValue !== ''
+            ? savedValue
+            : autoValue;
+
+        return [variable.key, finalValue];
       })
     );
-  }, [companyVariableMap, selectedTemplateRecord, templateVariables, variableDrafts]);
+  }, [baseVariables, companyVariableMap, selectedTemplateRecord, templateVariables, variableDrafts]);
 
   const previewContent = useMemo(() => {
     if (!selectedTemplateRecord) {
@@ -184,60 +213,100 @@ export default function GenerateDocumentPage() {
     return renderPreviewTemplate(selectedTemplateRecord.content, mergedVariables, templateData);
   }, [baseVariables, resolvedTemplateVariables, selectedTemplateRecord, templateData]);
 
-  const canShowTemplateVariables = Boolean(selectedCompanyRecord && selectedTemplateRecord);
+  // Which loop field keys does the template actually use?
+  const detectedLoopOwnerFields = useMemo(() => {
+    if (!selectedTemplateRecord || !templateData) return [];
+    const allDetected = new Set(selectedTemplateRecord.detectedKeys || []);
+    // All possible owner loop fields from templateData row shape
+    const ownerRowKeys = Object.keys(templateData.owners_list[0] || {});
+    return ownerRowKeys.filter((k) => allDetected.has(k) && k !== 'sn' && k !== 'owner_index');
+  }, [selectedTemplateRecord, templateData]);
+
+  const detectedLoopWitnessFields = useMemo(() => {
+    if (!selectedTemplateRecord || !templateData) return [];
+    const allDetected = new Set(selectedTemplateRecord.detectedKeys || []);
+    const witnessRowKeys = Object.keys(templateData.witnesses_list[0] || {});
+    return witnessRowKeys.filter((k) => allDetected.has(k) && k !== 'sn' && k !== 'witness_index');
+  }, [selectedTemplateRecord, templateData]);
+
+  const ownerLoopPreview = useMemo(() => {
+    if (!templateData || detectedLoopOwnerFields.length === 0) return [];
+    return templateData.owners_list.map((ownerRow, idx) => ({
+      sn: idx + 1,
+      fields: detectedLoopOwnerFields.map((key) => ({
+        key,
+        value: String((ownerRow as Record<string, unknown>)[key] ?? ''),
+      })),
+    }));
+  }, [templateData, detectedLoopOwnerFields]);
+
+  const witnessLoopPreview = useMemo(() => {
+    if (!templateData || detectedLoopWitnessFields.length === 0) return [];
+    return templateData.witnesses_list.map((witnessRow, idx) => ({
+      sn: idx + 1,
+      fields: detectedLoopWitnessFields.map((key) => ({
+        key,
+        value: String((witnessRow as Record<string, unknown>)[key] ?? ''),
+      })),
+    }));
+  }, [templateData, detectedLoopWitnessFields]);
+
+  const canShowTemplateVariables = Boolean(
+    selectedCompanyRecord && selectedTemplateRecord && singleTemplateVariables.length > 0
+  );
+
+  const canShowLoopPreview = Boolean(
+    selectedCompanyRecord && selectedTemplateRecord &&
+    (ownerLoopPreview.length > 0 || witnessLoopPreview.length > 0)
+  );
 
   const missingTemplateVariables = useMemo(() => {
     if (!selectedTemplateRecord) {
       return [] as { id: string; key: string; label: string }[];
     }
 
-    return templateVariables.filter((variable) => {
-      const draftValue = variable.source === 'database' ? variableDrafts[variable.id || ''] ?? '' : variableDrafts[variable.key] ?? '';
-      const savedValue = variable.source === 'database' && variable.id ? companyVariableMap.get(variable.id) || '' : '';
-      return !(draftValue.trim() || savedValue.trim());
+    return singleTemplateVariables.filter((variable) => {
+      const key = variable.key;
+      const id = variable.id;
+      const draftValue = variableDrafts[key] ?? (id ? variableDrafts[id] : undefined);
+      const savedValue = variable.source === 'database' && id ? companyVariableMap.get(id) || '' : '';
+      const autoValue = baseVariables[key] || '';
+
+      const effectiveValue = draftValue ?? (savedValue || autoValue);
+      return !effectiveValue.trim();
     });
-  }, [companyVariableMap, selectedTemplateRecord, templateVariables, variableDrafts]);
+  }, [baseVariables, companyVariableMap, selectedTemplateRecord, singleTemplateVariables, variableDrafts]);
 
-  const saveVariableValue = async (variableId: string) => {
-    if (!selectedCompanyRecord || !selectedTemplateRecord) {
-      return;
-    }
+  // Explicitly save one manual variable's current draft value back to company_variable_values
+  const saveManualVariableToDB = async (variableId: string) => {
+    if (!selectedCompanyRecord) return;
 
-    const variable = templateVariables.find((entry) => entry.id === variableId);
-    if (!variable) {
-      return;
-    }
+    const variable = singleTemplateVariables.find((v) => v.id === variableId);
+    if (!variable) return;
 
-    const value = variableDrafts[variableId] || '';
-    if (!value.trim()) {
-      alert(`Enter a value for ${variable.label} before saving.`);
-      return;
-    }
+    const value = variableDrafts[variable.key] ?? variableDrafts[variableId] ?? '';
+    if (!value.trim()) return; // silently ignore — input is still empty
 
     await saveCompanyVariableValues(selectedCompanyRecord.id, [{ variableId, value }]);
+    // No alert — the badge/hint text will update once context refreshes
+  };
+
+  // Add a template-only variable to the manual variables DB and save the company value
+  const addToManualVariables = async (key: string, label: string) => {
+    if (!selectedCompanyRecord) return;
+
+    const value = variableDrafts[key] ?? '';
+    if (!value.trim()) return; // silently ignore — input still empty
+
+    await addTemplateVariableToManualAction(key, label, selectedCompanyRecord.id, value);
+    // No alert — the badge will switch to "Manual" once context refreshes
   };
 
   const handleSave = async () => {
-    if (!selectedCompanyRecord || !selectedTemplateRecord || !previewContent) {
-      alert('Please select a company and template, then fill the variable values first.');
-      return;
-    }
+    if (!selectedCompanyRecord || !selectedTemplateRecord || !previewContent) return;
+    if (missingTemplateVariables.length > 0) return;
 
-    if (missingTemplateVariables.length > 0) {
-      alert(`Fill all template variables before generating: ${missingTemplateVariables.map((variable) => variable.label).join(', ')}`);
-      return;
-    }
-
-    await saveCompanyVariableValues(
-      selectedCompanyRecord.id,
-      templateVariables
-        .filter((variable): variable is TemplateVariableItem & { id: string } => variable.source === 'database' && Boolean(variable.id))
-        .map((variable) => ({
-        variableId: variable.id,
-          value: variableDrafts[variable.id] || '',
-        }))
-    );
-
+    // Store the fully-resolved values in the document record — NO DB save of variable values here
     await addDocument({
       companyId: selectedCompanyRecord.id,
       companyName: selectedCompanyRecord.englishName,
@@ -248,9 +317,9 @@ export default function GenerateDocumentPage() {
       templateData: templateData || undefined,
     });
 
-    alert('Document saved successfully!');
     router.push('/documents');
   };
+
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-background">
@@ -357,85 +426,186 @@ export default function GenerateDocumentPage() {
                     </div>
                   )}
 
+                  {/* Loop Data Preview — owners_list */}
+                  {canShowLoopPreview && ownerLoopPreview.length > 0 && (
+                    <div className="mt-6 pt-6 border-t border-border space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-400/30">
+                          Loop
+                        </span>
+                        <h3 className="font-semibold text-foreground text-sm">
+                          Owners in Template
+                        </h3>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        These values are filled automatically from the company owners for each row in <code className="text-xs bg-muted px-1 rounded">[#owners_list]</code>.
+                      </p>
+                      <div className="space-y-3">
+                        {ownerLoopPreview.map((ownerRow) => (
+                          <div
+                            key={ownerRow.sn}
+                            className="rounded-lg border border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/20 px-3 py-3 space-y-2"
+                          >
+                            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-2">
+                              Owner #{ownerRow.sn}
+                            </p>
+                            {ownerRow.fields.map((f) => (
+                              <div key={f.key} className="flex items-start gap-2 text-xs">
+                                <span className="shrink-0 font-mono text-muted-foreground w-36 truncate pt-0.5">[{f.key}]</span>
+                                <span className={`font-medium flex-1 truncate ${f.value ? 'text-foreground' : 'text-rose-400 italic'}`}>
+                                  {f.value || '(empty)'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Loop Data Preview — witnesses_list */}
+                  {canShowLoopPreview && witnessLoopPreview.length > 0 && (
+                    <div className="mt-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-400/30">
+                          Loop
+                        </span>
+                        <h3 className="font-semibold text-foreground text-sm">
+                          Witnesses in Template
+                        </h3>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        These values are filled automatically from the company witnesses for each row in <code className="text-xs bg-muted px-1 rounded">[#witnesses_list]</code>.
+                      </p>
+                      <div className="space-y-3">
+                        {witnessLoopPreview.map((witnessRow) => (
+                          <div
+                            key={witnessRow.sn}
+                            className="rounded-lg border border-violet-500/20 bg-violet-50/40 dark:bg-violet-950/20 px-3 py-3 space-y-2"
+                          >
+                            <p className="text-xs font-bold text-violet-700 dark:text-violet-400 mb-2">
+                              Witness #{witnessRow.sn}
+                            </p>
+                            {witnessRow.fields.map((f) => (
+                              <div key={f.key} className="flex items-start gap-2 text-xs">
+                                <span className="shrink-0 font-mono text-muted-foreground w-36 truncate pt-0.5">[{f.key}]</span>
+                                <span className={`font-medium flex-1 truncate ${f.value ? 'text-foreground' : 'text-rose-400 italic'}`}>
+                                  {f.value || '(empty)'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {canShowTemplateVariables && (
                     <div className="mt-6 mb-6 pt-6 border-t border-border space-y-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <h3 className="font-semibold text-foreground">Template Variables</h3>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-border text-foreground hover:bg-muted"
-                          onClick={async () => {
-                            if (!selectedCompanyRecord || !selectedTemplateRecord) return;
-
-                            const values = selectedTemplateRecord.matchedVariables.map((variable) => ({
-                              variableId: variable.id,
-                              value: variableDrafts[variable.id] || '',
-                            }));
-
-                            await saveCompanyVariableValues(selectedCompanyRecord.id, values);
-                          }}
-                        >
-                          Save All Values
-                        </Button>
-                      </div>
+                      <h3 className="font-semibold text-foreground">Template Variables</h3>
+                      <p className="text-xs text-muted-foreground -mt-2">
+                        Edits here only affect this document. Use the buttons to save values back to the company permanently.
+                      </p>
 
                       <div className="space-y-4">
-                        {templateVariables.map((variable) => {
+                        {singleTemplateVariables.map((variable) => {
                           const companyRecord = selectedCompanyRecord;
-                          if (!companyRecord) {
-                            return null;
-                          }
+                          if (!companyRecord) return null;
 
-                          const savedValue = variable.source === 'database' && variable.id
-                            ? companyRecord.variableValues.find((entry) => entry.variableId === variable.id)?.value || ''
+                          const key = variable.key;
+                          const id = variable.id;
+
+                          // Determine variable kind — isAuto takes priority over everything
+                          const isAuto = isSystemVariableKey(key) || id?.startsWith('auto-');
+                          const isManual = !isAuto && variable.source === 'database' && id && !id.startsWith('loop-');
+                          const isTemplateOnly = !isAuto && !isManual && variable.source === 'detected';
+
+                          const savedValue = isManual && id
+                            ? companyRecord.variableValues.find((entry) => entry.variableId === id)?.value || ''
                             : '';
-                          const draftKey = variable.source === 'database' && variable.id ? variable.id : variable.key;
-                          const currentValue = variableDrafts[draftKey] ?? savedValue;
+                          const autoValue = baseVariables[key] || '';
+                          const draftValue = variableDrafts[key] ?? (id ? variableDrafts[id] : undefined);
+                          const currentValue = draftValue ?? (savedValue || autoValue);
+
+                          const isEdited = draftValue !== undefined && draftValue !== (savedValue || autoValue);
 
                           return (
-                            <div key={draftKey} className="space-y-2 rounded-lg border border-border bg-input/30 p-4">
-                              <div className="flex items-center justify-between gap-3">
-                                <div>
-                                  <p className="font-medium text-foreground">{variable.label}</p>
-                                  <p className="text-xs font-mono text-muted-foreground">{`[${variable.key}]`}</p>
-                                  {variable.source === 'detected' && (
-                                    <p className="text-xs text-amber-500">Not in database yet, but detected in template.</p>
-                                  )}
+                            <div key={key} className="space-y-2 rounded-lg border border-border bg-input/30 p-4">
+                              {/* Header row */}
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <p className="font-medium text-foreground text-sm">{variable.label}</p>
+                                    {isAuto && (
+                                      <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-400/20 px-1.5 py-0.5 rounded">
+                                        Auto
+                                      </span>
+                                    )}
+                                    {isManual && (
+                                      <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-400/20 px-1.5 py-0.5 rounded">
+                                        Manual
+                                      </span>
+                                    )}
+                                    {isTemplateOnly && (
+                                      <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-400/20 px-1.5 py-0.5 rounded">
+                                        Template Only
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs font-mono text-muted-foreground mt-0.5">[{key}]</p>
                                 </div>
-                                {variable.source === 'database' && variable.id ? (
-                                  (() => {
-                                    const databaseVariableId = variable.id;
 
-                                    return (
+                                {/* Action button — depends on kind */}
+                                {isManual && id && (
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="border-border text-foreground hover:bg-muted"
-                                    onClick={() => saveVariableValue(databaseVariableId)}
+                                    className="shrink-0 border-border text-foreground hover:bg-muted text-xs"
+                                    onClick={() => saveManualVariableToDB(id)}
                                   >
-                                    Save
+                                    Save to DB
                                   </Button>
-                                    );
-                                  })()
-                                ) : (
-                                  <span className="text-xs text-amber-500">Template-only variable</span>
+                                )}
+                                {isTemplateOnly && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="shrink-0 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-xs"
+                                    onClick={() => addToManualVariables(key, variable.label)}
+                                  >
+                                    + Add as Manual
+                                  </Button>
                                 )}
                               </div>
+
+                              {/* Input */}
                               <Input
                                 value={currentValue}
                                 onChange={(event) =>
                                   setVariableDrafts((prev) => ({
                                     ...prev,
-                                    [draftKey]: event.target.value,
+                                    [key]: event.target.value,
+                                    ...(id ? { [id]: event.target.value } : {}),
                                   }))
                                 }
                                 placeholder={`Enter value for ${variable.label}`}
-                                className="bg-background"
+                                className="bg-background text-sm"
                               />
-                              <div className="text-xs text-muted-foreground">
-                                {savedValue ? 'Saved in company variables.' : 'No saved value yet.'}
-                              </div>
+
+                              {/* Status hint */}
+                              <p className="text-xs text-muted-foreground">
+                                {isEdited ? (
+                                  <span className="text-amber-500 font-medium">✎ Customized for this document run only</span>
+                                ) : isAuto ? (
+                                  'Auto-filled from company data. Edits apply to this document only.'
+                                ) : savedValue ? (
+                                  'Company value loaded. Edits apply to this document only.'
+                                ) : isManual ? (
+                                  'No saved value yet for this company.'
+                                ) : (
+                                  'Not in database. Fill a value or click "+ Add as Manual" to save it.'
+                                )}
+                              </p>
                             </div>
                           );
                         })}
@@ -454,17 +624,15 @@ export default function GenerateDocumentPage() {
                 Document Preview
               </h2>
 
-              <div className="flex-1 bg-input/50 border border-border rounded-lg p-5 overflow-y-auto mb-6 min-h-[350px]">
+              <div className="flex-1 bg-slate-900/40 border border-border rounded-lg p-6 overflow-y-auto mb-6 min-h-[450px]">
                 {previewContent ? (
-                  <pre className="text-sm text-foreground whitespace-pre-wrap break-words font-mono leading-relaxed">
+                  <div className="bg-white text-slate-900 dark:bg-slate-50 dark:text-slate-900 rounded-sm shadow-xl border border-slate-200 p-8 sm:p-12 mx-auto max-w-[850px] min-h-[650px] text-sm leading-relaxed whitespace-pre-wrap break-words font-sans selection:bg-blue-100">
                     {previewContent}
-                  </pre>
+                  </div>
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <p className="text-muted-foreground text-center">
-                      Select a company and template, then click
-                      <br />
-                      <span className="font-semibold">&quot;Generate Document&quot;</span> to preview
+                      Select a company and template to generate live document preview
                     </p>
                   </div>
                 )}

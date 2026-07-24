@@ -284,7 +284,11 @@ export default function VariablesPage() {
                       >Edit</Button>
                       <Button size="sm" variant="outline"
                         className="border-red-200 dark:border-red-900/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                        onClick={() => deleteVariable(variable.id)}
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to delete this variable?')) {
+                            deleteVariable(variable.id);
+                          }
+                        }}
                       ><X className="w-4 h-4" /></Button>
                     </div>
                   </div>

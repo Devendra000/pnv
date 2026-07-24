@@ -338,7 +338,11 @@ export default function TemplatesPage() {
                         size="sm"
                         variant="outline"
                         className="border-red-200 dark:border-red-900/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                        onClick={() => deleteTemplate(template.id)}
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to delete this template?')) {
+                            deleteTemplate(template.id);
+                          }
+                        }}
                       >
                         <X className="w-4 h-4" />
                       </Button>
