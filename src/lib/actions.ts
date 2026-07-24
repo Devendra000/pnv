@@ -324,6 +324,24 @@ async function renderDocxTemplate(templateId: string, variables: Record<string, 
   }
 }
 
+/**
+ * Server action to render a template into a DOCX buffer with variables & loop data,
+ * returning a base64 encoded string for live in-browser preview via docx-preview.
+ */
+export async function renderDocxPreviewAction(
+  templateId: string,
+  variables: Record<string, string>,
+  templateData?: Record<string, unknown>
+): Promise<string> {
+  try {
+    const buffer = await renderDocxTemplate(templateId, variables, templateData);
+    return buffer.toString('base64');
+  } catch (err) {
+    console.error('Failed to render DOCX preview:', err);
+    return '';
+  }
+}
+
 export async function saveCompanyVariableValuesAction(
   companyId: string,
   values: CompanyVariableValueInput[]

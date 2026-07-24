@@ -1,11 +1,76 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppDataContext } from '@/contexts/AppDataContext';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronDown, ChevronUp, Trash2, Download } from 'lucide-react';
+
+function DocumentFileViewer({ docxUrl }: { docxUrl: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!docxUrl || !containerRef.current) return;
+    let active = true;
+
+    async function loadAndRender() {
+      setLoading(true);
+      setError(false);
+      try {
+        const response = await fetch(docxUrl);
+        if (!response.ok) throw new Error('Failed to fetch document file');
+        const arrayBuffer = await response.arrayBuffer();
+
+        const { renderAsync } = await import('docx-preview');
+        if (containerRef.current && active) {
+          containerRef.current.innerHTML = '';
+          await renderAsync(arrayBuffer, containerRef.current, undefined, {
+            inWrapper: true,
+            ignoreWidth: false,
+            ignoreHeight: false,
+            experimental: false,
+          });
+        }
+      } catch (err) {
+        console.error('Error rendering docx file:', err);
+        if (active) setError(true);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadAndRender();
+
+    return () => {
+      active = false;
+    };
+  }, [docxUrl]);
+
+  if (error) {
+    return (
+      <div className="p-4 text-xs text-rose-500 text-center">
+        Unable to render document preview. Use the Download button above to view the file.
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full overflow-hidden">
+      {loading && (
+        <div className="p-8 text-center text-xs text-slate-500 animate-pulse">
+          Loading Word document preview...
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        className="w-full bg-slate-200/60 dark:bg-slate-950 p-4 rounded-lg overflow-y-auto max-h-[800px] text-slate-900 [&_.docx-wrapper]:!bg-transparent [&_.docx-wrapper]:!p-2 [&_.docx-wrapper]:!flex [&_.docx-wrapper]:!flex-col [&_.docx-wrapper]:!items-center [&_.docx-wrapper_section.docx]:!max-w-full [&_.docx-wrapper_section.docx]:!shadow-xl [&_.docx-wrapper_section.docx]:!mb-8 [&_.docx-wrapper_section.docx]:!box-border"
+      />
+    </div>
+  );
+}
 
 export default function DocumentsPage() {
   const { documents, deleteDocument, loading } = useAppDataContext();
@@ -27,7 +92,7 @@ export default function DocumentsPage() {
       />
 
       <div className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           {loading ? (
             <div className="text-center py-8 text-slate-500">Loading documents...</div>
           ) : documents.length === 0 ? (
@@ -93,10 +158,8 @@ export default function DocumentsPage() {
                     </div>
                   </div>
                   {expandedId === doc.id && (
-                    <div className="px-4 py-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
-                      <pre className="text-sm text-foreground whitespace-pre-wrap break-words font-mono leading-relaxed max-h-80 overflow-y-auto">
-                        {doc.content}
-                      </pre>
+                    <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+                      <DocumentFileViewer docxUrl={doc.docxUrl} />
                     </div>
                   )}
                 </div>
