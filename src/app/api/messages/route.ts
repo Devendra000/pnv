@@ -14,10 +14,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "channelId and content are required" }, { status: 400 })
   }
 
+  // 0. Resolve channelId (supports both channel UUID/CUID and slug)
+  const targetChannel = await prisma.channel.findFirst({
+    where: { OR: [{ id: channelId }, { slug: channelId }] },
+    select: { id: true, type: true, members: { select: { userId: true } } },
+  })
+
+  if (!targetChannel) {
+    return NextResponse.json({ error: "Channel not found" }, { status: 404 })
+  }
+
+  const realChannelId = targetChannel.id
+
   // 1. Create message record
   const message = await prisma.message.create({
     data: {
-      channelId,
+      channelId: realChannelId,
       senderId: session.user.id,
       contentRaw: content,
       contentParsed: contentParsed ?? { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: content }] }] },
@@ -68,7 +80,7 @@ export async function POST(req: NextRequest) {
       })
     } else if (mention.type === "CHANNEL" || mention.type === "EVERYONE" || mention.type === "HERE") {
       const channelMembers = await prisma.channelMember.findMany({
-        where: { channelId },
+        where: { channelId: realChannelId },
         select: { userId: true },
       })
       channelMembers.forEach((m) => userIdsToNotify.add(m.userId))
@@ -105,7 +117,7 @@ export async function POST(req: NextRequest) {
       data: Array.from(userIdsToNotify).map((userId) => ({
         userId,
         messageId: message.id,
-        channelId,
+        channelId: realChannelId,
       })),
     })
   }
@@ -115,39 +127,37 @@ export async function POST(req: NextRequest) {
     const io = getIO()
 
     // Emit new-message event to all clients joined to channel room
-    io.to(`channel:${channelId}`).emit("new-message", message)
+    io.to(`channel:${realChannelId}`).emit("new-message", message)
+    if (channelId !== realChannelId) {
+      io.to(`channel:${channelId}`).emit("new-message", message)
+    }
 
     // Emit personal notification event to each mentioned user's room
     for (const notifyUserId of userIdsToNotify) {
       io.to(`user:${notifyUserId}`).emit("notification", {
         messageId: message.id,
-        channelId,
+        channelId: realChannelId,
         senderName: message.sender.displayName || message.sender.username,
         contentPreview: content.slice(0, 100),
       })
     }
 
     // Broadcast channel-activity to all channel members/users so sidebars update unread badges
-    const targetChannel = await prisma.channel.findUnique({
-      where: { id: channelId },
-      select: { type: true, members: { select: { userId: true } } },
-    })
-
     let recipientUserIds: string[] = []
-    if (targetChannel?.type === "PUBLIC" || targetChannel?.type === "ANNOUNCEMENT") {
+    if (targetChannel.type === "PUBLIC" || targetChannel.type === "ANNOUNCEMENT") {
       const allActiveUsers = await prisma.user.findMany({
         where: { isActive: true },
         select: { id: true },
       })
       recipientUserIds = allActiveUsers.map((u) => u.id)
     } else {
-      recipientUserIds = (targetChannel?.members || []).map((m) => m.userId)
+      recipientUserIds = (targetChannel.members || []).map((m) => m.userId)
     }
 
     for (const recipientId of recipientUserIds) {
       if (recipientId !== session.user.id) {
         io.to(`user:${recipientId}`).emit("channel-activity", {
-          channelId,
+          channelId: realChannelId,
           senderId: session.user.id,
           messageId: message.id,
         })

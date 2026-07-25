@@ -33,5 +33,16 @@ export async function GET(
     return NextResponse.json({ error: "Channel not found" }, { status: 404 })
   }
 
+  // Access Control: PRIVATE and DM channels require active membership or ADMIN role
+  const isMember = channel.members.some((m) => m.userId === session.user.id)
+  const isAdmin = session.user.role === "ADMIN"
+
+  if ((channel.type === "PRIVATE" || channel.type === "DM") && !isMember && !isAdmin) {
+    return NextResponse.json(
+      { error: "Forbidden: You are not a member of this private group channel" },
+      { status: 403 }
+    )
+  }
+
   return NextResponse.json({ channel })
 }

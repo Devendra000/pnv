@@ -15,8 +15,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Username, email, and password are required" }, { status: 400 })
   }
 
+  const cleanUsername = username.toLowerCase().trim()
+
+  // Check if username is taken by a User Group handle
+  const existingGroup = await prisma.userGroup.findUnique({
+    where: { handle: cleanUsername },
+  })
+  if (existingGroup) {
+    return NextResponse.json(
+      { error: `Username @${cleanUsername} is already taken by a User Group.` },
+      { status: 400 }
+    )
+  }
+
   const existing = await prisma.user.findFirst({
-    where: { OR: [{ username }, { email }] },
+    where: { OR: [{ username: cleanUsername }, { email: email.toLowerCase().trim() }] },
   })
 
   if (existing) {
@@ -27,10 +40,10 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.create({
     data: {
-      username: username.toLowerCase().trim(),
+      username: cleanUsername,
       email: email.toLowerCase().trim(),
       passwordHash: hash,
-      displayName: displayName || username,
+      displayName: displayName || cleanUsername,
       role: role === "ADMIN" ? "ADMIN" : "USER",
     },
     select: {

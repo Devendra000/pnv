@@ -4,7 +4,13 @@ import React, { forwardRef, useEffect, useImperativeHandle, useState } from "rea
 import { User, Users } from "lucide-react"
 
 export interface MentionSuggestionsProps {
-  items: Array<{ id: string; label: string; type: "user" | "group"; handle?: string }>
+  items: Array<{
+    id: string
+    label: string
+    type: "user" | "group"
+    handle?: string
+    memberCount?: number
+  }>
   command: (item: { id: string; label: string }) => void
 }
 
@@ -61,7 +67,7 @@ export const MentionSuggestions = forwardRef((props: MentionSuggestionsProps, re
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden min-w-[200px] max-h-60 overflow-y-auto p-1 text-slate-100 z-50">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden min-w-[220px] max-h-60 overflow-y-auto p-1 text-slate-100 z-50">
       {props.items.map((item, index) => (
         <button
           key={item.id}
@@ -77,7 +83,12 @@ export const MentionSuggestions = forwardRef((props: MentionSuggestionsProps, re
           ) : (
             <User className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
           )}
-          <span className="truncate">@{item.label}</span>
+          <span className="truncate flex-1">@{item.label}</span>
+          {item.type === "group" && item.memberCount !== undefined && (
+            <span className="text-[10px] text-slate-400 font-normal bg-slate-800/90 px-2 py-0.5 rounded-full border border-slate-700/60 shrink-0">
+              {item.memberCount} {item.memberCount === 1 ? "member" : "members"}
+            </span>
+          )}
         </button>
       ))}
     </div>

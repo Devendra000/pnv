@@ -129,8 +129,9 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
     )
   }
 
-  const publicChannels = channels.filter(c => c.type === "PUBLIC" || c.type === "ANNOUNCEMENT")
-  const privateChannels = channels.filter(c => c.type === "PRIVATE")
+  const publicChannels = channels.filter(c => (c.type === "PUBLIC" || c.type === "ANNOUNCEMENT") && !c.slug.startsWith("group-"))
+  const userGroupChannels = channels.filter(c => c.slug.startsWith("group-"))
+  const privateChannels = channels.filter(c => c.type === "PRIVATE" && !c.slug.startsWith("group-"))
   const otherUsers = users.filter(u => u.id !== session?.user?.id)
 
   // Map DM channels to member user ID -> unreadCount
@@ -209,6 +210,42 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
             })}
           </div>
         </div>
+
+        {/* User Groups Section */}
+        {userGroupChannels.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between px-2 mb-2 text-slate-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 text-indigo-400">
+                <Users className="w-3.5 h-3.5" /> My User Groups
+              </span>
+            </div>
+            <div className="space-y-0.5">
+              {userGroupChannels.map((c) => {
+                const active = pathname === `/chat/${c.slug}`
+                return (
+                  <Link
+                    key={c.id}
+                    href={`/chat/${c.slug}`}
+                    onClick={() => markChannelRead(c.id)}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all ${
+                      active
+                        ? "bg-indigo-600/20 text-indigo-400 font-semibold border border-indigo-500/30"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                    }`}
+                  >
+                    <span className="font-mono text-indigo-400 font-bold">@</span>
+                    <span className="truncate flex-1">{c.name.replace(/^@/, "")}</span>
+                    {c.unreadCount > 0 && (
+                      <span className="px-1.5 py-0.2 min-w-4 h-4 rounded-full text-[10px] font-bold bg-indigo-500 text-white flex items-center justify-center shrink-0">
+                        {c.unreadCount > 9 ? "9+" : c.unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Private Channels */}
         {privateChannels.length > 0 && (

@@ -2,91 +2,77 @@ import { ReactRenderer } from "@tiptap/react"
 import tippy, { Instance as TippyInstance } from "tippy.js"
 import { MentionSuggestions } from "./MentionSuggestions"
 
-export const mentionSuggestion = {
-  items: async ({ query }: { query: string }) => {
-    try {
-      const [usersRes, groupsRes] = await Promise.all([
-        fetch(`/api/users?q=${encodeURIComponent(query)}&excludeSelf=true`),
-        fetch(`/api/groups?q=${encodeURIComponent(query)}`),
-      ])
+const renderMentionPopup = () => {
+  let component: ReactRenderer<any> | null = null
+  let popup: TippyInstance[] | null = null
 
-      const usersData = usersRes.ok ? await usersRes.json() : { users: [] }
-      const groupsData = groupsRes.ok ? await groupsRes.json() : { groups: [] }
+  return {
+    onStart: (props: any) => {
+      component = new ReactRenderer(MentionSuggestions, {
+        props,
+        editor: props.editor,
+      })
 
-      const specialMentions = [
-        { id: "channel", label: "channel", type: "group" as const },
-        { id: "here", label: "here", type: "group" as const },
-        { id: "everyone", label: "everyone", type: "group" as const },
-      ].filter((m) => m.label.toLowerCase().includes(query.toLowerCase()))
+      if (!props.clientRect) return
 
-      const usersList = (usersData.users || []).map((u: any) => ({
-        id: u.id,
-        label: u.username,
-        handle: u.username,
-        type: "user" as const,
-      }))
+      popup = tippy("body", {
+        getReferenceClientRect: props.clientRect,
+        appendTo: () => document.body,
+        content: component.element,
+        showOnCreate: true,
+        interactive: true,
+        trigger: "manual",
+        placement: "bottom-start",
+      })
+    },
 
-      const groupsList = (groupsData.groups || []).map((g: any) => ({
-        id: g.id,
-        label: g.handle,
-        handle: g.handle,
-        type: "group" as const,
-      }))
+    onUpdate(props: any) {
+      component?.updateProps(props)
 
-      return [...specialMentions, ...usersList, ...groupsList].slice(0, 10)
-    } catch (err) {
-      console.error("Error fetching mention suggestions:", err)
-      return []
-    }
-  },
+      if (!props.clientRect) return
 
-  render: () => {
-    let component: ReactRenderer<any> | null = null
-    let popup: TippyInstance[] | null = null
+      popup?.[0]?.setProps({
+        getReferenceClientRect: props.clientRect,
+      })
+    },
 
-    return {
-      onStart: (props: any) => {
-        component = new ReactRenderer(MentionSuggestions, {
-          props,
-          editor: props.editor,
-        })
+    onKeyDown(props: any) {
+      if (props.event.key === "Escape") {
+        popup?.[0]?.hide()
+        return true
+      }
 
-        if (!props.clientRect) return
+      return component?.ref?.onKeyDown(props) || false
+    },
 
-        popup = tippy("body", {
-          getReferenceClientRect: props.clientRect,
-          appendTo: () => document.body,
-          content: component.element,
-          showOnCreate: true,
-          interactive: true,
-          trigger: "manual",
-          placement: "bottom-start",
-        })
-      },
-
-      onUpdate(props: any) {
-        component?.updateProps(props)
-
-        if (!props.clientRect) return
-
-        popup?.[0]?.setProps({
-          getReferenceClientRect: props.clientRect,
-        })
-      },
-
-      onKeyDown(props: any) {
-        if (props.event.key === "Escape") {
-          popup?.[0]?.hide()
-          return true
-        }
-
-        return component?.ref?.onKeyDown(props) ?? false
-      },
-
-      onExit() {
-        popup?.[0]?.destroy()
-        component?.destroy()
-      },
-    }
-  },
+    onExit() {
+      popup?.[0]?.destroy()
+      component?.destroy()
+    },
+  }
 }
+
+export function createMentionSuggestion(channelId: string) {
+  return {
+    items: async ({ query }: { query: string }) => {
+      try {
+        const res = await fetch(
+          `/api/mentions/suggestions?channelId=${encodeURIComponent(
+            channelId || ""
+          )}&q=${encodeURIComponent(query)}`
+        )
+        if (res.ok) {
+          const data = await res.json()
+          return data.suggestions || []
+        }
+        return []
+      } catch (err) {
+        console.error("Error fetching mention suggestions:", err)
+        return []
+      }
+    },
+    render: renderMentionPopup,
+  }
+}
+
+export const mentionSuggestion = createMentionSuggestion("")

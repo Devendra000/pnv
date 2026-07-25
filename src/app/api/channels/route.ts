@@ -6,6 +6,33 @@ export async function GET() {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  // Auto-sync any UserGroup memberships for the current user to ensure group channels exist & members are synced
+  const userGroupMemberships = await prisma.userGroupMember.findMany({
+    where: { userId: session.user.id },
+    include: { group: true },
+  })
+
+  for (const ugm of userGroupMemberships) {
+    const channelSlug = `group-${ugm.group.handle}`
+    let groupChannel = await prisma.channel.findUnique({ where: { slug: channelSlug } })
+    if (!groupChannel) {
+      groupChannel = await prisma.channel.create({
+        data: {
+          name: `@${ugm.group.handle}`,
+          slug: channelSlug,
+          type: "PRIVATE",
+          description: `Group discussion channel for ${ugm.group.name} (@${ugm.group.handle})`,
+          createdById: ugm.group.createdById,
+        },
+      })
+    }
+    await prisma.channelMember.upsert({
+      where: { channelId_userId: { channelId: groupChannel.id, userId: session.user.id } },
+      update: {},
+      create: { channelId: groupChannel.id, userId: session.user.id },
+    })
+  }
+
   const channels = await prisma.channel.findMany({
     where: {
       OR: [

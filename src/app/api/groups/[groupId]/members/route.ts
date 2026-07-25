@@ -18,10 +18,35 @@ export async function POST(
     return NextResponse.json({ error: "userId is required" }, { status: 400 })
   }
 
+  const group = await prisma.userGroup.findUnique({ where: { id: groupId } })
+  if (!group) {
+    return NextResponse.json({ error: "Group not found" }, { status: 404 })
+  }
+
+  const channelSlug = `group-${group.handle}`
+  let channel = await prisma.channel.findUnique({ where: { slug: channelSlug } })
+
+  if (!channel) {
+    channel = await prisma.channel.create({
+      data: {
+        name: `@${group.handle}`,
+        slug: channelSlug,
+        type: "PRIVATE",
+        description: `Group discussion channel for ${group.name} (@${group.handle})`,
+        createdById: session.user.id,
+      },
+    })
+  }
+
   if (action === "remove") {
     await prisma.userGroupMember.deleteMany({
       where: { groupId, userId },
     })
+
+    await prisma.channelMember.deleteMany({
+      where: { channelId: channel.id, userId },
+    })
+
     return NextResponse.json({ success: true, action: "removed" })
   } else {
     const member = await prisma.userGroupMember.upsert({
@@ -31,6 +56,15 @@ export async function POST(
       update: {},
       create: { groupId, userId },
     })
+
+    await prisma.channelMember.upsert({
+      where: {
+        channelId_userId: { channelId: channel.id, userId },
+      },
+      update: {},
+      create: { channelId: channel.id, userId },
+    })
+
     return NextResponse.json({ member, action: "added" })
   }
 }

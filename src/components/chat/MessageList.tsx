@@ -1,8 +1,10 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import { useSocket } from "@/hooks/useSocket"
 import { MessageBubble } from "./MessageBubble"
+import { Lock } from "lucide-react"
 
 interface MessageListProps {
   channelId: string
@@ -13,14 +15,25 @@ interface MessageListProps {
 export function MessageList({ channelId, currentUserId, onOpenThread }: MessageListProps) {
   const [messages, setMessages] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [accessDenied, setAccessDenied] = useState(false)
+  const [highlightedId, setHighlightedId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  const searchParams = useSearchParams()
+  const highlightParam = searchParams.get("highlight")
 
   const socket = useSocket(channelId)
 
   const fetchMessages = async () => {
     setLoading(true)
+    setAccessDenied(false)
     try {
       const res = await fetch(`/api/messages/${channelId}`)
+      if (res.status === 403) {
+        setAccessDenied(true)
+        setMessages([])
+        return
+      }
       if (res.ok) {
         const data = await res.json()
         setMessages(data.messages || [])
@@ -72,14 +85,48 @@ export function MessageList({ channelId, currentUserId, onOpenThread }: MessageL
     }
   }, [socket, channelId])
 
+  // Scroll logic for new messages or notification deep link highlight
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    if (loading || accessDenied || messages.length === 0) return
+
+    if (highlightParam) {
+      setHighlightedId(highlightParam)
+      const timer = setTimeout(() => {
+        const targetElem = document.getElementById(`message-${highlightParam}`)
+        if (targetElem) {
+          targetElem.scrollIntoView({ behavior: "smooth", block: "center" })
+        }
+      }, 350)
+
+      const fadeTimer = setTimeout(() => {
+        setHighlightedId(null)
+      }, 4000)
+
+      return () => {
+        clearTimeout(timer)
+        clearTimeout(fadeTimer)
+      }
+    } else {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [highlightParam, messages, loading, accessDenied])
 
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8 text-slate-500 text-xs">
         Loading messages...
+      </div>
+    )
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-slate-400 text-center select-none">
+        <Lock className="w-10 h-10 text-amber-400/80 mb-3 animate-pulse" />
+        <p className="text-sm font-bold text-slate-200">Access Denied</p>
+        <p className="text-xs text-slate-400 mt-1 max-w-sm">
+          You are no longer a member of this private group or channel and cannot view its messages.
+        </p>
       </div>
     )
   }
@@ -101,6 +148,7 @@ export function MessageList({ channelId, currentUserId, onOpenThread }: MessageL
           message={message}
           currentUserId={currentUserId}
           onOpenThread={onOpenThread}
+          isHighlighted={message.id === highlightedId}
         />
       ))}
       <div ref={bottomRef} />

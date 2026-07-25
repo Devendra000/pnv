@@ -7,7 +7,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const notifications = await prisma.notification.findMany({
-    where: { userId: session.user.id, isRead: false },
+    where: { userId: session.user.id },
     include: {
       message: {
         include: {
@@ -16,7 +16,11 @@ export async function GET() {
         },
       },
     },
-    orderBy: { createdAt: "desc" },
+    take: 30,
+    orderBy: [
+      { isRead: "asc" },
+      { createdAt: "desc" },
+    ],
   })
 
   return NextResponse.json({ notifications })
