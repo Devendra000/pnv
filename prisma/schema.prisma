@@ -155,6 +155,7 @@ model CompanyFolder {
   children       CompanyFolder[] @relation("CompanyFolderTree")
   name           String
   path           String          @unique
+  isDefault      Boolean         @default(false) @map("is_default")
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
   documents      GeneratedDocument[]

@@ -18,6 +18,7 @@ import {
   moveDocumentAction,
   renameCompanyFolderAction,
   renameDocumentAction,
+  setDefaultGenerationFolderAction,
 } from '@/lib/actions';
 import {
   AlertTriangle,
@@ -39,6 +40,7 @@ import {
   MoveRight,
   Plus,
   Search,
+  Target,
   Trash2,
   X,
 } from 'lucide-react';
@@ -55,6 +57,7 @@ function FolderBranch({
   onMoveFolder,
   onRenameFolder,
   onDeleteFolder,
+  onSetDefaultTarget,
   onPasteHere,
   depth = 0,
 }: {
@@ -69,6 +72,7 @@ function FolderBranch({
   onMoveFolder?: (folder: CompanyFolder) => void;
   onRenameFolder?: (folder: CompanyFolder) => void;
   onDeleteFolder?: (folder: CompanyFolder) => void;
+  onSetDefaultTarget?: (folder: CompanyFolder) => void;
   onPasteHere?: (targetFolderId: string) => void;
   depth?: number;
 }) {
@@ -123,6 +127,11 @@ function FolderBranch({
           >
             <Folder className="h-4 w-4 shrink-0 text-amber-400 fill-amber-400/20" />
             <span className="truncate" title={folder.name}>{folder.name}</span>
+            {folder.isDefault && (
+              <span title="Default generation folder" className="ml-1 inline-flex shrink-0 items-center gap-1 rounded bg-emerald-100 px-1 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                <Target className="h-3 w-3" /> Default
+              </span>
+            )}
           </button>
         </div>
 
@@ -200,7 +209,25 @@ function FolderBranch({
             </button>
           )}
 
-          {folder.parentFolderId && onDeleteFolder && (
+          {onSetDefaultTarget && folder.parentFolderId && !folder.isDefault && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSetDefaultTarget(folder);
+              }}
+              title="Set as default generation folder"
+              className={`rounded p-1 transition-colors ${
+                isActive
+                  ? 'text-white hover:bg-blue-700'
+                  : 'text-slate-500 hover:bg-emerald-100 hover:text-emerald-600 dark:hover:bg-emerald-950'
+              }`}
+            >
+              <Target className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {folder.parentFolderId && !folder.isDefault && onDeleteFolder && (
             <button
               type="button"
               onClick={(e) => {
@@ -599,10 +626,23 @@ export default function DocumentsPage() {
     return { subfolderCount, documentCount };
   };
 
+  const handleSetDefaultTarget = async (folder: CompanyFolder) => {
+    try {
+      const updated = await setDefaultGenerationFolderAction(folder.id);
+      setFolders(updated);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to set default generation folder.');
+    }
+  };
+
   const promptDeleteFolder = (folder: CompanyFolder) => {
     const isRoot = !folder.parentFolderId;
     if (isRoot) {
       alert('To remove a root company folder, please delete the company from the Companies page.');
+      return;
+    }
+    if (folder.isDefault) {
+      alert('The default generation target folder cannot be deleted.');
       return;
     }
 
@@ -925,6 +965,7 @@ export default function DocumentsPage() {
                           setRenameInputValue(f.name);
                         }}
                         onDeleteFolder={promptDeleteFolder}
+                        onSetDefaultTarget={handleSetDefaultTarget}
                         onPasteHere={handlePasteHereToFolder}
                       />
                     ) : (
@@ -1012,6 +1053,26 @@ export default function DocumentsPage() {
                       <ListIcon className="h-4 w-4" />
                     </button>
                   </div>
+
+                  {activeFolder && activeFolder.parentFolderId && (
+                    activeFolder.isDefault ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/60 dark:text-emerald-300">
+                        <Target className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                        Default
+                      </span>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSetDefaultTarget(activeFolder)}
+                        className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+                        title="Set current folder as default generation target for new documents"
+                      >
+                        <Target className="mr-1.5 h-3.5 w-3.5 text-emerald-600" />
+                        Set as Default
+                      </Button>
+                    )
+                  )}
 
                   {clipboardState ? (
                     <Button
@@ -1170,15 +1231,22 @@ export default function DocumentsPage() {
                                     className="w-full text-left"
                                     title={folder.name}
                                   >
-                                    <Folder className={`mb-3 text-amber-400 fill-amber-400/30 transition-transform group-hover:scale-105 ${
-                                      cardSize === 'small'
-                                        ? 'h-6 w-6'
-                                        : cardSize === 'large'
-                                        ? 'h-16 w-16'
-                                        : cardSize === 'xlarge'
-                                        ? 'h-24 w-24'
-                                        : 'h-10 w-10'
-                                    }`} />
+                                    <div className="mb-3 flex items-center justify-between">
+                                      <Folder className={`text-amber-400 fill-amber-400/30 transition-transform group-hover:scale-105 ${
+                                        cardSize === 'small'
+                                          ? 'h-6 w-6'
+                                          : cardSize === 'large'
+                                          ? 'h-16 w-16'
+                                          : cardSize === 'xlarge'
+                                          ? 'h-24 w-24'
+                                          : 'h-10 w-10'
+                                      }`} />
+                                      {folder.isDefault && (
+                                        <span title="Default generation target folder" className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                                          <Target className="h-3 w-3" /> Default
+                                        </span>
+                                      )}
+                                    </div>
                                     <p className={`truncate text-slate-900 dark:text-white ${
                                       cardSize === 'small'
                                         ? 'text-xs font-medium'
@@ -1226,15 +1294,34 @@ export default function DocumentsPage() {
                                     >
                                       <MoveRight className="h-3.5 w-3.5" />
                                     </button>
-                                    <button
-                                      onClick={() => promptDeleteFolder(folder)}
-                                      title="Delete folder"
-                                      className={`rounded-lg text-slate-600 hover:bg-red-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950 ${
-                                        cardSize === 'small' ? 'p-1' : 'p-1.5'
-                                      }`}
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
+                                    {!folder.isDefault && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSetDefaultTarget(folder);
+                                        }}
+                                        title="Set as default generation folder"
+                                        className={`rounded-lg text-emerald-600 hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-950 ${
+                                          cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                        }`}
+                                      >
+                                        <Target className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+                                    {!folder.isDefault && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          promptDeleteFolder(folder);
+                                        }}
+                                        title="Delete folder"
+                                        className={`rounded-lg text-slate-600 hover:bg-red-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950 ${
+                                          cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                        }`}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               ))}
@@ -1521,6 +1608,11 @@ export default function DocumentsPage() {
                             >
                               <Folder className="h-5 w-5 shrink-0 text-amber-400 fill-amber-400/30" />
                               <span className="truncate" title={folder.name}>{folder.name}</span>
+                              {folder.isDefault && (
+                                <span title="Default generation target folder" className="ml-1.5 inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                                  <Target className="h-3 w-3" /> Default
+                                </span>
+                              )}
                             </button>
                             <span className="text-xs text-slate-500">
                               {new Date(folder.updatedAt).toLocaleDateString()}
@@ -1550,13 +1642,24 @@ export default function DocumentsPage() {
                               >
                                 <MoveRight className="h-4 w-4" />
                               </button>
-                              <button
-                                onClick={() => promptDeleteFolder(folder)}
-                                title="Delete folder"
-                                className="rounded p-1.5 text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                              {!folder.isDefault && (
+                                <button
+                                  onClick={() => handleSetDefaultTarget(folder)}
+                                  title="Set as default generation folder"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-emerald-100 hover:text-emerald-600 dark:hover:bg-emerald-950"
+                                >
+                                  <Target className="h-4 w-4" />
+                                </button>
+                              )}
+                              {!folder.isDefault && (
+                                <button
+                                  onClick={() => promptDeleteFolder(folder)}
+                                  title="Delete folder"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}
