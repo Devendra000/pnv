@@ -29,9 +29,16 @@ function buildInitialVariableDrafts(
 
   const savedValues = new Map(company.variableValues.map((entry) => [entry.variableId, entry.value]));
 
-  return Object.fromEntries(
-    (template.matchedVariables || []).map((variable) => [variable.id, savedValues.get(variable.id) || ''])
-  ) as Record<string, string>;
+  const drafts: Record<string, string> = {};
+  for (const variable of (template.matchedVariables || [])) {
+    // Skip auto/system variables — let them read directly from baseVariables
+    if (isSystemVariableKey(variable.key) || variable.id?.startsWith('auto-')) continue;
+    const saved = savedValues.get(variable.id);
+    if (saved) {
+      drafts[variable.id] = saved;
+    }
+  }
+  return drafts;
 }
 
 type TemplateVariableItem = {
