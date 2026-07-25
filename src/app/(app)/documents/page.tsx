@@ -12,6 +12,7 @@ import {
   createCompanyFolderAction,
   deleteCompanyFolderAction,
   deleteDocumentAction,
+  duplicateCompanyFolderAction,
   listAllCompanyFoldersAction,
   moveCompanyFolderAction,
   moveDocumentAction,
@@ -19,18 +20,24 @@ import {
   renameDocumentAction,
 } from '@/lib/actions';
 import {
+  AlertTriangle,
+  Check,
   ChevronDown,
   ChevronRight,
   Copy,
   Download,
   Edit2,
   FileText,
+  Filter,
   Folder,
+  FolderOpen,
   FolderPlus,
+  FolderSearch,
   Grid,
   List as ListIcon,
   MoveRight,
   Plus,
+  Search,
   Trash2,
   X,
 } from 'lucide-react';
@@ -40,16 +47,28 @@ function FolderBranch({
   folder,
   activeFolderId,
   expandedFolderIds,
+  clipboardState,
   onOpen,
   onToggleExpand,
+  onDuplicateFolder,
+  onMoveFolder,
+  onRenameFolder,
+  onDeleteFolder,
+  onPasteHere,
   depth = 0,
 }: {
   folders: CompanyFolder[];
   folder: CompanyFolder;
   activeFolderId: string | null;
   expandedFolderIds: Set<string>;
+  clipboardState?: ClipboardState;
   onOpen: (folderId: string) => void;
   onToggleExpand: (folderId: string) => void;
+  onDuplicateFolder?: (folder: CompanyFolder) => void;
+  onMoveFolder?: (folder: CompanyFolder) => void;
+  onRenameFolder?: (folder: CompanyFolder) => void;
+  onDeleteFolder?: (folder: CompanyFolder) => void;
+  onPasteHere?: (targetFolderId: string) => void;
   depth?: number;
 }) {
   const children = folders.filter((item) => item.parentFolderId === folder.id);
@@ -61,7 +80,7 @@ function FolderBranch({
     <div>
       <div
         style={{ paddingLeft: `${8 + depth * 14}px` }}
-        className={`flex w-full items-center justify-between rounded-lg py-1.5 pr-2 transition-colors ${
+        className={`group flex w-full items-center justify-between rounded-lg py-1.5 pr-1.5 transition-colors ${
           isActive
             ? 'bg-blue-600 font-medium text-white shadow-sm'
             : 'text-slate-700 hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-slate-800/60'
@@ -92,6 +111,7 @@ function FolderBranch({
 
           <button
             type="button"
+            title={folder.name}
             onClick={() => {
               onOpen(folder.id);
               if (hasChildren && !isExpanded) {
@@ -101,8 +121,101 @@ function FolderBranch({
             className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm"
           >
             <Folder className="h-4 w-4 shrink-0 text-amber-400 fill-amber-400/20" />
-            <span className="truncate">{folder.name}</span>
+            <span className="truncate" title={folder.name}>{folder.name}</span>
           </button>
+        </div>
+
+        {/* Hover Action Buttons on Sidebar Folder Item */}
+        <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+          {clipboardState && onPasteHere && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPasteHere(folder.id);
+              }}
+              title="Paste into this folder"
+              className={`rounded p-1 transition-colors ${
+                isActive
+                  ? 'text-white hover:bg-blue-700'
+                  : 'text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-950'
+              }`}
+            >
+              <Check className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {onDuplicateFolder && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDuplicateFolder(folder);
+              }}
+              title="Duplicate folder"
+              className={`rounded p-1 transition-colors ${
+                isActive
+                  ? 'text-white hover:bg-blue-700'
+                  : 'text-slate-500 hover:bg-slate-300/50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {folder.parentFolderId && onMoveFolder && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveFolder(folder);
+              }}
+              title="Move folder"
+              className={`rounded p-1 transition-colors ${
+                isActive
+                  ? 'text-white hover:bg-blue-700'
+                  : 'text-slate-500 hover:bg-slate-300/50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              <MoveRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {onRenameFolder && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRenameFolder(folder);
+              }}
+              title="Rename folder"
+              className={`rounded p-1 transition-colors ${
+                isActive
+                  ? 'text-white hover:bg-blue-700'
+                  : 'text-slate-500 hover:bg-slate-300/50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {folder.parentFolderId && onDeleteFolder && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteFolder(folder);
+              }}
+              title="Delete folder"
+              className={`rounded p-1 transition-colors ${
+                isActive
+                  ? 'text-white hover:bg-red-700'
+                  : 'text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950'
+              }`}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -115,8 +228,14 @@ function FolderBranch({
               folder={child}
               activeFolderId={activeFolderId}
               expandedFolderIds={expandedFolderIds}
+              clipboardState={clipboardState}
               onOpen={onOpen}
               onToggleExpand={onToggleExpand}
+              onDuplicateFolder={onDuplicateFolder}
+              onMoveFolder={onMoveFolder}
+              onRenameFolder={onRenameFolder}
+              onDeleteFolder={onDeleteFolder}
+              onPasteHere={onPasteHere}
               depth={depth + 1}
             />
           ))}
@@ -130,9 +249,14 @@ type ModalState =
   | { type: 'createFolder' }
   | { type: 'renameFolder'; folder: CompanyFolder }
   | { type: 'renameDoc'; doc: Document }
-  | { type: 'moveFolder'; folder: CompanyFolder }
-  | { type: 'moveDoc'; doc: Document }
-  | { type: 'copyDoc'; doc: Document }
+  | { type: 'deleteFolder'; folder: CompanyFolder; subfolderCount: number; documentCount: number }
+  | { type: 'deleteDoc'; doc: Document }
+  | null;
+
+type ClipboardState =
+  | { action: 'moveFolder'; folder: CompanyFolder }
+  | { action: 'moveDoc'; doc: Document }
+  | { action: 'copyDoc'; doc: Document }
   | null;
 
 export default function DocumentsPage() {
@@ -140,9 +264,76 @@ export default function DocumentsPage() {
   const [folders, setFolders] = useState<CompanyFolder[]>([]);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [explorerMode, setExplorerMode] = useState<'folders' | 'documents'>('folders');
+  const [docSearchQuery, setDocSearchQuery] = useState('');
+  const [companyFilter, setCompanyFilter] = useState<string>('ALL');
   const [modalState, setModalState] = useState<ModalState>(null);
   const [renameInputValue, setRenameInputValue] = useState('');
+  const [targetFolderSearch, setTargetFolderSearch] = useState('');
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
+
+  // Helper: compute full path string for a folder
+  const getFolderPathString = (folder: CompanyFolder, allFolders: CompanyFolder[]): string => {
+    const parts: string[] = [];
+    let curr: CompanyFolder | null = folder;
+    while (curr) {
+      parts.unshift(curr.name);
+      curr = allFolders.find((f) => f.id === curr?.parentFolderId) || null;
+    }
+    return parts.join(' / ');
+  };
+
+  // Helper: get all ancestor folder IDs for expanding sidebar tree
+  const getFolderAncestors = (folderId: string, allFolders: CompanyFolder[]): string[] => {
+    const ancestors: string[] = [];
+    let curr = allFolders.find((f) => f.id === folderId);
+    while (curr && curr.parentFolderId) {
+      ancestors.push(curr.parentFolderId);
+      curr = allFolders.find((f) => f.id === curr?.parentFolderId);
+    }
+    return ancestors;
+  };
+
+  // Helper: check if targetId is folderId or a descendant of folderId
+  const isDescendantOrSelf = (
+    folderId: string,
+    targetId: string,
+    allFolders: CompanyFolder[]
+  ): boolean => {
+    if (folderId === targetId) return true;
+    let curr = allFolders.find((f) => f.id === targetId);
+    while (curr) {
+      if (curr.parentFolderId === folderId) return true;
+      curr = allFolders.find((f) => f.id === curr?.parentFolderId);
+    }
+    return false;
+  };
+
+  // Helper: build tree-ordered folders list with depth and full path string
+  const getTreeOrderedFolders = (
+    companyId: string,
+    allFolders: CompanyFolder[],
+    excludedFolderId?: string
+  ): { folder: CompanyFolder; depth: number; pathString: string }[] => {
+    const result: { folder: CompanyFolder; depth: number; pathString: string }[] = [];
+
+    const addBranch = (parentFolderId: string | null, depth: number) => {
+      const children = allFolders.filter(
+        (f) => f.companyId === companyId && f.parentFolderId === parentFolderId
+      );
+      for (const child of children) {
+        if (excludedFolderId && isDescendantOrSelf(excludedFolderId, child.id, allFolders)) {
+          continue;
+        }
+        const pathString = getFolderPathString(child, allFolders);
+        result.push({ folder: child, depth, pathString });
+        addBranch(child.id, depth + 1);
+      }
+    };
+
+    addBranch(null, 0);
+    return result;
+  };
 
   const reloadFolders = async () => setFolders(await listAllCompanyFoldersAction());
 
@@ -153,7 +344,7 @@ export default function DocumentsPage() {
       .catch((error) => console.error('Unable to load document folders:', error));
   }, [companies.length]);
 
-  // Restore activeFolderId & viewMode from sessionStorage on mount
+  // Restore activeFolderId, viewMode, and explorerMode from sessionStorage on mount
   useEffect(() => {
     try {
       const savedFolderId = sessionStorage.getItem('docgen_active_folder_id');
@@ -163,6 +354,10 @@ export default function DocumentsPage() {
       const savedViewMode = sessionStorage.getItem('docgen_view_mode') as 'grid' | 'list' | null;
       if (savedViewMode === 'grid' || savedViewMode === 'list') {
         setViewMode(savedViewMode);
+      }
+      const savedExplorerMode = sessionStorage.getItem('docgen_explorer_mode') as 'folders' | 'documents' | null;
+      if (savedExplorerMode === 'folders' || savedExplorerMode === 'documents') {
+        setExplorerMode(savedExplorerMode);
       }
     } catch (e) {
       console.error('Failed to read from sessionStorage:', e);
@@ -191,6 +386,37 @@ export default function DocumentsPage() {
     }
   };
 
+  const changeExplorerMode = (mode: 'folders' | 'documents') => {
+    setExplorerMode(mode);
+    try {
+      sessionStorage.setItem('docgen_explorer_mode', mode);
+    } catch (e) {
+      console.error('Failed to write explorer mode to sessionStorage:', e);
+    }
+  };
+
+  const handleLocateDocumentInFolder = (doc: Document) => {
+    let targetFolderId = doc.folderId;
+    if (!targetFolderId) {
+      const rootFolder = rootFolders.find((f) => f.companyId === doc.companyId);
+      targetFolderId = rootFolder ? rootFolder.id : null;
+    }
+
+    if (targetFolderId) {
+      const parentIds = getFolderAncestors(targetFolderId, folders);
+      setExpandedFolderIds((prev) => {
+        const next = new Set(prev);
+        parentIds.forEach((id) => next.add(id));
+        next.add(targetFolderId!);
+        return next;
+      });
+      changeActiveFolderId(targetFolderId);
+    } else {
+      changeActiveFolderId(null);
+    }
+    changeExplorerMode('folders');
+  };
+
   // Whenever activeFolderId changes, set expandedFolderIds ONLY to the active folder and its ancestors
   useEffect(() => {
     const next = new Set<string>();
@@ -216,20 +442,81 @@ export default function DocumentsPage() {
     });
   };
 
+  const [clipboardState, setClipboardState] = useState<ClipboardState>(null);
+  const [explorerSearchQuery, setExplorerSearchQuery] = useState('');
+
   const activeFolder = folders.find((folder) => folder.id === activeFolderId) || null;
   const activeCompany = companies.find((company) => company.id === activeFolder?.companyId) || null;
-  const rootFolders = useMemo(() => folders.filter((folder) => !folder.parentFolderId), [folders]);
-  const childFolders = useMemo(
-    () => folders.filter((folder) => folder.parentFolderId === activeFolderId),
-    [activeFolderId, folders]
-  );
+
+  const rootFolders = useMemo(() => {
+    const list = folders.filter((folder) => !folder.parentFolderId);
+    if (!explorerSearchQuery.trim()) return list;
+    const q = explorerSearchQuery.toLowerCase().trim();
+    return list.filter((f) => {
+      const company = companies.find((c) => c.id === f.companyId);
+      const name = company?.englishName || f.name;
+      return name.toLowerCase().includes(q);
+    });
+  }, [folders, companies, explorerSearchQuery]);
+
+  const childFolders = useMemo(() => {
+    const list = folders.filter((folder) => folder.parentFolderId === activeFolderId);
+    if (!explorerSearchQuery.trim()) return list;
+    const q = explorerSearchQuery.toLowerCase().trim();
+    return list.filter((f) => f.name.toLowerCase().includes(q));
+  }, [activeFolderId, folders, explorerSearchQuery]);
+
   const currentDocuments = useMemo(() => {
     if (!activeFolder) return [];
-    return documents.filter(
+    const list = documents.filter(
       (document) => document.companyId === activeFolder.companyId && document.folderId === activeFolder.id
     );
-  }, [activeFolder, documents]);
+    if (!explorerSearchQuery.trim()) return list;
+    const q = explorerSearchQuery.toLowerCase().trim();
+    return list.filter((d) => {
+      const name = d.fileName || d.templateName;
+      return name.toLowerCase().includes(q) || d.templateName.toLowerCase().includes(q);
+    });
+  }, [activeFolder, documents, explorerSearchQuery]);
+
   const rootDocuments = useMemo(() => documents.filter((document) => !document.folderId), [documents]);
+
+  const handleDuplicateFolder = async (folder: CompanyFolder) => {
+    try {
+      await duplicateCompanyFolderAction(folder.id);
+      await reloadFolders();
+      await refreshData();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to duplicate folder.');
+    }
+  };
+
+  const handlePasteHereToFolder = async (targetFolderId: string) => {
+    if (!clipboardState) return;
+    try {
+      if (clipboardState.action === 'moveFolder') {
+        if (isDescendantOrSelf(clipboardState.folder.id, targetFolderId, folders)) {
+          alert('Cannot move a folder into itself or its own subfolder.');
+          return;
+        }
+        await moveCompanyFolderAction(clipboardState.folder.id, targetFolderId);
+      } else if (clipboardState.action === 'moveDoc') {
+        await moveDocumentAction(clipboardState.doc.id, targetFolderId);
+      } else if (clipboardState.action === 'copyDoc') {
+        await copyDocumentAction(clipboardState.doc.id, targetFolderId);
+      }
+      setClipboardState(null);
+      await reloadFolders();
+      await refreshData();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Paste operation failed.');
+    }
+  };
+
+  const handlePasteHere = async () => {
+    if (!activeFolder) return;
+    await handlePasteHereToFolder(activeFolder.id);
+  };
 
   const breadcrumbs = useMemo(() => {
     const trail: CompanyFolder[] = [];
@@ -276,28 +563,53 @@ export default function DocumentsPage() {
     }
   };
 
-  const handleDeleteFolder = async (folder: CompanyFolder) => {
-    const isRoot = !folder.parentFolderId;
-    const promptMsg = isRoot
-      ? `Delete root company folder "${folder.name}"? Note: Delete the company to remove root folders.`
-      : `Are you sure you want to delete folder "${folder.name}" and all contents inside it?`;
+  const countFolderContents = (targetFolderId: string) => {
+    let subfolderCount = 0;
+    let documentCount = 0;
 
+    const traverse = (folderId: string) => {
+      const docsInFolder = documents.filter((d) => d.folderId === folderId);
+      documentCount += docsInFolder.length;
+
+      const children = folders.filter((f) => f.parentFolderId === folderId);
+      subfolderCount += children.length;
+
+      for (const child of children) {
+        traverse(child.id);
+      }
+    };
+
+    traverse(targetFolderId);
+    return { subfolderCount, documentCount };
+  };
+
+  const promptDeleteFolder = (folder: CompanyFolder) => {
+    const isRoot = !folder.parentFolderId;
     if (isRoot) {
       alert('To remove a root company folder, please delete the company from the Companies page.');
       return;
     }
 
-    if (window.confirm(promptMsg)) {
-      try {
-        await deleteCompanyFolderAction(folder.id);
-        if (activeFolderId === folder.id) {
-          changeActiveFolderId(folder.parentFolderId || null);
-        }
-        await reloadFolders();
-        await refreshData();
-      } catch (error) {
-        alert(error instanceof Error ? error.message : 'Failed to delete folder.');
+    const { subfolderCount, documentCount } = countFolderContents(folder.id);
+    setModalState({
+      type: 'deleteFolder',
+      folder,
+      subfolderCount,
+      documentCount,
+    });
+  };
+
+  const confirmDeleteFolder = async (folder: CompanyFolder) => {
+    try {
+      await deleteCompanyFolderAction(folder.id);
+      if (activeFolderId === folder.id) {
+        changeActiveFolderId(folder.parentFolderId || null);
       }
+      setModalState(null);
+      await reloadFolders();
+      await refreshData();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to delete folder.');
     }
   };
 
@@ -323,15 +635,17 @@ export default function DocumentsPage() {
     }
   };
 
-  const handleDeleteDocument = async (doc: Document) => {
-    const docName = doc.fileName || `${doc.templateName}.docx`;
-    if (window.confirm(`Are you sure you want to delete "${docName}"?`)) {
-      try {
-        await deleteDocumentAction(doc.id);
-        await refreshData();
-      } catch (error) {
-        alert(error instanceof Error ? error.message : 'Failed to delete document.');
-      }
+  const promptDeleteDocument = (doc: Document) => {
+    setModalState({ type: 'deleteDoc', doc });
+  };
+
+  const confirmDeleteDocument = async (doc: Document) => {
+    try {
+      await deleteDocumentAction(doc.id);
+      setModalState(null);
+      await refreshData();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to delete document.');
     }
   };
 
@@ -358,27 +672,213 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-slate-50/60 dark:bg-slate-950">
-      <PageHeader
-        title="Document Manager"
-        description="Browse, organize, rename, move, and copy company documents"
-        actions={
-          <Link href="/documents/generate">
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="mr-2 h-4 w-4" />
-              Generate document
-            </Button>
-          </Link>
-        }
-      />
+    <div className="flex min-h-full flex-col bg-slate-50/60 dark:bg-slate-950">
+      <div className="mx-auto w-full max-w-7xl px-4 md:px-6 pt-4 pb-6 space-y-6">
+        <PageHeader
+          title="Document Manager"
+          description="Browse, organize, rename, move, and copy company documents"
+          actions={
+            <div className="flex flex-wrap items-center gap-3">
+              {/* View Mode Toggle: Folder View vs All Documents List */}
+              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-800 dark:bg-slate-900">
+                <button
+                  onClick={() => changeExplorerMode('folders')}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                    explorerMode === 'folders'
+                      ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-800 dark:text-blue-400'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                  }`}
+                >
+                  <Folder className="h-4 w-4" />
+                  <span>Folder View</span>
+                </button>
+                <button
+                  onClick={() => changeExplorerMode('documents')}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                    explorerMode === 'documents'
+                      ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-800 dark:text-blue-400'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                  }`}
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>All Documents List</span>
+                </button>
+              </div>
 
-      <div className="min-h-0 flex-1 p-4 md:p-6">
+              <Link href="/documents/generate">
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Generate document
+                </Button>
+              </Link>
+            </div>
+          }
+        />
+
         {loading ? (
           <p className="py-12 text-center text-sm text-slate-500">Loading documents…</p>
+        ) : explorerMode === 'documents' ? (
+          /* All Documents List Mode */
+          <div className="space-y-4">
+            {/* Search & Filter Toolbar */}
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={docSearchQuery}
+                  onChange={(e) => setDocSearchQuery(e.target.value)}
+                  placeholder="Search documents by name, template, or company..."
+                  className="pl-10"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-slate-400" />
+                <select
+                  value={companyFilter}
+                  onChange={(e) => setCompanyFilter(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                >
+                  <option value="ALL">All Companies</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.englishName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Document Table */}
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="grid grid-cols-[minmax(0,1.2fr)_140px_160px_130px_200px] border-b bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-950">
+                <span>Document Name</span>
+                <span>Company</span>
+                <span>Folder Location</span>
+                <span>Generated Date</span>
+                <span className="text-right">Actions</span>
+              </div>
+
+              {(() => {
+                const filteredDocs = documents.filter((doc) => {
+                  if (companyFilter !== 'ALL' && doc.companyId !== companyFilter) return false;
+                  if (!docSearchQuery.trim()) return true;
+                  const q = docSearchQuery.toLowerCase().trim();
+                  const name = doc.fileName || doc.templateName;
+                  return (
+                    name.toLowerCase().includes(q) ||
+                    doc.templateName.toLowerCase().includes(q) ||
+                    doc.companyName.toLowerCase().includes(q)
+                  );
+                });
+
+                if (filteredDocs.length === 0) {
+                  return (
+                    <div className="py-16 text-center text-sm text-slate-500">
+                      No documents found matching your criteria.
+                    </div>
+                  );
+                }
+
+                return filteredDocs.map((doc) => {
+                  const displayName = doc.fileName || `${doc.templateName}.docx`;
+                  const folderObj = folders.find((f) => f.id === doc.folderId);
+                  const folderPath = folderObj ? getFolderPathString(folderObj, folders) : 'Documents (Root)';
+                  return (
+                    <div
+                      key={doc.id}
+                      className="group grid grid-cols-[minmax(0,1.2fr)_140px_160px_130px_200px] items-center border-b border-slate-100 px-4 py-3 text-sm transition-colors hover:bg-blue-50/40 dark:border-slate-800/60 dark:hover:bg-blue-950/20"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/80 dark:text-blue-400">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-slate-900 dark:text-white" title={displayName}>
+                            {displayName}
+                          </p>
+                          <p className="truncate text-xs text-slate-400">{doc.templateName}</p>
+                        </div>
+                      </div>
+
+                      <span className="truncate text-xs font-medium text-slate-600 dark:text-slate-400">
+                        {doc.companyName}
+                      </span>
+
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <FolderOpen className="h-3.5 w-3.5 shrink-0 text-amber-400 fill-amber-400/20" />
+                        <button
+                          onClick={() => handleLocateDocumentInFolder(doc)}
+                          className="truncate text-xs font-medium text-blue-600 hover:underline dark:text-blue-400 text-left"
+                          title={`Go to folder: ${folderPath}`}
+                        >
+                          {folderPath}
+                        </button>
+                      </div>
+
+                      <span className="text-xs text-slate-500">
+                        {new Date(doc.generatedAt).toLocaleDateString()}
+                      </span>
+
+                      <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                        <button
+                          onClick={() => handleLocateDocumentInFolder(doc)}
+                          title="Locate in folder"
+                          className="rounded-lg p-1.5 text-slate-600 hover:bg-blue-100 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-blue-950"
+                        >
+                          <FolderSearch className="h-4 w-4" />
+                        </button>
+                        <a
+                          href={doc.docxUrl}
+                          download={displayName}
+                          title="Download"
+                          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                        <button
+                          onClick={() => {
+                            setModalState({ type: 'renameDoc', doc });
+                            setRenameInputValue(doc.fileName || doc.templateName);
+                          }}
+                          title="Rename"
+                          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setClipboardState({ action: 'copyDoc', doc })}
+                          title="Copy document"
+                          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setClipboardState({ action: 'moveDoc', doc })}
+                          title="Move document"
+                          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                        >
+                          <MoveRight className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => promptDeleteDocument(doc)}
+                          title="Delete document"
+                          className="rounded-lg p-1.5 text-slate-600 hover:bg-red-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
         ) : (
-          <div className="mx-auto grid h-full max-w-7xl min-h-[620px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 md:grid-cols-[280px_1fr]">
+          /* Windows Explorer Folder Tree View */
+          <div className="grid w-full h-[calc(100vh-220px)] min-h-[550px] rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 md:grid-cols-[280px_1fr] overflow-hidden">
             {/* Sidebar Navigation */}
-            <aside className="min-h-0 overflow-y-auto border-b border-slate-200 bg-slate-50/70 p-3.5 dark:border-slate-800 dark:bg-slate-950 md:border-b-0 md:border-r">
+            <aside className="h-full overflow-y-auto border-b border-slate-200 bg-slate-50/70 p-3.5 dark:border-slate-800 dark:bg-slate-950 md:border-b-0 md:border-r">
               <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
                 Companies
               </p>
@@ -392,8 +892,17 @@ export default function DocumentsPage() {
                         folder={{ ...root, name: company.englishName }}
                         activeFolderId={activeFolderId}
                         expandedFolderIds={expandedFolderIds}
+                        clipboardState={clipboardState}
                         onOpen={changeActiveFolderId}
                         onToggleExpand={toggleExpand}
+                        onDuplicateFolder={handleDuplicateFolder}
+                        onMoveFolder={(f) => setClipboardState({ action: 'moveFolder', folder: f })}
+                        onRenameFolder={(f) => {
+                          setModalState({ type: 'renameFolder', folder: f });
+                          setRenameInputValue(f.name);
+                        }}
+                        onDeleteFolder={promptDeleteFolder}
+                        onPasteHere={handlePasteHereToFolder}
                       />
                     ) : (
                       <p className="px-2 py-1.5 text-sm text-slate-500">{company.englishName}</p>
@@ -407,7 +916,7 @@ export default function DocumentsPage() {
             </aside>
 
             {/* Main Folder Explorer */}
-            <main className="flex min-w-0 flex-col">
+            <main className="relative flex h-full min-w-0 flex-col overflow-hidden">
               {/* Explorer Toolbar / Breadcrumbs */}
               <div className="flex min-h-14 items-center justify-between gap-3 border-b border-slate-200 px-4 dark:border-slate-800">
                 <div className="flex min-w-0 items-center gap-1 overflow-hidden text-sm">
@@ -431,6 +940,17 @@ export default function DocumentsPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {/* Explorer Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      value={explorerSearchQuery}
+                      onChange={(e) => setExplorerSearchQuery(e.target.value)}
+                      placeholder="Search folders & files…"
+                      className="h-8 w-40 pl-8 text-xs md:w-56"
+                    />
+                  </div>
+
                   <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800 dark:bg-slate-950">
                     <button
                       onClick={() => changeViewMode('grid')}
@@ -456,214 +976,245 @@ export default function DocumentsPage() {
                     </button>
                   </div>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!activeFolder}
-                    onClick={openCreateFolderModal}
-                    className="border-slate-300 dark:border-slate-700"
-                  >
-                    <FolderPlus className="mr-1.5 h-4 w-4" />
-                    New folder
-                  </Button>
+                  {clipboardState ? (
+                    <Button
+                      size="sm"
+                      disabled={
+                        !activeFolder ||
+                        (clipboardState.action === 'moveFolder' &&
+                          isDescendantOrSelf(clipboardState.folder.id, activeFolder.id, folders))
+                      }
+                      onClick={handlePasteHere}
+                      className="bg-blue-600 hover:bg-blue-700 font-medium"
+                    >
+                      <Check className="mr-1.5 h-4 w-4" />
+                      Paste Here
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!activeFolder}
+                      onClick={openCreateFolderModal}
+                      className="border-slate-300 dark:border-slate-700"
+                    >
+                      <FolderPlus className="mr-1.5 h-4 w-4" />
+                      New folder
+                    </Button>
+                  )}
                 </div>
               </div>
 
               {/* Folder & Document Grid/List View */}
               <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
-                {!activeFolder ? (
-                  /* Root View: All Company Folders */
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                    {rootFolders.map((folder) => {
-                      const company = companies.find((item) => item.id === folder.companyId);
-                      const folderName = company?.englishName || folder.name;
-                      return (
-                        <div
-                          key={folder.id}
-                          className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-600 dark:hover:bg-blue-950/30"
-                        >
-                          <button
-                            onClick={() => changeActiveFolderId(folder.id)}
-                            className="w-full text-left"
-                          >
-                            <div className="mb-3 flex items-center justify-between">
-                              <Folder className="h-10 w-10 text-amber-400 fill-amber-400/30 transition-transform group-hover:scale-105" />
-                              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                                Company Root
-                              </span>
-                            </div>
-                            <p className="truncate font-semibold text-slate-900 dark:text-white">{folderName}</p>
-                            <p className="mt-1 text-xs text-slate-500">Company documents folder</p>
-                          </button>
-
-                          {/* Hover Actions Bar */}
-                          <div className="mt-3 flex items-center justify-end gap-1 border-t border-slate-200/60 pt-2 opacity-0 transition-opacity group-hover:opacity-100 dark:border-slate-800">
-                            <button
-                              onClick={() => {
-                                setModalState({ type: 'renameFolder', folder });
-                                setRenameInputValue(folderName);
-                              }}
-                              title="Rename folder"
-                              className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {rootDocuments.length > 0 && (
-                      <p className="col-span-full mt-4 text-sm text-amber-600">
-                        {rootDocuments.length} older document(s) have not yet been assigned to a company folder.
-                      </p>
-                    )}
-                  </div>
-                ) : viewMode === 'grid' ? (
+                {viewMode === 'grid' ? (
                   /* Grid View (Windows Explorer Tile Cards) */
                   <div className="space-y-6">
-                    {/* Folders Section */}
-                    {childFolders.length > 0 && (
+                    {!activeFolder ? (
+                      /* Root View: All Company Folders (Grid) */
                       <div>
                         <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                          Folders ({childFolders.length})
+                          Companies ({rootFolders.length})
                         </p>
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                          {childFolders.map((folder) => (
-                            <div
-                              key={folder.id}
-                              className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-600 dark:hover:bg-blue-950/30"
-                            >
-                              <button
-                                onClick={() => changeActiveFolderId(folder.id)}
-                                className="w-full text-left"
-                              >
-                                <Folder className="mb-3 h-10 w-10 text-amber-400 fill-amber-400/30 transition-transform group-hover:scale-105" />
-                                <p className="truncate font-semibold text-slate-900 dark:text-white">
-                                  {folder.name}
-                                </p>
-                                <p className="mt-1 text-xs text-slate-500">
-                                  {new Date(folder.updatedAt).toLocaleDateString()}
-                                </p>
-                              </button>
-
-                              {/* Hover Actions Bar for Child Folders */}
-                              <div className="mt-3 flex items-center justify-end gap-1 border-t border-slate-200/60 pt-2 opacity-0 transition-opacity group-hover:opacity-100 dark:border-slate-800">
-                                <button
-                                  onClick={() => {
-                                    setModalState({ type: 'renameFolder', folder });
-                                    setRenameInputValue(folder.name);
-                                  }}
-                                  title="Rename"
-                                  className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
-                                >
-                                  <Edit2 className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => setModalState({ type: 'moveFolder', folder })}
-                                  title="Move to folder"
-                                  className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
-                                >
-                                  <MoveRight className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteFolder(folder)}
-                                  title="Delete folder"
-                                  className="rounded-lg p-1.5 text-slate-600 hover:bg-red-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Files Section */}
-                    {currentDocuments.length > 0 && (
-                      <div>
-                        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                          Documents ({currentDocuments.length})
-                        </p>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                          {currentDocuments.map((doc) => {
-                            const displayName = doc.fileName || `${doc.templateName}.docx`;
+                          {rootFolders.map((folder) => {
+                            const company = companies.find((item) => item.id === folder.companyId);
+                            const folderName = company?.englishName || folder.name;
                             return (
                               <div
-                                key={doc.id}
-                                className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:border-blue-400 hover:bg-blue-50/20 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-600"
+                                key={folder.id}
+                                className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-600 dark:hover:bg-blue-950/30"
                               >
-                                <div className="w-full text-left">
-                                  <div className="mb-3 flex items-start justify-between">
-                                    <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/80 dark:text-blue-400">
-                                      <FileText className="h-5 w-5" />
-                                    </div>
-                                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800">
-                                      DOCX
+                                <button
+                                  onClick={() => changeActiveFolderId(folder.id)}
+                                  className="w-full text-left"
+                                >
+                                  <div className="mb-3 flex items-center justify-between">
+                                    <Folder className="h-10 w-10 text-amber-400 fill-amber-400/30 transition-transform group-hover:scale-105" />
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                      Company Root
                                     </span>
                                   </div>
-                                  <p className="truncate font-semibold text-slate-900 dark:text-white" title={displayName}>
-                                    {displayName}
-                                  </p>
-                                  <p className="mt-1 text-xs text-slate-500">
-                                    {new Date(doc.generatedAt).toLocaleDateString()}
-                                  </p>
-                                </div>
+                                  <p className="truncate font-semibold text-slate-900 dark:text-white">{folderName}</p>
+                                  <p className="mt-1 text-xs text-slate-500">Company documents folder</p>
+                                </button>
 
-                                {/* Hover Actions Bar for Files */}
+                                {/* Hover Actions Bar */}
                                 <div className="mt-3 flex items-center justify-end gap-1 border-t border-slate-200/60 pt-2 opacity-0 transition-opacity group-hover:opacity-100 dark:border-slate-800">
-                                  <a
-                                    href={doc.docxUrl}
-                                    download={displayName}
-                                    title="Download"
-                                    className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
-                                  >
-                                    <Download className="h-3.5 w-3.5" />
-                                  </a>
                                   <button
                                     onClick={() => {
-                                      setModalState({ type: 'renameDoc', doc });
-                                      setRenameInputValue(doc.fileName || doc.templateName);
+                                      setModalState({ type: 'renameFolder', folder });
+                                      setRenameInputValue(folderName);
                                     }}
-                                    title="Rename"
+                                    title="Rename folder"
                                     className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
                                   >
                                     <Edit2 className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => setModalState({ type: 'copyDoc', doc })}
-                                    title="Copy to folder"
-                                    className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
-                                  >
-                                    <Copy className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => setModalState({ type: 'moveDoc', doc })}
-                                    title="Move to folder"
-                                    className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
-                                  >
-                                    <MoveRight className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteDocument(doc)}
-                                    title="Delete document"
-                                    className="rounded-lg p-1.5 text-slate-600 hover:bg-red-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
                                   </button>
                                 </div>
                               </div>
                             );
                           })}
+                          {rootDocuments.length > 0 && (
+                            <p className="col-span-full mt-4 text-sm text-amber-600">
+                              {rootDocuments.length} older document(s) have not yet been assigned to a company folder.
+                            </p>
+                          )}
                         </div>
                       </div>
-                    )}
+                    ) : (
+                      /* Subfolder View: Child Folders & Documents Grid */
+                      <>
+                        {/* Folders Section */}
+                        {childFolders.length > 0 && (
+                          <div>
+                            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                              Folders ({childFolders.length})
+                            </p>
+                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                              {childFolders.map((folder) => (
+                                <div
+                                  key={folder.id}
+                                  className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-600 dark:hover:bg-blue-950/30"
+                                >
+                                  <button
+                                    onClick={() => changeActiveFolderId(folder.id)}
+                                    className="w-full text-left"
+                                  >
+                                    <Folder className="mb-3 h-10 w-10 text-amber-400 fill-amber-400/30 transition-transform group-hover:scale-105" />
+                                    <p className="truncate font-semibold text-slate-900 dark:text-white">
+                                      {folder.name}
+                                    </p>
+                                    <p className="mt-1 text-xs text-slate-500">
+                                      {new Date(folder.updatedAt).toLocaleDateString()}
+                                    </p>
+                                  </button>
 
-                    {!childFolders.length && !currentDocuments.length && (
-                      <div className="py-16 text-center">
-                        <Folder className="mx-auto mb-3 h-12 w-12 text-slate-300 dark:text-slate-700" />
-                        <p className="text-sm font-medium text-slate-500">This folder is empty.</p>
-                      </div>
+                                  <div className="mt-3 flex items-center justify-end gap-1 border-t border-slate-200/60 pt-2 opacity-0 transition-opacity group-hover:opacity-100 dark:border-slate-800">
+                                    <button
+                                      onClick={() => handleDuplicateFolder(folder)}
+                                      title="Duplicate folder"
+                                      className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                    >
+                                      <Copy className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setModalState({ type: 'renameFolder', folder });
+                                        setRenameInputValue(folder.name);
+                                      }}
+                                      title="Rename"
+                                      className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                    >
+                                      <Edit2 className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => setClipboardState({ action: 'moveFolder', folder })}
+                                      title="Move folder"
+                                      className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                    >
+                                      <MoveRight className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => promptDeleteFolder(folder)}
+                                      title="Delete folder"
+                                      className="rounded-lg p-1.5 text-slate-600 hover:bg-red-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Files Section */}
+                        {currentDocuments.length > 0 && (
+                          <div>
+                            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                              Documents ({currentDocuments.length})
+                            </p>
+                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                              {currentDocuments.map((doc) => {
+                                const displayName = doc.fileName || `${doc.templateName}.docx`;
+                                return (
+                                  <div
+                                    key={doc.id}
+                                    className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:border-blue-400 hover:bg-blue-50/20 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-600"
+                                  >
+                                    <div className="w-full text-left">
+                                      <div className="mb-3 flex items-start justify-between">
+                                        <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/80 dark:text-blue-400">
+                                          <FileText className="h-5 w-5" />
+                                        </div>
+                                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800">
+                                          DOCX
+                                        </span>
+                                      </div>
+                                      <p className="truncate font-semibold text-slate-900 dark:text-white" title={displayName}>
+                                        {displayName}
+                                      </p>
+                                      <p className="mt-1 text-xs text-slate-500">
+                                        {new Date(doc.generatedAt).toLocaleDateString()}
+                                      </p>
+                                    </div>
+
+                                    <div className="mt-3 flex items-center justify-end gap-1 border-t border-slate-200/60 pt-2 opacity-0 transition-opacity group-hover:opacity-100 dark:border-slate-800">
+                                      <a
+                                        href={doc.docxUrl}
+                                        download={displayName}
+                                        title="Download"
+                                        className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                      >
+                                        <Download className="h-3.5 w-3.5" />
+                                      </a>
+                                      <button
+                                        onClick={() => {
+                                          setModalState({ type: 'renameDoc', doc });
+                                          setRenameInputValue(doc.fileName || doc.templateName);
+                                        }}
+                                        title="Rename"
+                                        className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                      >
+                                        <Edit2 className="h-3.5 w-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => setClipboardState({ action: 'copyDoc', doc })}
+                                        title="Copy document"
+                                        className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                      >
+                                        <Copy className="h-3.5 w-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => setClipboardState({ action: 'moveDoc', doc })}
+                                        title="Move document"
+                                        className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                      >
+                                        <MoveRight className="h-3.5 w-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => promptDeleteDocument(doc)}
+                                        title="Delete document"
+                                        className="rounded-lg p-1.5 text-slate-600 hover:bg-red-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {!childFolders.length && !currentDocuments.length && (
+                          <div className="py-16 text-center">
+                            <Folder className="mx-auto mb-3 h-12 w-12 text-slate-300 dark:text-slate-700" />
+                            <p className="text-sm font-medium text-slate-500">This folder is empty.</p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 ) : (
@@ -675,117 +1226,227 @@ export default function DocumentsPage() {
                       <span className="text-right">Actions</span>
                     </div>
 
-                    {/* Child Folders in List View */}
-                    {childFolders.map((folder) => (
-                      <div
-                        key={folder.id}
-                        className="group grid grid-cols-[minmax(0,1fr)_120px_180px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
-                      >
-                        <button
-                          onClick={() => changeActiveFolderId(folder.id)}
-                          className="flex min-w-0 items-center gap-2 text-left font-medium text-slate-900 dark:text-white"
-                        >
-                          <Folder className="h-5 w-5 shrink-0 text-amber-400 fill-amber-400/30" />
-                          <span className="truncate">{folder.name}</span>
-                        </button>
-                        <span className="text-xs text-slate-500">
-                          {new Date(folder.updatedAt).toLocaleDateString()}
-                        </span>
-                        <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-                          <button
-                            onClick={() => {
-                              setModalState({ type: 'renameFolder', folder });
-                              setRenameInputValue(folder.name);
-                            }}
-                            title="Rename"
-                            className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                    {!activeFolder ? (
+                      /* Root View List */
+                      <>
+                        {rootFolders.map((folder) => {
+                          const company = companies.find((item) => item.id === folder.companyId);
+                          const folderName = company?.englishName || folder.name;
+                          return (
+                            <div
+                              key={folder.id}
+                              className="group grid grid-cols-[minmax(0,1fr)_120px_180px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                            >
+                              <button
+                                onClick={() => changeActiveFolderId(folder.id)}
+                                className="flex min-w-0 items-center gap-2 text-left font-medium text-slate-900 dark:text-white"
+                              >
+                                <Folder className="h-5 w-5 shrink-0 text-amber-400 fill-amber-400/30" />
+                                <span className="truncate">{folderName}</span>
+                                <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800">
+                                  Company Root
+                                </span>
+                              </button>
+                              <span className="text-xs text-slate-500">
+                                {new Date(folder.updatedAt).toLocaleDateString()}
+                              </span>
+                              <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                                <button
+                                  onClick={() => {
+                                    setModalState({ type: 'renameFolder', folder });
+                                    setRenameInputValue(folderName);
+                                  }}
+                                  title="Rename folder"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {rootDocuments.map((doc) => {
+                          const displayName = doc.fileName || `${doc.templateName}.docx`;
+                          return (
+                            <div
+                              key={doc.id}
+                              className="group grid grid-cols-[minmax(0,1fr)_120px_180px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                            >
+                              <div className="flex min-w-0 items-center gap-2">
+                                <FileText className="h-5 w-5 shrink-0 text-blue-500" />
+                                <span className="truncate font-medium text-slate-900 dark:text-white" title={displayName}>
+                                  {displayName}
+                                </span>
+                              </div>
+                              <span className="text-xs text-slate-500">
+                                {new Date(doc.generatedAt).toLocaleDateString()}
+                              </span>
+                              <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                                <a
+                                  href={doc.docxUrl}
+                                  download={displayName}
+                                  title="Download"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </a>
+                                <button
+                                  onClick={() => {
+                                    setModalState({ type: 'renameDoc', doc });
+                                    setRenameInputValue(doc.fileName || doc.templateName);
+                                  }}
+                                  title="Rename"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => setClipboardState({ action: 'copyDoc', doc })}
+                                  title="Copy document"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => setClipboardState({ action: 'moveDoc', doc })}
+                                  title="Move document"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                >
+                                  <MoveRight className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => promptDeleteDocument(doc)}
+                                  title="Delete document"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </>
+                    ) : (
+                      /* Subfolder View List */
+                      <>
+                        {childFolders.map((folder) => (
+                          <div
+                            key={folder.id}
+                            className="group grid grid-cols-[minmax(0,1fr)_120px_180px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
                           >
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => setModalState({ type: 'moveFolder', folder })}
-                            title="Move folder"
-                            className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
-                          >
-                            <MoveRight className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteFolder(folder)}
-                            title="Delete folder"
-                            className="rounded p-1.5 text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* Files in List View */}
-                    {currentDocuments.map((doc) => {
-                      const displayName = doc.fileName || `${doc.templateName}.docx`;
-                      return (
-                        <div
-                          key={doc.id}
-                          className="group grid grid-cols-[minmax(0,1fr)_120px_180px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
-                        >
-                          <div className="flex min-w-0 items-center gap-2">
-                            <FileText className="h-5 w-5 shrink-0 text-blue-500" />
-                            <span className="truncate font-medium text-slate-900 dark:text-white" title={displayName}>
-                              {displayName}
+                            <button
+                              onClick={() => changeActiveFolderId(folder.id)}
+                              className="flex min-w-0 items-center gap-2 text-left font-medium text-slate-900 dark:text-white"
+                            >
+                              <Folder className="h-5 w-5 shrink-0 text-amber-400 fill-amber-400/30" />
+                              <span className="truncate">{folder.name}</span>
+                            </button>
+                            <span className="text-xs text-slate-500">
+                              {new Date(folder.updatedAt).toLocaleDateString()}
                             </span>
+                            <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                              <button
+                                onClick={() => handleDuplicateFolder(folder)}
+                                title="Duplicate folder"
+                                className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setModalState({ type: 'renameFolder', folder });
+                                  setRenameInputValue(folder.name);
+                                }}
+                                title="Rename"
+                                className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => setClipboardState({ action: 'moveFolder', folder })}
+                                title="Move folder"
+                                className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                              >
+                                <MoveRight className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => promptDeleteFolder(folder)}
+                                title="Delete folder"
+                                className="rounded p-1.5 text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
                           </div>
-                          <span className="text-xs text-slate-500">
-                            {new Date(doc.generatedAt).toLocaleDateString()}
-                          </span>
-                          <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-                            <a
-                              href={doc.docxUrl}
-                              download={displayName}
-                              title="Download"
-                              className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
-                            >
-                              <Download className="h-4 w-4" />
-                            </a>
-                            <button
-                              onClick={() => {
-                                setModalState({ type: 'renameDoc', doc });
-                                setRenameInputValue(doc.fileName || doc.templateName);
-                              }}
-                              title="Rename"
-                              className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => setModalState({ type: 'copyDoc', doc })}
-                              title="Copy to folder"
-                              className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => setModalState({ type: 'moveDoc', doc })}
-                              title="Move to folder"
-                              className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
-                            >
-                              <MoveRight className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteDocument(doc)}
-                              title="Delete document"
-                              className="rounded p-1.5 text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        ))}
 
-                    {!childFolders.length && !currentDocuments.length && (
-                      <div className="py-14 text-center text-sm text-slate-500">
-                        This folder is empty.
-                      </div>
+                        {currentDocuments.map((doc) => {
+                          const displayName = doc.fileName || `${doc.templateName}.docx`;
+                          return (
+                            <div
+                              key={doc.id}
+                              className="group grid grid-cols-[minmax(0,1fr)_120px_180px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                            >
+                              <div className="flex min-w-0 items-center gap-2">
+                                <FileText className="h-5 w-5 shrink-0 text-blue-500" />
+                                <span className="truncate font-medium text-slate-900 dark:text-white" title={displayName}>
+                                  {displayName}
+                                </span>
+                              </div>
+                              <span className="text-xs text-slate-500">
+                                {new Date(doc.generatedAt).toLocaleDateString()}
+                              </span>
+                              <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                                <a
+                                  href={doc.docxUrl}
+                                  download={displayName}
+                                  title="Download"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </a>
+                                <button
+                                  onClick={() => {
+                                    setModalState({ type: 'renameDoc', doc });
+                                    setRenameInputValue(doc.fileName || doc.templateName);
+                                  }}
+                                  title="Rename"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => setClipboardState({ action: 'copyDoc', doc })}
+                                  title="Copy document"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => setClipboardState({ action: 'moveDoc', doc })}
+                                  title="Move document"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                >
+                                  <MoveRight className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => promptDeleteDocument(doc)}
+                                  title="Delete document"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {!childFolders.length && !currentDocuments.length && (
+                          <div className="py-14 text-center text-sm text-slate-500">
+                            This folder is empty.
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
@@ -795,6 +1456,60 @@ export default function DocumentsPage() {
               {activeCompany && (
                 <div className="border-t border-slate-200 px-4 py-2.5 text-xs text-slate-500 dark:border-slate-800">
                   {activeCompany.englishName} · {childFolders.length} folder(s) · {currentDocuments.length} document(s)
+                </div>
+              )}
+
+              {/* PASTE FLOATING ACTION BAR (CENTERED IN MAIN EXPLORER PANE) */}
+              {clipboardState && (
+                <div className="absolute bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-blue-300 bg-white/95 p-3.5 shadow-2xl backdrop-blur-md dark:border-blue-900 dark:bg-slate-900/95">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                      {clipboardState.action.startsWith('move') ? (
+                        <MoveRight className="h-4 w-4" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-900 dark:text-white">
+                        {clipboardState.action === 'moveFolder' && `Moving folder "${clipboardState.folder.name}"`}
+                        {clipboardState.action === 'moveDoc' &&
+                          `Moving document "${clipboardState.doc.fileName || clipboardState.doc.templateName}"`}
+                        {clipboardState.action === 'copyDoc' &&
+                          `Copying document "${clipboardState.doc.fileName || clipboardState.doc.templateName}"`}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        {activeFolder
+                          ? `Destination: ${activeFolder.name}`
+                          : 'Open a destination folder to paste'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 border-l border-slate-200 pl-3 dark:border-slate-800">
+                    <Button
+                      size="sm"
+                      disabled={
+                        !activeFolder ||
+                        (clipboardState.action === 'moveFolder' &&
+                          isDescendantOrSelf(clipboardState.folder.id, activeFolder.id, folders))
+                      }
+                      onClick={handlePasteHere}
+                      className="bg-blue-600 hover:bg-blue-700 text-xs px-3.5 h-8 font-medium"
+                    >
+                      <Check className="mr-1.5 h-3.5 w-3.5" />
+                      Paste Here
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setClipboardState(null)}
+                      className="text-xs h-8 px-3"
+                    >
+                      <X className="mr-1 h-3.5 w-3.5" />
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               )}
             </main>
@@ -868,58 +1583,90 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* MOVE / COPY TARGET FOLDER PICKER MODAL */}
-      {(modalState?.type === 'moveFolder' ||
-        modalState?.type === 'moveDoc' ||
-        modalState?.type === 'copyDoc') && (
+
+
+      {/* DELETE FOLDER CONFIRMATION MODAL */}
+      {modalState?.type === 'deleteFolder' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
-            <div className="border-b border-slate-200 p-5 dark:border-slate-800">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                {modalState.type === 'moveFolder' && `Move "${modalState.folder.name}" to…`}
-                {modalState.type === 'moveDoc' &&
-                  `Move "${modalState.doc.fileName || modalState.doc.templateName}" to…`}
-                {modalState.type === 'copyDoc' &&
-                  `Copy "${modalState.doc.fileName || modalState.doc.templateName}" to…`}
-              </h3>
-              <p className="mt-1 text-xs text-slate-500">
-                Select a target destination folder in this company.
+          <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+            <div className="mb-4 flex items-center gap-3 text-red-600 dark:text-red-500">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/80">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Delete Folder?</h3>
+                <p className="text-xs text-slate-500">Confirm folder deletion</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm text-slate-700 dark:text-slate-300">
+                Are you sure you want to delete <span className="font-semibold text-slate-900 dark:text-white">&quot;{modalState.folder.name}&quot;</span>?
+              </p>
+
+              <div className="rounded-xl border border-red-200/80 bg-red-50/50 p-3.5 dark:border-red-900/50 dark:bg-red-950/30">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-red-700 dark:text-red-400">
+                  Contents to be permanently deleted:
+                </p>
+                <ul className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
+                  <li className="flex items-center gap-2">
+                    <Folder className="h-4 w-4 text-amber-500 fill-amber-500/20" />
+                    <span><strong>{modalState.subfolderCount}</strong> subfolder(s) inside</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-500" />
+                    <span><strong>{modalState.documentCount}</strong> document(s) inside</span>
+                  </li>
+                </ul>
+              </div>
+
+              <p className="text-xs text-slate-500">
+                This action cannot be undone. All physical files and database records inside this folder will be deleted.
               </p>
             </div>
-            <div className="max-h-80 overflow-y-auto p-3 space-y-1">
-              {folders
-                .filter((folder) => {
-                  const companyId =
-                    modalState.type === 'moveFolder'
-                      ? modalState.folder.companyId
-                      : modalState.doc.companyId;
 
-                  if (folder.companyId !== companyId) return false;
-                  if (modalState.type === 'moveFolder' && folder.id === modalState.folder.id) return false;
-                  return true;
-                })
-                .map((folder) => (
-                  <button
-                    key={folder.id}
-                    onClick={() => {
-                      if (modalState.type === 'moveFolder') {
-                        handleMoveFolder(modalState.folder.id, folder.id);
-                      } else if (modalState.type === 'moveDoc') {
-                        handleMoveDocument(modalState.doc.id, folder.id);
-                      } else if (modalState.type === 'copyDoc') {
-                        handleCopyDocument(modalState.doc.id, folder.id);
-                      }
-                    }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-blue-50 dark:hover:bg-blue-950/30"
-                  >
-                    <Folder className="h-4 w-4 shrink-0 text-amber-400 fill-amber-400/30" />
-                    <span className="font-medium">{folder.name}</span>
-                  </button>
-                ))}
-            </div>
-            <div className="flex justify-end border-t border-slate-200 p-3 dark:border-slate-800">
+            <div className="mt-6 flex justify-end gap-2">
               <Button variant="outline" onClick={() => setModalState(null)}>
                 Cancel
+              </Button>
+              <Button
+                className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={() => confirmDeleteFolder(modalState.folder)}
+              >
+                Delete Folder
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE DOCUMENT CONFIRMATION MODAL */}
+      {modalState?.type === 'deleteDoc' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+            <div className="mb-4 flex items-center gap-3 text-red-600 dark:text-red-500">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/80">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Delete Document?</h3>
+                <p className="text-xs text-slate-500">Confirm document deletion</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Are you sure you want to delete <span className="font-semibold text-slate-900 dark:text-white">&quot;{modalState.doc.fileName || `${modalState.doc.templateName}.docx`}&quot;</span>? This document file will be permanently deleted.
+            </p>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setModalState(null)}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={() => confirmDeleteDocument(modalState.doc)}
+              >
+                Delete Document
               </Button>
             </div>
           </div>

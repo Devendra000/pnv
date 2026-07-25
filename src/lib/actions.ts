@@ -1514,3 +1514,65 @@ export async function renameDocumentAction(documentId: string, fileName: string)
   };
 }
 
+export async function duplicateCompanyFolderAction(folderId: string, targetParentFolderId?: string): Promise<CompanyFolder> {
+  const folder = await prisma.companyFolder.findUnique({ where: { id: folderId } });
+  if (!folder) throw new Error('Folder not found.');
+
+  const parentId = targetParentFolderId !== undefined ? targetParentFolderId : folder.parentFolderId;
+  const newFolderName = `${folder.name} (Copy)`;
+  const newPath = `${folder.path}_copy_${Date.now()}`;
+
+  const newFolder = await prisma.companyFolder.create({
+    data: {
+      companyId: folder.companyId,
+      parentFolderId: parentId,
+      name: newFolderName,
+      path: newPath,
+    },
+  });
+
+  const copySubtree = async (sourceId: string, destId: string, destPath: string) => {
+    const childFolders = await prisma.companyFolder.findMany({ where: { parentFolderId: sourceId } });
+    for (const child of childFolders) {
+      const childPath = `${destPath}/${child.name}`;
+      const childNew = await prisma.companyFolder.create({
+        data: {
+          companyId: child.companyId,
+          parentFolderId: destId,
+          name: child.name,
+          path: childPath,
+        },
+      });
+      await copySubtree(child.id, childNew.id, childPath);
+    }
+
+    const docs = await prisma.generatedDocument.findMany({ where: { folderId: sourceId } });
+    for (const doc of docs) {
+      const newDocxUrl = `${destPath}/${doc.id}_copy_${Date.now()}.docx`;
+      try {
+        const srcFile = resolvePublicFilePath(doc.docxUrl);
+        const destFile = resolvePublicFilePath(newDocxUrl);
+        await fs.mkdir(path.dirname(destFile), { recursive: true });
+        await fs.copyFile(srcFile, destFile);
+      } catch (e) {
+        console.error('Failed to copy document file:', e);
+      }
+
+      await prisma.generatedDocument.create({
+        data: {
+          companyId: doc.companyId,
+          templateId: doc.templateId,
+          folderId: destId,
+          docxUrl: newDocxUrl,
+          pdfUrl: doc.pdfUrl,
+          variables: doc.variables as any,
+          generatedAt: new Date(),
+        },
+      });
+    }
+  };
+
+  await copySubtree(folderId, newFolder.id, newPath);
+  return mapFolder(newFolder);
+}
+
