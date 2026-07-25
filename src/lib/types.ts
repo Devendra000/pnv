@@ -110,6 +110,7 @@ export interface CompanyFolder {
   parentFolderId?: string | null;
   name: string;
   path: string;
+  isDefault?: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
 }

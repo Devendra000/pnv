@@ -69,6 +69,42 @@ async function ensureCompanyRootFolder(companyId: string) {
   }
 
   await fs.mkdir(resolvePublicFilePath(root.path), { recursive: true });
+
+  // Ensure default "Generated" subfolder exists under company root
+  let generatedFolder = await prisma.companyFolder.findFirst({
+    where: { companyId, parentFolderId: root.id, name: 'Generated' },
+  });
+  if (!generatedFolder) {
+    generatedFolder = await prisma.companyFolder.create({
+      data: {
+        companyId,
+        parentFolderId: root.id,
+        name: 'Generated',
+        path: `${root.path}/.pending-${crypto.randomUUID()}`,
+      },
+    });
+    const genPath = `${root.path}/${generatedFolder.id}`;
+    generatedFolder = await prisma.companyFolder.update({
+      where: { id: generatedFolder.id },
+      data: { path: genPath },
+    });
+    try {
+      await prisma.$executeRaw`UPDATE company_folders SET is_default = true WHERE id = ${generatedFolder.id}`;
+    } catch (e) {
+      console.error('Failed to set default flag via raw SQL:', e);
+    }
+    await fs.mkdir(resolvePublicFilePath(genPath), { recursive: true });
+  } else {
+    try {
+      const rows: any[] = await prisma.$queryRaw`SELECT id FROM company_folders WHERE company_id = ${companyId} AND is_default = true LIMIT 1`;
+      if (!rows.length) {
+        await prisma.$executeRaw`UPDATE company_folders SET is_default = true WHERE id = ${generatedFolder.id}`;
+      }
+    } catch (e) {
+      console.error('Failed to verify default folder via raw SQL:', e);
+    }
+  }
+
   return root;
 }
 
@@ -78,6 +114,7 @@ function mapFolder(folder: {
   parentFolderId: string | null;
   name: string;
   path: string;
+  isDefault?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }): CompanyFolder {
@@ -87,6 +124,7 @@ function mapFolder(folder: {
     parentFolderId: folder.parentFolderId,
     name: folder.name,
     path: folder.path,
+    isDefault: Boolean(folder.isDefault),
     createdAt: folder.createdAt.toISOString(),
     updatedAt: folder.updatedAt.toISOString(),
   };
@@ -782,6 +820,8 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
     },
   });
 
+  await ensureCompanyRootFolder(c.id);
+
   await syncCompanyVariableValues(c.id, {
     ...data,
     variableValues: data.variableValues,
@@ -898,6 +938,8 @@ export async function updateCompanyAction(
       documents: true,
     },
   });
+
+  await ensureCompanyRootFolder(c.id);
 
   await syncCompanyVariableValues(c.id, {
     ...data,
@@ -1208,8 +1250,22 @@ export async function listCompanyFoldersAction(companyId: string): Promise<Compa
 export async function listAllCompanyFoldersAction(): Promise<CompanyFolder[]> {
   const companies = await prisma.company.findMany({ select: { id: true } });
   await Promise.all(companies.map((company) => ensureCompanyRootFolder(company.id)));
-  const folders = await prisma.companyFolder.findMany({ orderBy: [{ createdAt: 'asc' }] });
-  return folders.map(mapFolder);
+  const rows: any[] = await prisma.$queryRaw`
+    SELECT id, company_id as "companyId", parent_folder_id as "parentFolderId",
+           name, path, is_default as "isDefault", created_at as "createdAt", updated_at as "updatedAt"
+    FROM company_folders
+    ORDER BY created_at ASC
+  `;
+  return rows.map((row) => ({
+    id: row.id,
+    companyId: row.companyId,
+    parentFolderId: row.parentFolderId,
+    name: row.name,
+    path: row.path,
+    isDefault: Boolean(row.isDefault),
+    createdAt: new Date(row.createdAt).toISOString(),
+    updatedAt: new Date(row.updatedAt).toISOString(),
+  }));
 }
 
 export async function createCompanyFolderAction(data: {
@@ -1323,6 +1379,24 @@ export async function createDocumentAction(data: {
   const validTemplateId = template.id;
   const rootFolder = await ensureCompanyRootFolder(data.companyId);
 
+  // Find designated default generation target folder for company
+  let targetFolder: { id: string; path: string } | null = null;
+  try {
+    const defaultRows: any[] = await prisma.$queryRaw`SELECT id, path FROM company_folders WHERE company_id = ${data.companyId} AND is_default = true LIMIT 1`;
+    if (defaultRows.length) {
+      targetFolder = defaultRows[0];
+    }
+  } catch (e) {
+    console.error('Query default folder raw failed:', e);
+  }
+
+  if (!targetFolder) {
+    const genFolder = await prisma.companyFolder.findFirst({
+      where: { companyId: data.companyId, parentFolderId: rootFolder.id, name: 'Generated' },
+    });
+    targetFolder = genFolder || rootFolder;
+  }
+
   // Load company data from DB to build complete loop data (owners_list, etc.)
   const companyRecord = await prisma.company.findUnique({
     where: { id: data.companyId },
@@ -1346,7 +1420,7 @@ export async function createDocumentAction(data: {
     data: {
       companyId: data.companyId,
       templateId: validTemplateId,
-      folderId: rootFolder.id,
+      folderId: targetFolder.id,
       docxUrl: '',
       variables: data.variables as any,
     },
@@ -1356,7 +1430,7 @@ export async function createDocumentAction(data: {
     },
   });
 
-  const docxUrl = `${rootFolder.path}/${d.id}.docx`;
+  const docxUrl = `${targetFolder.path}/${d.id}.docx`;
   const filePath = resolvePublicFilePath(docxUrl);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
 
@@ -1370,7 +1444,7 @@ export async function createDocumentAction(data: {
 
   return {
     id: d.id,
-    folderId: rootFolder.id,
+    folderId: targetFolder.id,
     templateId: d.templateId,
     templateName: d.template?.name || 'Unknown Template',
     companyId: d.companyId,
@@ -1432,6 +1506,12 @@ export async function deleteCompanyFolderAction(folderId: string): Promise<void>
   };
 
   const folderIdsToDelete = getSubfolderIds(folderId);
+
+  // Check if system default Generated folder is in deletion list
+  const defaultGenFolder = allFolders.find((f) => f.name === 'Generated' && (f as any).isDefault);
+  if (defaultGenFolder && folderIdsToDelete.includes(defaultGenFolder.id)) {
+    throw new Error('The default "Generated" system folder cannot be deleted.');
+  }
 
   const docs = await prisma.generatedDocument.findMany({
     where: { folderId: { in: folderIdsToDelete } },
@@ -1574,5 +1654,35 @@ export async function duplicateCompanyFolderAction(folderId: string, targetParen
 
   await copySubtree(folderId, newFolder.id, newPath);
   return mapFolder(newFolder);
+}
+
+export async function setDefaultGenerationFolderAction(folderId: string): Promise<CompanyFolder[]> {
+  const target = await prisma.companyFolder.findUnique({ where: { id: folderId } });
+  if (!target) throw new Error('Target folder not found.');
+  if (!target.parentFolderId) {
+    throw new Error('Root company folder cannot be set as default target. Please select a subfolder.');
+  }
+
+  await prisma.$executeRaw`UPDATE company_folders SET is_default = false WHERE company_id = ${target.companyId}`;
+  await prisma.$executeRaw`UPDATE company_folders SET is_default = true WHERE id = ${folderId}`;
+
+  const rows: any[] = await prisma.$queryRaw`
+    SELECT id, company_id as "companyId", parent_folder_id as "parentFolderId",
+           name, path, is_default as "isDefault", created_at as "createdAt", updated_at as "updatedAt"
+    FROM company_folders
+    WHERE company_id = ${target.companyId}
+    ORDER BY created_at ASC
+  `;
+
+  return rows.map((row) => ({
+    id: row.id,
+    companyId: row.companyId,
+    parentFolderId: row.parentFolderId,
+    name: row.name,
+    path: row.path,
+    isDefault: Boolean(row.isDefault),
+    createdAt: new Date(row.createdAt).toISOString(),
+    updatedAt: new Date(row.updatedAt).toISOString(),
+  }));
 }
 
