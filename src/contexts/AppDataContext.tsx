@@ -22,6 +22,7 @@ interface AppDataContextType {
   documents: Document[];
   stats: Stats;
   loading: boolean;
+  refreshData: () => Promise<void>;
   getCompany: (id: string) => Company | undefined;
   addCompany: (company: Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'documentCount'>) => Promise<void>;
   updateCompany: (id: string, updates: Partial<Company>) => Promise<void>;

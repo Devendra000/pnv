@@ -12,6 +12,7 @@ import {
   Variable as UIVariable,
   Template,
   Document,
+  CompanyFolder,
   Stats,
   CompanyVariableValue as UICompanyVariableValue,
 } from './types';
@@ -46,6 +47,49 @@ function mapCompanyVariableValues(values: unknown): UICompanyVariableValue[] {
 
 function resolvePublicFilePath(relativeUrl: string) {
   return path.join(process.cwd(), 'public', relativeUrl.replace(/^\/+/, ''));
+}
+
+function getCompanyDocumentsPath(companyId: string) {
+  return `/uploads/companies/${companyId}`;
+}
+
+async function ensureCompanyRootFolder(companyId: string) {
+  const company = await prisma.company.findUnique({ where: { id: companyId }, select: { id: true } });
+  if (!company) throw new Error('Company not found.');
+
+  const path = getCompanyDocumentsPath(companyId);
+  let root = await prisma.companyFolder.findFirst({
+    where: { companyId, parentFolderId: null, path },
+  });
+
+  if (!root) {
+    root = await prisma.companyFolder.create({
+      data: { companyId, parentFolderId: null, name: 'Documents', path },
+    });
+  }
+
+  await fs.mkdir(resolvePublicFilePath(root.path), { recursive: true });
+  return root;
+}
+
+function mapFolder(folder: {
+  id: string;
+  companyId: string;
+  parentFolderId: string | null;
+  name: string;
+  path: string;
+  createdAt: Date;
+  updatedAt: Date;
+}): CompanyFolder {
+  return {
+    id: folder.id,
+    companyId: folder.companyId,
+    parentFolderId: folder.parentFolderId,
+    name: folder.name,
+    path: folder.path,
+    createdAt: folder.createdAt.toISOString(),
+    updatedAt: folder.updatedAt.toISOString(),
+  };
 }
 
 function humanizeVariableKey(key: string) {
@@ -597,8 +641,9 @@ export async function fetchAppData(): Promise<{
           id: d.id,
           templateId: d.templateId,
           templateName: d.template?.name || 'Unknown Template',
-          companyId: d.companyId,
-          companyName: d.company?.englishName || 'Unknown Company',
+        companyId: d.companyId,
+        companyName: d.company?.englishName || 'Unknown Company',
+          folderId: d.folderId,
           docxUrl: d.docxUrl,
           pdfUrl: d.pdfUrl,
           variables: (d.variables as Record<string, string>) || undefined,
@@ -920,6 +965,11 @@ export async function deleteCompanyAction(id: string): Promise<void> {
       console.error('Failed to delete file:', e);
     }
   }
+  try {
+    await fs.rm(resolvePublicFilePath(getCompanyDocumentsPath(id)), { recursive: true, force: true });
+  } catch (e) {
+    console.error('Failed to delete company document folder:', e);
+  }
   await prisma.generatedDocument.deleteMany({ where: { companyId: id } });
   await prisma.company.delete({ where: { id } });
 }
@@ -1145,6 +1195,115 @@ export async function deleteTemplateAction(id: string): Promise<void> {
   await prisma.template.delete({ where: { id } });
 }
 
+// Company document folders
+export async function listCompanyFoldersAction(companyId: string): Promise<CompanyFolder[]> {
+  await ensureCompanyRootFolder(companyId);
+  const folders = await prisma.companyFolder.findMany({
+    where: { companyId },
+    orderBy: [{ createdAt: 'asc' }],
+  });
+  return folders.map(mapFolder);
+}
+
+export async function listAllCompanyFoldersAction(): Promise<CompanyFolder[]> {
+  const companies = await prisma.company.findMany({ select: { id: true } });
+  await Promise.all(companies.map((company) => ensureCompanyRootFolder(company.id)));
+  const folders = await prisma.companyFolder.findMany({ orderBy: [{ createdAt: 'asc' }] });
+  return folders.map(mapFolder);
+}
+
+export async function createCompanyFolderAction(data: {
+  companyId: string;
+  parentFolderId?: string | null;
+  name: string;
+}): Promise<CompanyFolder> {
+  const name = data.name.trim();
+  if (!name || name.length > 120 || name === '.' || name === '..') {
+    throw new Error('Enter a valid folder name.');
+  }
+
+  const root = await ensureCompanyRootFolder(data.companyId);
+  let parent = root;
+  if (data.parentFolderId) {
+    const requestedParent = await prisma.companyFolder.findFirst({
+      where: { id: data.parentFolderId, companyId: data.companyId },
+    });
+    if (!requestedParent) throw new Error('Destination folder was not found.');
+    parent = requestedParent;
+  }
+
+  const folder = await prisma.companyFolder.create({
+    data: {
+      companyId: data.companyId,
+      parentFolderId: parent.id,
+      name,
+      path: `${parent.path}/.pending-${crypto.randomUUID()}`,
+    },
+  });
+  const path = `${parent.path}/${folder.id}`;
+  const savedFolder = await prisma.companyFolder.update({ where: { id: folder.id }, data: { path } });
+  await fs.mkdir(resolvePublicFilePath(path), { recursive: true });
+  return mapFolder(savedFolder);
+}
+
+async function getDocumentDestination(documentId: string, targetFolderId: string) {
+  const [document, folder] = await Promise.all([
+    prisma.generatedDocument.findUnique({ where: { id: documentId } }),
+    prisma.companyFolder.findUnique({ where: { id: targetFolderId } }),
+  ]);
+  if (!document || !folder || document.companyId !== folder.companyId) {
+    throw new Error('Document and destination folder must belong to the same company.');
+  }
+  return { document, folder, docxUrl: `${folder.path}/${documentId}.docx` };
+}
+
+export async function moveDocumentAction(documentId: string, targetFolderId: string): Promise<Document> {
+  const { document, folder, docxUrl } = await getDocumentDestination(documentId, targetFolderId);
+  if (document.folderId === folder.id) throw new Error('Document is already in this folder.');
+
+  await fs.mkdir(resolvePublicFilePath(folder.path), { recursive: true });
+  await fs.rename(resolvePublicFilePath(document.docxUrl), resolvePublicFilePath(docxUrl));
+  const saved = await prisma.generatedDocument.update({
+    where: { id: document.id },
+    data: { folderId: folder.id, docxUrl },
+    include: { company: true, template: true },
+  });
+  return {
+    id: saved.id, folderId: saved.folderId, templateId: saved.templateId,
+    templateName: saved.template.name, companyId: saved.companyId,
+    companyName: saved.company.englishName, docxUrl: saved.docxUrl,
+    pdfUrl: saved.pdfUrl, variables: (saved.variables as Record<string, string>) || undefined,
+    generatedAt: saved.generatedAt.toISOString(), content: '',
+  };
+}
+
+export async function copyDocumentAction(documentId: string, targetFolderId: string): Promise<Document> {
+  const { document, folder } = await getDocumentDestination(documentId, targetFolderId);
+  const copy = await prisma.generatedDocument.create({
+    data: {
+      companyId: document.companyId, templateId: document.templateId, folderId: folder.id,
+      docxUrl: '', pdfUrl: null, variables: document.variables ?? undefined,
+    },
+    include: { company: true, template: true },
+  });
+  const docxUrl = `${folder.path}/${copy.id}.docx`;
+  try {
+    await fs.mkdir(resolvePublicFilePath(folder.path), { recursive: true });
+    await fs.copyFile(resolvePublicFilePath(document.docxUrl), resolvePublicFilePath(docxUrl));
+    await prisma.generatedDocument.update({ where: { id: copy.id }, data: { docxUrl } });
+  } catch (error) {
+    await prisma.generatedDocument.delete({ where: { id: copy.id } });
+    throw error;
+  }
+  return {
+    id: copy.id, folderId: folder.id, templateId: copy.templateId,
+    templateName: copy.template.name, companyId: copy.companyId,
+    companyName: copy.company.englishName, docxUrl,
+    variables: (copy.variables as Record<string, string>) || undefined,
+    generatedAt: copy.generatedAt.toISOString(), content: '',
+  };
+}
+
 // Document mutations
 export async function createDocumentAction(data: {
   companyId: string;
@@ -1162,6 +1321,7 @@ export async function createDocumentAction(data: {
     }
   }
   const validTemplateId = template.id;
+  const rootFolder = await ensureCompanyRootFolder(data.companyId);
 
   // Load company data from DB to build complete loop data (owners_list, etc.)
   const companyRecord = await prisma.company.findUnique({
@@ -1186,6 +1346,7 @@ export async function createDocumentAction(data: {
     data: {
       companyId: data.companyId,
       templateId: validTemplateId,
+      folderId: rootFolder.id,
       docxUrl: '',
       variables: data.variables as any,
     },
@@ -1195,8 +1356,8 @@ export async function createDocumentAction(data: {
     },
   });
 
-  const docxUrl = `/uploads/generated/${d.id}.docx`;
-  const filePath = path.join(process.cwd(), 'public', 'uploads', 'generated', `${d.id}.docx`);
+  const docxUrl = `${rootFolder.path}/${d.id}.docx`;
+  const filePath = resolvePublicFilePath(docxUrl);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
 
   const docxBuffer = await renderDocxTemplate(validTemplateId, data.variables, fullTemplateData);
@@ -1209,6 +1370,7 @@ export async function createDocumentAction(data: {
 
   return {
     id: d.id,
+    folderId: rootFolder.id,
     templateId: d.templateId,
     templateName: d.template?.name || 'Unknown Template',
     companyId: d.companyId,
@@ -1232,3 +1394,123 @@ export async function deleteDocumentAction(id: string): Promise<void> {
   }
   await prisma.generatedDocument.delete({ where: { id } });
 }
+
+export async function renameCompanyFolderAction(folderId: string, newName: string): Promise<CompanyFolder> {
+  const name = newName.trim();
+  if (!name || name.length > 120) {
+    throw new Error('Enter a valid folder name.');
+  }
+  const folder = await prisma.companyFolder.findUnique({ where: { id: folderId } });
+  if (!folder) throw new Error('Folder not found.');
+
+  const updated = await prisma.companyFolder.update({
+    where: { id: folderId },
+    data: { name },
+  });
+
+  if (!folder.parentFolderId) {
+    await prisma.company.update({
+      where: { id: folder.companyId },
+      data: { englishName: name },
+    });
+  }
+
+  return mapFolder(updated);
+}
+
+export async function deleteCompanyFolderAction(folderId: string): Promise<void> {
+  const folder = await prisma.companyFolder.findUnique({ where: { id: folderId } });
+  if (!folder) return;
+  if (!folder.parentFolderId) {
+    throw new Error('Cannot delete the root company folder. Delete the company instead.');
+  }
+
+  const allFolders = await prisma.companyFolder.findMany({ where: { companyId: folder.companyId } });
+  const getSubfolderIds = (id: string): string[] => {
+    const children = allFolders.filter((f) => f.parentFolderId === id);
+    return [id, ...children.flatMap((c) => getSubfolderIds(c.id))];
+  };
+
+  const folderIdsToDelete = getSubfolderIds(folderId);
+
+  const docs = await prisma.generatedDocument.findMany({
+    where: { folderId: { in: folderIdsToDelete } },
+  });
+
+  for (const doc of docs) {
+    try {
+      const filePath = resolvePublicFilePath(doc.docxUrl);
+      await fs.unlink(filePath);
+    } catch (e) {
+      console.error('Failed to delete file:', e);
+    }
+  }
+
+  await prisma.generatedDocument.deleteMany({
+    where: { folderId: { in: folderIdsToDelete } },
+  });
+
+  await prisma.companyFolder.deleteMany({
+    where: { id: { in: folderIdsToDelete } },
+  });
+
+  try {
+    await fs.rm(resolvePublicFilePath(folder.path), { recursive: true, force: true });
+  } catch (e) {
+    console.error('Failed to remove directory:', e);
+  }
+}
+
+export async function moveCompanyFolderAction(folderId: string, targetParentFolderId: string): Promise<CompanyFolder> {
+  const folder = await prisma.companyFolder.findUnique({ where: { id: folderId } });
+  if (!folder) throw new Error('Folder not found.');
+  if (!folder.parentFolderId) throw new Error('Cannot move the root company folder.');
+
+  const targetParent = await prisma.companyFolder.findUnique({ where: { id: targetParentFolderId } });
+  if (!targetParent || targetParent.companyId !== folder.companyId) {
+    throw new Error('Target folder must belong to the same company.');
+  }
+
+  const updated = await prisma.companyFolder.update({
+    where: { id: folderId },
+    data: { parentFolderId: targetParentFolderId },
+  });
+
+  return mapFolder(updated);
+}
+
+export async function renameDocumentAction(documentId: string, fileName: string): Promise<Document> {
+  const name = fileName.trim();
+  if (!name) throw new Error('Document name cannot be empty.');
+
+  const doc = await prisma.generatedDocument.findUnique({
+    where: { id: documentId },
+    include: { company: true, template: true },
+  });
+  if (!doc) throw new Error('Document not found.');
+
+  const existingVariables = (doc.variables as Record<string, string>) || {};
+  const updatedVariables = { ...existingVariables, customFileName: name };
+
+  const updatedDoc = await prisma.generatedDocument.update({
+    where: { id: documentId },
+    data: { variables: updatedVariables },
+    include: { company: true, template: true },
+  });
+
+  return {
+    id: updatedDoc.id,
+    fileName: name,
+    folderId: updatedDoc.folderId,
+    templateId: updatedDoc.templateId,
+    templateName: updatedDoc.template.name,
+    companyId: updatedDoc.companyId,
+    companyName: updatedDoc.company.englishName,
+    docxUrl: updatedDoc.docxUrl,
+    pdfUrl: updatedDoc.pdfUrl,
+    variables: updatedVariables,
+    generatedAt: updatedDoc.generatedAt.toISOString(),
+    content: '',
+  };
+}
+

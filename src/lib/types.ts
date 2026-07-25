@@ -91,6 +91,8 @@ export interface Template {
 
 export interface Document {
   id: string;
+  folderId?: string | null;
+  fileName?: string | null;
   templateId: string;
   templateName: string;
   companyId: string;
@@ -100,6 +102,16 @@ export interface Document {
   variables?: Record<string, string>;
   generatedAt: string | Date;
   content: string; // The file contents read from docxUrl on server
+}
+
+export interface CompanyFolder {
+  id: string;
+  companyId: string;
+  parentFolderId?: string | null;
+  name: string;
+  path: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 export interface Stats {

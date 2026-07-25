@@ -111,6 +111,8 @@ CREATE TABLE "templates" (
 -- CreateTable
 CREATE TABLE "generated_documents" (
     "id" TEXT NOT NULL,
+    "file_name" TEXT,
+    "folder_id" TEXT,
     "template_id" TEXT NOT NULL,
     "company_id" TEXT NOT NULL,
     "docx_url" TEXT NOT NULL,
@@ -121,6 +123,19 @@ CREATE TABLE "generated_documents" (
     CONSTRAINT "generated_documents_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "company_folders" (
+    "id" TEXT NOT NULL,
+    "company_id" TEXT NOT NULL,
+    "parent_folder_id" TEXT,
+    "name" TEXT NOT NULL,
+    "path" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "company_folders_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "objective_categories_name_key" ON "objective_categories"("name");
 
@@ -129,6 +144,12 @@ CREATE UNIQUE INDEX "variables_key_key" ON "variables"("key");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "company_variable_values_company_id_variable_id_key" ON "company_variable_values"("company_id", "variable_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "company_folders_path_key" ON "company_folders"("path");
+
+-- CreateIndex
+CREATE INDEX "company_folders_company_id_parent_folder_id_idx" ON "company_folders"("company_id", "parent_folder_id");
 
 -- AddForeignKey
 ALTER TABLE "company_owners" ADD CONSTRAINT "company_owners_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -149,7 +170,16 @@ ALTER TABLE "company_variable_values" ADD CONSTRAINT "company_variable_values_co
 ALTER TABLE "company_variable_values" ADD CONSTRAINT "company_variable_values_variable_id_fkey" FOREIGN KEY ("variable_id") REFERENCES "variables"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "generated_documents" ADD CONSTRAINT "generated_documents_folder_id_fkey" FOREIGN KEY ("folder_id") REFERENCES "company_folders"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "generated_documents" ADD CONSTRAINT "generated_documents_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "templates"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "generated_documents" ADD CONSTRAINT "generated_documents_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "company_folders" ADD CONSTRAINT "company_folders_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "company_folders" ADD CONSTRAINT "company_folders_parent_folder_id_fkey" FOREIGN KEY ("parent_folder_id") REFERENCES "company_folders"("id") ON DELETE CASCADE ON UPDATE CASCADE;

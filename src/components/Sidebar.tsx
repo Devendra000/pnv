@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Building2, Target, Variable, FileText, FileStack, BarChart3 } from 'lucide-react';
@@ -15,6 +16,16 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (!pathname.startsWith('/documents')) {
+      try {
+        sessionStorage.removeItem('docgen_active_folder_id');
+      } catch (e) {
+        console.error('Error clearing sessionStorage:', e);
+      }
+    }
+  }, [pathname]);
 
   return (
     <aside className="w-64 bg-card border-r border-border sticky top-16 h-[calc(100vh-64px)] flex flex-col overflow-y-auto">

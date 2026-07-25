@@ -41,19 +41,23 @@ export const useAppData = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const refreshData = useCallback(async () => {
+    const data = await fetchAppData();
+    setCompanies(data.companies);
+    setObjectiveCategories(data.objectiveCategories);
+    setObjectives(data.objectives);
+    setVariables(data.variables);
+    setTemplates(data.templates);
+    setDocuments(data.documents);
+  }, []);
+
   // Fetch initial data from DB on mount
   useEffect(() => {
     let active = true;
     async function loadData() {
       try {
-        const data = await fetchAppData();
         if (active) {
-          setCompanies(data.companies);
-          setObjectiveCategories(data.objectiveCategories);
-          setObjectives(data.objectives);
-          setVariables(data.variables);
-          setTemplates(data.templates);
-          setDocuments(data.documents);
+          await refreshData();
         }
       } catch (error) {
         console.error('Failed to load initial data:', error);
@@ -67,7 +71,7 @@ export const useAppData = () => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [refreshData]);
 
   // Company operations
   const getCompany = useCallback(
@@ -327,6 +331,7 @@ export const useAppData = () => {
     documents,
     stats,
     loading,
+    refreshData,
     getCompany,
     addCompany,
     updateCompany,
