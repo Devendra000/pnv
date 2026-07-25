@@ -163,3 +163,225 @@ model CompanyFolder {
   @@index([companyId, parentFolderId])
   @@map("company_folders")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHAT SYSTEM — all models below are additive and do not touch existing models
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── ENUMS ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ChannelType {
+  PUBLIC
+  PRIVATE
+  DM
+  ANNOUNCEMENT
+}
+
+enum MentionType {
+  USER     // @username
+  CHANNEL  // @channel — all channel members
+  HERE     // @here — online members only (handled client-side)
+  EVERYONE // @everyone — workspace-wide, admin only
+  GROUP    // @groupname
+}
+
+enum NotifPref {
+  ALL
+  MENTIONS
+  NOTHING
+}
+
+// ─── USER (Auth.js + Chat) ────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  displayName  String?  @map("display_name")
+  avatarUrl    String?  @map("avatar_url")
+  role         UserRole @default(USER)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Auth.js required relations
+  accounts Account[]
+  sessions Session[]
+
+  // Chat relations
+  sentMessages       Message[]
+  channelMemberships ChannelMember[]
+  notifications      Notification[]
+  mentions           MessageMention[]
+  groupMemberships   UserGroupMember[]
+  createdChannels    Channel[]         @relation("ChannelCreator")
+  createdGroups      UserGroup[]       @relation("GroupCreator")
+
+  @@map("users")
+}
+
+// ─── AUTH.JS ADAPTER MODELS (required by @auth/prisma-adapter) ───────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─── CHANNELS ─────────────────────────────────────────────────────────────────
+
+model Channel {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  description String?
+  type        ChannelType @default(PUBLIC)
+  createdById String      @map("created_by_id")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  createdBy User            @relation("ChannelCreator", fields: [createdById], references: [id])
+  members   ChannelMember[]
+  messages  Message[]
+
+  @@map("channels")
+}
+
+model ChannelMember {
+  id         String    @id @default(cuid())
+  channelId  String    @map("channel_id")
+  userId     String    @map("user_id")
+  notifPref  NotifPref @default(ALL) @map("notif_pref")
+  lastReadAt DateTime  @default(now()) @map("last_read_at")
+  joinedAt   DateTime  @default(now()) @map("joined_at")
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@map("channel_members")
+}
+
+// ─── MESSAGES ─────────────────────────────────────────────────────────────────
+
+model Message {
+  id            String    @id @default(cuid())
+  channelId     String    @map("channel_id")
+  senderId      String    @map("sender_id")
+  contentRaw    String    @db.Text @map("content_raw")
+  contentParsed Json      @map("content_parsed")
+  parentId      String?   @map("parent_id")
+  isEdited      Boolean   @default(false) @map("is_edited")
+  deletedAt     DateTime? @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  channel       Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  sender        User             @relation(fields: [senderId], references: [id])
+  parent        Message?         @relation("ThreadReplies", fields: [parentId], references: [id])
+  replies       Message[]        @relation("ThreadReplies")
+  mentions      MessageMention[]
+  notifications Notification[]
+
+  @@map("messages")
+}
+
+// ─── MENTIONS ─────────────────────────────────────────────────────────────────
+
+model MessageMention {
+  id              String      @id @default(cuid())
+  messageId       String      @map("message_id")
+  mentionedUserId String?     @map("mentioned_user_id")
+  groupId         String?     @map("group_id")
+  mentionType     MentionType @map("mention_type")
+
+  message       Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  mentionedUser User?      @relation(fields: [mentionedUserId], references: [id])
+  group         UserGroup? @relation(fields: [groupId], references: [id])
+
+  @@map("message_mentions")
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  messageId String   @map("message_id")
+  channelId String?  @map("channel_id")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ─── USER GROUPS ──────────────────────────────────────────────────────────────
+
+model UserGroup {
+  id          String   @id @default(cuid())
+  name        String
+  handle      String   @unique // e.g. "devs" for @devs
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  createdBy User              @relation("GroupCreator", fields: [createdById], references: [id])
+  members   UserGroupMember[]
+  mentions  MessageMention[]
+
+  @@map("user_groups")
+}
+
+model UserGroupMember {
+  id      String @id @default(cuid())
+  groupId String @map("group_id")
+  userId  String @map("user_id")
+
+  group UserGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@map("user_group_members")
+}
+
