@@ -172,11 +172,15 @@ function renderPreviewTemplate(
 
 export default function GenerateDocumentPage() {
   const router = useRouter();
-  const { companies, templates, loading, addDocument, saveCompanyVariableValues } = useAppDataContext();
+  const { companies, templates, loading, addDocument, saveCompanyVariableValues, refreshData } = useAppDataContext();
 
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [variableDrafts, setVariableDrafts] = useState<Record<string, string>>({});
+  // Tracks keys that were just promoted to manual this session (key → variableId)
+  const [promotedToManual, setPromotedToManual] = useState<Map<string, string>>(new Map());
+  // Key currently being promoted (shows spinner on its button)
+  const [promotingKey, setPromotingKey] = useState<string | null>(null);
 
   const selectedCompanyRecord = companies.find((company) => company.id === selectedCompany);
   const selectedTemplateRecord = templates.find((template) => template.id === selectedTemplate);
@@ -212,7 +216,16 @@ export default function GenerateDocumentPage() {
       id: variable.id,
     }));
 
+    // Merge in any variables promoted to manual this session (before context refreshes)
     const matchedKeys = new Set(databaseVariables.map((variable) => variable.key));
+    const promotedVariables: TemplateVariableItem[] = [];
+    for (const [key, variableId] of promotedToManual) {
+      if (!matchedKeys.has(key)) {
+        promotedVariables.push({ key, label: key, source: 'database' as const, id: variableId });
+        matchedKeys.add(key);
+      }
+    }
+
     const detectedOnlyVariables = (selectedTemplateRecord.detectedKeys || [])
       .filter((key) => !matchedKeys.has(key) && !TEMPLATE_LOOP_HELPER_KEYS.has(key))
       .map((key) => ({
@@ -221,8 +234,8 @@ export default function GenerateDocumentPage() {
         source: 'detected' as const,
       }));
 
-    return [...databaseVariables, ...detectedOnlyVariables];
-  }, [selectedTemplateRecord]);
+    return [...databaseVariables, ...promotedVariables, ...detectedOnlyVariables];
+  }, [selectedTemplateRecord, promotedToManual]);
 
   // Single scalar variables in template (exclude loop block tags & per-row loop fields)
   const singleTemplateVariables = useMemo<TemplateVariableItem[]>(() => {
@@ -385,8 +398,18 @@ export default function GenerateDocumentPage() {
     const value = variableDrafts[key] ?? '';
     if (!value.trim()) return; // silently ignore — input still empty
 
-    await addTemplateVariableToManualAction(key, label, selectedCompanyRecord.id, value);
-    // No alert — the badge will switch to "Manual" once context refreshes
+    setPromotingKey(key);
+    try {
+      const result = await addTemplateVariableToManualAction(key, label, selectedCompanyRecord.id, value);
+      // Immediately update local state so UI reflects Manual + Save to DB without waiting for context refresh
+      setPromotedToManual((prev) => new Map(prev).set(key, result.variableId));
+      // Also store the draft by the new variableId so "Save to DB" works immediately
+      setVariableDrafts((prev) => ({ ...prev, [result.variableId]: value }));
+      // Refresh context in background so matchedVariables in template updates eventually
+      refreshData().catch(console.error);
+    } finally {
+      setPromotingKey(null);
+    }
   };
 
   const handleSave = async () => {
@@ -657,10 +680,19 @@ export default function GenerateDocumentPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="shrink-0 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-xs"
+                                    disabled={promotingKey === key}
+                                    className="shrink-0 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-xs disabled:opacity-60"
                                     onClick={() => addToManualVariables(key, variable.label)}
                                   >
-                                    + Add as Manual
+                                    {promotingKey === key ? (
+                                      <span className="flex items-center gap-1.5">
+                                        <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                        </svg>
+                                        Saving...
+                                      </span>
+                                    ) : '+ Add as Manual'}
                                   </Button>
                                 )}
                               </div>

@@ -807,7 +807,7 @@ export default function DocumentsPage() {
 
             {/* Document Table */}
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <div className="grid grid-cols-[minmax(0,1.2fr)_140px_160px_130px_200px] border-b bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-950">
+              <div className="grid grid-cols-[minmax(0,1.2fr)_140px_160px_175px_160px] border-b bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-950">
                 <span>Document Name</span>
                 <span>Company</span>
                 <span>Folder Location</span>
@@ -843,7 +843,7 @@ export default function DocumentsPage() {
                   return (
                     <div
                       key={doc.id}
-                      className="group grid grid-cols-[minmax(0,1.2fr)_140px_160px_130px_200px] items-center border-b border-slate-100 px-4 py-3 text-sm transition-colors hover:bg-blue-50/40 dark:border-slate-800/60 dark:hover:bg-blue-950/20"
+                      className="group grid grid-cols-[minmax(0,1.2fr)_140px_160px_175px_160px] items-center border-b border-slate-100 px-4 py-3 text-sm transition-colors hover:bg-blue-50/40 dark:border-slate-800/60 dark:hover:bg-blue-950/20"
                     >
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/80 dark:text-blue-400">
@@ -873,10 +873,10 @@ export default function DocumentsPage() {
                       </div>
 
                       <span className="text-xs text-slate-500">
-                        {new Date(doc.generatedAt).toLocaleDateString()}
+                        {new Date(doc.generatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                       </span>
 
-                      <div className="hidden items-center justify-end gap-1 group-hover:flex">
+                      <div className="hidden items-center justify-end gap-0.5 group-hover:flex">
                         <button
                           onClick={() => setPreviewDoc(doc)}
                           title="Preview document"
@@ -1259,7 +1259,7 @@ export default function DocumentsPage() {
                                       {folder.name}
                                     </p>
                                     <p className="mt-1 text-xs text-slate-500">
-                                      {new Date(folder.updatedAt).toLocaleDateString()}
+                                      {new Date(folder.updatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                                     </p>
                                   </button>
 
@@ -1396,7 +1396,7 @@ export default function DocumentsPage() {
                                         {displayName}
                                       </p>
                                       <p className="mt-1 text-xs text-slate-500">
-                                        {new Date(doc.generatedAt).toLocaleDateString()}
+                                        {new Date(doc.generatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                                       </p>
                                     </div>
 
@@ -1479,7 +1479,7 @@ export default function DocumentsPage() {
                 ) : (
                   /* List View (Windows Explorer Details View) */
                   <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
-                    <div className="grid grid-cols-[minmax(0,1fr)_120px_180px] border-b bg-slate-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-950">
+                    <div className="grid grid-cols-[minmax(0,1fr)_175px_160px] border-b bg-slate-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-950">
                       <span>Name</span>
                       <span>Date</span>
                       <span className="text-right">Actions</span>
@@ -1494,7 +1494,7 @@ export default function DocumentsPage() {
                           return (
                             <div
                               key={folder.id}
-                              className="group grid grid-cols-[minmax(0,1fr)_120px_180px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                              className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
                             >
                               <button
                                 onClick={() => changeActiveFolderId(folder.id)}
@@ -1508,9 +1508,9 @@ export default function DocumentsPage() {
                                 </span>
                               </button>
                               <span className="text-xs text-slate-500">
-                                {new Date(folder.updatedAt).toLocaleDateString()}
+                                {new Date(folder.updatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                               </span>
-                              <div className="hidden items-center justify-end gap-1 group-hover:flex">
+                              <div className="hidden items-center justify-end gap-0.5 group-hover:flex">
                                 <button
                                   onClick={() => {
                                     setModalState({ type: 'renameFolder', folder });
@@ -1530,7 +1530,7 @@ export default function DocumentsPage() {
                           return (
                             <div
                               key={doc.id}
-                              className="group grid grid-cols-[minmax(0,1fr)_120px_180px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                              className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
                             >
                               <div className="flex min-w-0 items-center gap-2">
                                 <FileText className="h-5 w-5 shrink-0 text-blue-500" />
@@ -1539,9 +1539,9 @@ export default function DocumentsPage() {
                                 </span>
                               </div>
                               <span className="text-xs text-slate-500">
-                                {new Date(doc.generatedAt).toLocaleDateString()}
+                                {new Date(doc.generatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                               </span>
-                              <div className="hidden items-center justify-end gap-1 group-hover:flex">
+                              <div className="hidden items-center justify-end gap-0.5 group-hover:flex">
                                 <button
                                   onClick={() => setPreviewDoc(doc)}
                                   title="Preview document"
@@ -1599,7 +1599,7 @@ export default function DocumentsPage() {
                         {childFolders.map((folder) => (
                           <div
                             key={folder.id}
-                            className="group grid grid-cols-[minmax(0,1fr)_120px_180px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                            className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
                           >
                             <button
                               onClick={() => changeActiveFolderId(folder.id)}
@@ -1615,9 +1615,9 @@ export default function DocumentsPage() {
                               )}
                             </button>
                             <span className="text-xs text-slate-500">
-                              {new Date(folder.updatedAt).toLocaleDateString()}
+                              {new Date(folder.updatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                             </span>
-                            <div className="hidden items-center justify-end gap-1 group-hover:flex">
+                            <div className="hidden items-center justify-end gap-0.5 group-hover:flex">
                               <button
                                 onClick={() => handleDuplicateFolder(folder)}
                                 title="Duplicate folder"
@@ -1669,7 +1669,7 @@ export default function DocumentsPage() {
                           return (
                             <div
                               key={doc.id}
-                              className="group grid grid-cols-[minmax(0,1fr)_120px_180px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                              className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
                             >
                               <div className="flex min-w-0 items-center gap-2">
                                 <FileText className="h-5 w-5 shrink-0 text-blue-500" />
@@ -1678,9 +1678,9 @@ export default function DocumentsPage() {
                                 </span>
                               </div>
                               <span className="text-xs text-slate-500">
-                                {new Date(doc.generatedAt).toLocaleDateString()}
+                                {new Date(doc.generatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                               </span>
-                              <div className="hidden items-center justify-end gap-1 group-hover:flex">
+                              <div className="hidden items-center justify-end gap-0.5 group-hover:flex">
                                 <button
                                   onClick={() => setPreviewDoc(doc)}
                                   title="Preview document"
