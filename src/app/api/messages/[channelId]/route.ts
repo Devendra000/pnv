@@ -18,11 +18,24 @@ export async function GET(
 
   const channel = await prisma.channel.findFirst({
     where: { OR: [{ id: channelId }, { slug: channelId }] },
-    select: { id: true },
+    include: {
+      members: { select: { userId: true } },
+    },
   })
 
   if (!channel) {
     return NextResponse.json({ error: "Channel not found" }, { status: 404 })
+  }
+
+  // Access Control: PRIVATE and DM channels require active membership or ADMIN role
+  const isMember = channel.members.some((m) => m.userId === session.user.id)
+  const isAdmin = session.user.role === "ADMIN"
+
+  if ((channel.type === "PRIVATE" || channel.type === "DM") && !isMember && !isAdmin) {
+    return NextResponse.json(
+      { error: "Forbidden: You are not a member of this private group channel" },
+      { status: 403 }
+    )
   }
 
   const messages = await prisma.message.findMany({

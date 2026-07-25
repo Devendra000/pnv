@@ -45,9 +45,21 @@ export async function POST(req: NextRequest) {
 
   const groupHandle = handle.toLowerCase().replace(/[^a-z0-9]/g, "")
 
-  const existing = await prisma.userGroup.findUnique({ where: { handle: groupHandle } })
-  if (existing) {
-    return NextResponse.json({ error: "Group handle already exists" }, { status: 400 })
+  // Check if handle is taken by an existing user group
+  const existingGroup = await prisma.userGroup.findUnique({ where: { handle: groupHandle } })
+  if (existingGroup) {
+    return NextResponse.json({ error: `Group handle @${groupHandle} already exists.` }, { status: 400 })
+  }
+
+  // Check if handle is taken by an existing user username
+  const existingUser = await prisma.user.findFirst({
+    where: { username: { equals: groupHandle, mode: "insensitive" } },
+  })
+  if (existingUser) {
+    return NextResponse.json(
+      { error: `Handle @${groupHandle} is already taken by a workspace user.` },
+      { status: 400 }
+    )
   }
 
   const group = await prisma.userGroup.create({
@@ -55,6 +67,25 @@ export async function POST(req: NextRequest) {
       name,
       handle: groupHandle,
       createdById: session.user.id,
+    },
+  })
+
+  // Create corresponding private Channel for this User Group so members can communicate
+  const channelSlug = `group-${groupHandle}`
+  await prisma.channel.upsert({
+    where: { slug: channelSlug },
+    update: { name: `@${groupHandle}` },
+    create: {
+      name: `@${groupHandle}`,
+      slug: channelSlug,
+      type: "PRIVATE",
+      description: `Group discussion channel for ${name} (@${groupHandle})`,
+      createdById: session.user.id,
+      members: {
+        create: {
+          userId: session.user.id,
+        },
+      },
     },
   })
 

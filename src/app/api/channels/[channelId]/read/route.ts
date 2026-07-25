@@ -11,10 +11,19 @@ export async function POST(
 
   const { channelId } = await params
 
+  const channel = await prisma.channel.findFirst({
+    where: { OR: [{ id: channelId }, { slug: channelId }] },
+    select: { id: true },
+  })
+
+  if (!channel) {
+    return NextResponse.json({ error: "Channel not found" }, { status: 404 })
+  }
+
   await prisma.channelMember.upsert({
     where: {
       channelId_userId: {
-        channelId,
+        channelId: channel.id,
         userId: session.user.id,
       },
     },
@@ -22,7 +31,7 @@ export async function POST(
       lastReadAt: new Date(),
     },
     create: {
-      channelId,
+      channelId: channel.id,
       userId: session.user.id,
       lastReadAt: new Date(),
     },

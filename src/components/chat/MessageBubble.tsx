@@ -6,9 +6,10 @@ interface MessageBubbleProps {
   message: any
   currentUserId: string
   onOpenThread?: (message: any) => void
+  isHighlighted?: boolean
 }
 
-export function MessageBubble({ message, currentUserId, onOpenThread }: MessageBubbleProps) {
+export function MessageBubble({ message, currentUserId, onOpenThread, isHighlighted }: MessageBubbleProps) {
   const isOwner = message.senderId === currentUserId
   const senderName = message.sender?.displayName || message.sender?.username || "Unknown"
   const avatarLetter = (message.sender?.username || "U")[0].toUpperCase()
@@ -41,7 +42,16 @@ export function MessageBubble({ message, currentUserId, onOpenThread }: MessageB
   const replyCount = message._count?.replies || message.replies?.length || 0
 
   return (
-    <div className={`flex gap-3 px-4 py-2.5 hover:bg-slate-800/30 transition-all group ${isOwner ? "bg-indigo-950/10" : ""}`}>
+    <div
+      id={`message-${message.id}`}
+      className={`flex gap-3 px-4 py-2.5 transition-all duration-500 group ${
+        isHighlighted
+          ? "bg-indigo-600/30 border-y-2 border-indigo-500 shadow-xl shadow-indigo-500/20 ring-1 ring-indigo-500/50"
+          : isOwner
+          ? "bg-indigo-950/10 hover:bg-slate-800/30"
+          : "hover:bg-slate-800/30"
+      }`}
+    >
       {/* Avatar */}
       <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-slate-700 to-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-slate-200 uppercase shrink-0 mt-0.5">
         {avatarLetter}

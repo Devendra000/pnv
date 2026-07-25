@@ -6,7 +6,7 @@ import StarterKit from "@tiptap/starter-kit"
 import Mention from "@tiptap/extension-mention"
 import Placeholder from "@tiptap/extension-placeholder"
 import { Send, Loader2, AtSign } from "lucide-react"
-import { mentionSuggestion } from "./mentionSuggestion"
+import { createMentionSuggestion } from "./mentionSuggestion"
 
 interface MessageInputProps {
   channelId: string
@@ -22,8 +22,8 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
 
   const editor = useEditor({
     immediatelyRender: false,
+    autofocus: "end",
     extensions: [
-
       StarterKit.configure({
         bulletList: false,
         orderedList: false,
@@ -35,9 +35,10 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
         HTMLAttributes: {
           class: "mention font-semibold text-indigo-400 bg-indigo-500/20 px-1 py-0.5 rounded-md",
         },
-        suggestion: mentionSuggestion,
+        suggestion: createMentionSuggestion(channelId),
       }),
     ],
+
     onUpdate({ editor }) {
       setHasContent(!editor.isEmpty && !!editor.getText().trim())
     },
@@ -60,6 +61,16 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
       },
     },
   })
+
+  // Auto-focus input cursor whenever switching to any channel, group, or DM
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return
+    const timer = setTimeout(() => {
+      editor.commands.focus("end")
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [channelId, editor])
+
 
   const handleSend = async () => {
     if (!editor || sending) return
