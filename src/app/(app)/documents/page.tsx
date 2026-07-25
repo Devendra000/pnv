@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAppDataContext } from '@/contexts/AppDataContext';
 import { PageHeader } from '@/components/PageHeader';
@@ -27,6 +27,7 @@ import {
   Copy,
   Download,
   Edit2,
+  Eye,
   FileText,
   Filter,
   Folder,
@@ -126,7 +127,7 @@ function FolderBranch({
         </div>
 
         {/* Hover Action Buttons on Sidebar Folder Item */}
-        <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="hidden items-center gap-0.5 group-hover:flex">
           {clipboardState && onPasteHere && (
             <button
               type="button"
@@ -271,6 +272,8 @@ export default function DocumentsPage() {
   const [renameInputValue, setRenameInputValue] = useState('');
   const [targetFolderSearch, setTargetFolderSearch] = useState('');
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
+  const [cardSize, setCardSize] = useState<'small' | 'medium' | 'large' | 'xlarge'>('medium');
+  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
   // Helper: compute full path string for a folder
   const getFolderPathString = (folder: CompanyFolder, allFolders: CompanyFolder[]): string => {
@@ -359,6 +362,10 @@ export default function DocumentsPage() {
       if (savedExplorerMode === 'folders' || savedExplorerMode === 'documents') {
         setExplorerMode(savedExplorerMode);
       }
+      const savedCardSize = sessionStorage.getItem('docgen_card_size') as any;
+      if (savedCardSize && ['small', 'medium', 'large', 'xlarge'].includes(savedCardSize)) {
+        setCardSize(savedCardSize);
+      }
     } catch (e) {
       console.error('Failed to read from sessionStorage:', e);
     }
@@ -392,6 +399,15 @@ export default function DocumentsPage() {
       sessionStorage.setItem('docgen_explorer_mode', mode);
     } catch (e) {
       console.error('Failed to write explorer mode to sessionStorage:', e);
+    }
+  };
+
+  const changeCardSize = (size: 'small' | 'medium' | 'large' | 'xlarge') => {
+    setCardSize(size);
+    try {
+      sessionStorage.setItem('docgen_card_size', size);
+    } catch (e) {
+      console.error('Failed to write card size to sessionStorage:', e);
     }
   };
 
@@ -820,7 +836,14 @@ export default function DocumentsPage() {
                         {new Date(doc.generatedAt).toLocaleDateString()}
                       </span>
 
-                      <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                      <div className="hidden items-center justify-end gap-1 group-hover:flex">
+                        <button
+                          onClick={() => setPreviewDoc(doc)}
+                          title="Preview document"
+                          className="rounded-lg p-1.5 text-slate-600 hover:bg-blue-100 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-blue-950"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
                         <button
                           onClick={() => handleLocateDocumentInFolder(doc)}
                           title="Locate in folder"
@@ -951,7 +974,21 @@ export default function DocumentsPage() {
                     />
                   </div>
 
-                  <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800 dark:bg-slate-950">
+                  <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800 dark:bg-slate-950">
+                    {viewMode === 'grid' && (
+                      <select
+                        value={cardSize}
+                        onChange={(e) => changeCardSize(e.target.value as any)}
+                        className="h-7 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 shadow-xs focus:outline-hidden dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                        title="Folder Card Size"
+                      >
+                        <option value="small">Small</option>
+                        <option value="medium">Medium</option>
+                        <option value="large">Large</option>
+                        <option value="xlarge">Extra Large</option>
+                      </select>
+                    )}
+
                     <button
                       onClick={() => changeViewMode('grid')}
                       title="Grid view"
@@ -1016,38 +1053,73 @@ export default function DocumentsPage() {
                         <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
                           Companies ({rootFolders.length})
                         </p>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                        <div className={
+                          cardSize === 'small'
+                            ? 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3'
+                            : cardSize === 'large'
+                            ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5'
+                            : cardSize === 'xlarge'
+                            ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6'
+                            : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4'
+                        }>
                           {rootFolders.map((folder) => {
                             const company = companies.find((item) => item.id === folder.companyId);
                             const folderName = company?.englishName || folder.name;
                             return (
                               <div
                                 key={folder.id}
-                                className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-600 dark:hover:bg-blue-950/30"
+                                className={`group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 transition-all hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-600 dark:hover:bg-blue-950/30 ${
+                                  cardSize === 'small'
+                                    ? 'p-2.5 min-h-[90px]'
+                                    : cardSize === 'large'
+                                    ? 'p-6 min-h-[160px]'
+                                    : cardSize === 'xlarge'
+                                    ? 'p-8 min-h-[220px]'
+                                    : 'p-4 min-h-[120px]'
+                                }`}
                               >
                                 <button
                                   onClick={() => changeActiveFolderId(folder.id)}
                                   className="w-full text-left"
+                                  title={folderName}
                                 >
                                   <div className="mb-3 flex items-center justify-between">
-                                    <Folder className="h-10 w-10 text-amber-400 fill-amber-400/30 transition-transform group-hover:scale-105" />
+                                    <Folder className={`text-amber-400 fill-amber-400/30 transition-transform group-hover:scale-105 ${
+                                      cardSize === 'small'
+                                        ? 'h-6 w-6'
+                                        : cardSize === 'large'
+                                        ? 'h-16 w-16'
+                                        : cardSize === 'xlarge'
+                                        ? 'h-24 w-24'
+                                        : 'h-10 w-10'
+                                    }`} />
                                     <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                                       Company Root
                                     </span>
                                   </div>
-                                  <p className="truncate font-semibold text-slate-900 dark:text-white">{folderName}</p>
+                                  <p className={`truncate text-slate-900 dark:text-white ${
+                                    cardSize === 'small'
+                                      ? 'text-xs font-medium'
+                                      : cardSize === 'large'
+                                      ? 'text-base font-bold'
+                                      : cardSize === 'xlarge'
+                                      ? 'text-xl font-bold'
+                                      : 'text-sm font-semibold'
+                                  }`} title={folderName}>{folderName}</p>
                                   <p className="mt-1 text-xs text-slate-500">Company documents folder</p>
                                 </button>
 
                                 {/* Hover Actions Bar */}
-                                <div className="mt-3 flex items-center justify-end gap-1 border-t border-slate-200/60 pt-2 opacity-0 transition-opacity group-hover:opacity-100 dark:border-slate-800">
+                                <div className="mt-2 hidden flex-wrap items-center justify-end gap-1 border-t border-slate-200/60 pt-1.5 group-hover:flex dark:border-slate-800">
                                   <button
                                     onClick={() => {
                                       setModalState({ type: 'renameFolder', folder });
                                       setRenameInputValue(folderName);
                                     }}
                                     title="Rename folder"
-                                    className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                    className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                      cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                    }`}
                                   >
                                     <Edit2 className="h-3.5 w-3.5" />
                                   </button>
@@ -1071,18 +1143,51 @@ export default function DocumentsPage() {
                             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
                               Folders ({childFolders.length})
                             </p>
-                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                            <div className={
+                              cardSize === 'small'
+                                ? 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3'
+                                : cardSize === 'large'
+                                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5'
+                                : cardSize === 'xlarge'
+                                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6'
+                                : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4'
+                            }>
                               {childFolders.map((folder) => (
                                 <div
                                   key={folder.id}
-                                  className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-600 dark:hover:bg-blue-950/30"
+                                  className={`group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 transition-all hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-600 dark:hover:bg-blue-950/30 ${
+                                    cardSize === 'small'
+                                      ? 'p-2.5 min-h-[90px]'
+                                      : cardSize === 'large'
+                                      ? 'p-6 min-h-[160px]'
+                                      : cardSize === 'xlarge'
+                                      ? 'p-8 min-h-[220px]'
+                                      : 'p-4 min-h-[120px]'
+                                  }`}
                                 >
                                   <button
                                     onClick={() => changeActiveFolderId(folder.id)}
                                     className="w-full text-left"
+                                    title={folder.name}
                                   >
-                                    <Folder className="mb-3 h-10 w-10 text-amber-400 fill-amber-400/30 transition-transform group-hover:scale-105" />
-                                    <p className="truncate font-semibold text-slate-900 dark:text-white">
+                                    <Folder className={`mb-3 text-amber-400 fill-amber-400/30 transition-transform group-hover:scale-105 ${
+                                      cardSize === 'small'
+                                        ? 'h-6 w-6'
+                                        : cardSize === 'large'
+                                        ? 'h-16 w-16'
+                                        : cardSize === 'xlarge'
+                                        ? 'h-24 w-24'
+                                        : 'h-10 w-10'
+                                    }`} />
+                                    <p className={`truncate text-slate-900 dark:text-white ${
+                                      cardSize === 'small'
+                                        ? 'text-xs font-medium'
+                                        : cardSize === 'large'
+                                        ? 'text-base font-bold'
+                                        : cardSize === 'xlarge'
+                                        ? 'text-xl font-bold'
+                                        : 'text-sm font-semibold'
+                                    }`} title={folder.name}>
                                       {folder.name}
                                     </p>
                                     <p className="mt-1 text-xs text-slate-500">
@@ -1090,11 +1195,13 @@ export default function DocumentsPage() {
                                     </p>
                                   </button>
 
-                                  <div className="mt-3 flex items-center justify-end gap-1 border-t border-slate-200/60 pt-2 opacity-0 transition-opacity group-hover:opacity-100 dark:border-slate-800">
+                                  <div className="mt-2 hidden flex-wrap items-center justify-end gap-1 border-t border-slate-200/60 pt-1.5 group-hover:flex dark:border-slate-800">
                                     <button
                                       onClick={() => handleDuplicateFolder(folder)}
                                       title="Duplicate folder"
-                                      className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                      className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                        cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                      }`}
                                     >
                                       <Copy className="h-3.5 w-3.5" />
                                     </button>
@@ -1104,21 +1211,27 @@ export default function DocumentsPage() {
                                         setRenameInputValue(folder.name);
                                       }}
                                       title="Rename"
-                                      className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                      className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                        cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                      }`}
                                     >
                                       <Edit2 className="h-3.5 w-3.5" />
                                     </button>
                                     <button
                                       onClick={() => setClipboardState({ action: 'moveFolder', folder })}
                                       title="Move folder"
-                                      className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                      className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                        cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                      }`}
                                     >
                                       <MoveRight className="h-3.5 w-3.5" />
                                     </button>
                                     <button
                                       onClick={() => promptDeleteFolder(folder)}
                                       title="Delete folder"
-                                      className="rounded-lg p-1.5 text-slate-600 hover:bg-red-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950"
+                                      className={`rounded-lg text-slate-600 hover:bg-red-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950 ${
+                                        cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                      }`}
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </button>
@@ -1135,24 +1248,64 @@ export default function DocumentsPage() {
                             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
                               Documents ({currentDocuments.length})
                             </p>
-                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                            <div className={
+                              cardSize === 'small'
+                                ? 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3'
+                                : cardSize === 'large'
+                                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5'
+                                : cardSize === 'xlarge'
+                                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6'
+                                : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4'
+                            }>
                               {currentDocuments.map((doc) => {
                                 const displayName = doc.fileName || `${doc.templateName}.docx`;
                                 return (
                                   <div
                                     key={doc.id}
-                                    className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:border-blue-400 hover:bg-blue-50/20 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-600"
+                                    className={`group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white transition-all hover:border-blue-400 hover:bg-blue-50/20 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-600 ${
+                                      cardSize === 'small'
+                                        ? 'p-2.5 min-h-[90px]'
+                                        : cardSize === 'large'
+                                        ? 'p-6 min-h-[160px]'
+                                        : cardSize === 'xlarge'
+                                        ? 'p-8 min-h-[220px]'
+                                        : 'p-4 min-h-[120px]'
+                                    }`}
                                   >
                                     <div className="w-full text-left">
                                       <div className="mb-3 flex items-start justify-between">
-                                        <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/80 dark:text-blue-400">
-                                          <FileText className="h-5 w-5" />
+                                        <div className={`inline-flex items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/80 dark:text-blue-400 ${
+                                          cardSize === 'small'
+                                            ? 'h-6 w-6'
+                                            : cardSize === 'large'
+                                            ? 'h-14 w-14'
+                                            : cardSize === 'xlarge'
+                                            ? 'h-20 w-20'
+                                            : 'h-10 w-10'
+                                        }`}>
+                                          <FileText className={
+                                            cardSize === 'small'
+                                              ? 'h-3.5 w-3.5'
+                                              : cardSize === 'large'
+                                              ? 'h-8 w-8'
+                                              : cardSize === 'xlarge'
+                                              ? 'h-12 w-12'
+                                              : 'h-5 w-5'
+                                          } />
                                         </div>
                                         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800">
                                           DOCX
                                         </span>
                                       </div>
-                                      <p className="truncate font-semibold text-slate-900 dark:text-white" title={displayName}>
+                                      <p className={`truncate text-slate-900 dark:text-white ${
+                                        cardSize === 'small'
+                                          ? 'text-xs font-medium'
+                                          : cardSize === 'large'
+                                          ? 'text-base font-bold'
+                                          : cardSize === 'xlarge'
+                                          ? 'text-xl font-bold'
+                                          : 'text-sm font-semibold'
+                                      }`} title={displayName}>
                                         {displayName}
                                       </p>
                                       <p className="mt-1 text-xs text-slate-500">
@@ -1160,12 +1313,23 @@ export default function DocumentsPage() {
                                       </p>
                                     </div>
 
-                                    <div className="mt-3 flex items-center justify-end gap-1 border-t border-slate-200/60 pt-2 opacity-0 transition-opacity group-hover:opacity-100 dark:border-slate-800">
+                                    <div className="mt-2 hidden flex-wrap items-center justify-end gap-1 border-t border-slate-200/60 pt-1.5 group-hover:flex dark:border-slate-800">
+                                      <button
+                                        onClick={() => setPreviewDoc(doc)}
+                                        title="Preview document"
+                                        className={`rounded-lg text-slate-600 hover:bg-blue-100 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-blue-950 ${
+                                          cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                        }`}
+                                      >
+                                        <Eye className="h-3.5 w-3.5" />
+                                      </button>
                                       <a
                                         href={doc.docxUrl}
                                         download={displayName}
                                         title="Download"
-                                        className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                        className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                          cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                        }`}
                                       >
                                         <Download className="h-3.5 w-3.5" />
                                       </a>
@@ -1175,28 +1339,36 @@ export default function DocumentsPage() {
                                           setRenameInputValue(doc.fileName || doc.templateName);
                                         }}
                                         title="Rename"
-                                        className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                        className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                          cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                        }`}
                                       >
                                         <Edit2 className="h-3.5 w-3.5" />
                                       </button>
                                       <button
                                         onClick={() => setClipboardState({ action: 'copyDoc', doc })}
                                         title="Copy document"
-                                        className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                        className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                          cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                        }`}
                                       >
                                         <Copy className="h-3.5 w-3.5" />
                                       </button>
                                       <button
                                         onClick={() => setClipboardState({ action: 'moveDoc', doc })}
                                         title="Move document"
-                                        className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                                        className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                          cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                        }`}
                                       >
                                         <MoveRight className="h-3.5 w-3.5" />
                                       </button>
                                       <button
                                         onClick={() => promptDeleteDocument(doc)}
                                         title="Delete document"
-                                        className="rounded-lg p-1.5 text-slate-600 hover:bg-red-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950"
+                                        className={`rounded-lg text-slate-600 hover:bg-red-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950 ${
+                                          cardSize === 'small' ? 'p-1' : 'p-1.5'
+                                        }`}
                                       >
                                         <Trash2 className="h-3.5 w-3.5" />
                                       </button>
@@ -1240,9 +1412,10 @@ export default function DocumentsPage() {
                               <button
                                 onClick={() => changeActiveFolderId(folder.id)}
                                 className="flex min-w-0 items-center gap-2 text-left font-medium text-slate-900 dark:text-white"
+                                title={folderName}
                               >
                                 <Folder className="h-5 w-5 shrink-0 text-amber-400 fill-amber-400/30" />
-                                <span className="truncate">{folderName}</span>
+                                <span className="truncate" title={folderName}>{folderName}</span>
                                 <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800">
                                   Company Root
                                 </span>
@@ -1250,7 +1423,7 @@ export default function DocumentsPage() {
                               <span className="text-xs text-slate-500">
                                 {new Date(folder.updatedAt).toLocaleDateString()}
                               </span>
-                              <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                              <div className="hidden items-center justify-end gap-1 group-hover:flex">
                                 <button
                                   onClick={() => {
                                     setModalState({ type: 'renameFolder', folder });
@@ -1281,7 +1454,14 @@ export default function DocumentsPage() {
                               <span className="text-xs text-slate-500">
                                 {new Date(doc.generatedAt).toLocaleDateString()}
                               </span>
-                              <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                              <div className="hidden items-center justify-end gap-1 group-hover:flex">
+                                <button
+                                  onClick={() => setPreviewDoc(doc)}
+                                  title="Preview document"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-950"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
                                 <a
                                   href={doc.docxUrl}
                                   download={displayName}
@@ -1337,14 +1517,15 @@ export default function DocumentsPage() {
                             <button
                               onClick={() => changeActiveFolderId(folder.id)}
                               className="flex min-w-0 items-center gap-2 text-left font-medium text-slate-900 dark:text-white"
+                              title={folder.name}
                             >
                               <Folder className="h-5 w-5 shrink-0 text-amber-400 fill-amber-400/30" />
-                              <span className="truncate">{folder.name}</span>
+                              <span className="truncate" title={folder.name}>{folder.name}</span>
                             </button>
                             <span className="text-xs text-slate-500">
                               {new Date(folder.updatedAt).toLocaleDateString()}
                             </span>
-                            <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                            <div className="hidden items-center justify-end gap-1 group-hover:flex">
                               <button
                                 onClick={() => handleDuplicateFolder(folder)}
                                 title="Duplicate folder"
@@ -1396,7 +1577,14 @@ export default function DocumentsPage() {
                               <span className="text-xs text-slate-500">
                                 {new Date(doc.generatedAt).toLocaleDateString()}
                               </span>
-                              <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                              <div className="hidden items-center justify-end gap-1 group-hover:flex">
+                                <button
+                                  onClick={() => setPreviewDoc(doc)}
+                                  title="Preview document"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-950"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
                                 <a
                                   href={doc.docxUrl}
                                   download={displayName}
@@ -1672,6 +1860,122 @@ export default function DocumentsPage() {
           </div>
         </div>
       )}
+
+      {/* DOCUMENT PREVIEW MODAL */}
+      {previewDoc && (
+        <DocumentPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
+      )}
+    </div>
+  );
+}
+
+function DocumentPreviewModal({
+  doc,
+  onClose,
+}: {
+  doc: Document;
+  onClose: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function loadAndRender() {
+      setLoading(true);
+      setError(null);
+      try {
+        const { renderAsync } = await import('docx-preview');
+        const res = await fetch(doc.docxUrl);
+        if (!res.ok) throw new Error('Failed to fetch document file.');
+        const buffer = await res.arrayBuffer();
+
+        if (containerRef.current && active) {
+          containerRef.current.innerHTML = '';
+          await renderAsync(buffer, containerRef.current, undefined, {
+            inWrapper: true,
+            ignoreWidth: false,
+            ignoreHeight: false,
+            experimental: false,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to render DOCX preview:', err);
+        if (active) setError('Unable to render document preview.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadAndRender();
+    return () => {
+      active = false;
+    };
+  }, [doc.docxUrl]);
+
+  const displayName = doc.fileName || `${doc.templateName}.docx`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
+      <div className="flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-white">{displayName}</h3>
+              <p className="text-xs text-slate-500">
+                {doc.companyName} · {doc.templateName}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <a
+              href={doc.docxUrl}
+              download={displayName}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+            >
+              <Download className="h-4 w-4" />
+              Download DOCX
+            </a>
+            <button
+              onClick={onClose}
+              className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Modal Body / Document Previewer */}
+        <div className="relative flex-1 overflow-y-auto bg-slate-100 p-6 dark:bg-slate-950">
+          {loading && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+              <p className="mt-3 text-sm font-medium text-slate-600 dark:text-slate-400">
+                Rendering document preview…
+              </p>
+            </div>
+          )}
+
+          {error ? (
+            <div className="py-20 text-center text-red-500">
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+          ) : (
+            <div className="mx-auto flex min-h-full justify-center">
+              <div
+                ref={containerRef}
+                className="w-full max-w-4xl overflow-x-auto rounded-xl bg-white p-6 text-slate-900 shadow-md"
+              />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
