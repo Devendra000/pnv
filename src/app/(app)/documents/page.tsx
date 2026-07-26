@@ -6,6 +6,7 @@ import { useAppDataContext } from '@/contexts/AppDataContext';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { getFileApiUrl } from '@/lib/utils';
 import { CompanyFolder, Document } from '@/lib/types';
 import {
   copyDocumentAction,
@@ -892,7 +893,7 @@ export default function DocumentsPage() {
                           <FolderSearch className="h-4 w-4" />
                         </button>
                         <a
-                          href={doc.docxUrl}
+                          href={getFileApiUrl(doc.docxUrl)}
                           download={displayName}
                           title="Download"
                           className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
@@ -1411,7 +1412,7 @@ export default function DocumentsPage() {
                                         <Eye className="h-3.5 w-3.5" />
                                       </button>
                                       <a
-                                        href={doc.docxUrl}
+                                        href={getFileApiUrl(doc.docxUrl)}
                                         download={displayName}
                                         title="Download"
                                         className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
@@ -1550,7 +1551,7 @@ export default function DocumentsPage() {
                                   <Eye className="h-4 w-4" />
                                 </button>
                                 <a
-                                  href={doc.docxUrl}
+                                  href={getFileApiUrl(doc.docxUrl)}
                                   download={displayName}
                                   title="Download"
                                   className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
@@ -1689,7 +1690,7 @@ export default function DocumentsPage() {
                                   <Eye className="h-4 w-4" />
                                 </button>
                                 <a
-                                  href={doc.docxUrl}
+                                  href={getFileApiUrl(doc.docxUrl)}
                                   download={displayName}
                                   title="Download"
                                   className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
@@ -1990,7 +1991,8 @@ function DocumentPreviewModal({
       setError(null);
       try {
         const { renderAsync } = await import('docx-preview');
-        const res = await fetch(doc.docxUrl);
+        const fileApiUrl = getFileApiUrl(doc.docxUrl);
+        const res = await fetch(fileApiUrl);
         if (!res.ok) throw new Error('Failed to fetch document file.');
         const buffer = await res.arrayBuffer();
 
@@ -2038,7 +2040,7 @@ function DocumentPreviewModal({
 
           <div className="flex items-center gap-2">
             <a
-              href={doc.docxUrl}
+              href={getFileApiUrl(doc.docxUrl)}
               download={displayName}
               className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
             >
