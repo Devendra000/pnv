@@ -43,6 +43,7 @@ interface AppDataContextType {
   addDocument: (
     document: Omit<Document, 'id' | 'generatedAt' | 'docxUrl'> & {
       variables: Record<string, string>;
+      fileName?: string | null;
       templateData?: CompanyTemplateData;
     }
   ) => Promise<void>;
