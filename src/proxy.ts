@@ -17,14 +17,16 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
-  // Redirect authenticated users away from login page to /chat
+  // Redirect authenticated users away from login page to /dashboard
   if (isLoggedIn && isAuthPage) {
-    return NextResponse.redirect(new URL("/chat", req.url))
+    return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
   return NextResponse.next()
 })
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|public|api/socketio).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|public|icon.*|apple-icon.*|.*\\.png|.*\\.jpg|.*\\.svg|api/socketio).*)",
+  ],
 }

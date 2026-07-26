@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AppDataProvider } from '@/contexts/AppDataContext'
 
+import { AuthProvider } from '@/components/providers/AuthProvider'
+
 export const metadata: Metadata = {
   title: 'Company Document Generator',
   description: 'Professional document generation and management system for companies',
@@ -41,9 +43,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className="antialiased bg-background">
-        <AppDataProvider>
-          {children}
-        </AppDataProvider>
+        <AuthProvider>
+          <AppDataProvider>
+            {children}
+          </AppDataProvider>
+        </AuthProvider>
       </body>
     </html>
   )
