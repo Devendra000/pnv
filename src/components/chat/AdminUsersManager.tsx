@@ -4,11 +4,16 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Users, UserPlus, Shield, Loader2, Check, Edit2, Trash2, UserCheck, X } from "lucide-react"
 
-export function AdminUsersManager() {
+interface AdminUsersManagerProps {
+  currentUserId?: string
+}
+
+export function AdminUsersManager({ currentUserId }: AdminUsersManagerProps) {
   const [users, setUsers] = useState<any[]>([])
   const [groups, setGroups] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+
 
   // Live username validation state
   const [usernameChecking, setUsernameChecking] = useState(false)
@@ -186,13 +191,14 @@ export function AdminUsersManager() {
       if (res.ok) {
         fetchUsersAndGroups()
       } else {
-        const data = await res.json()
+        const data = await res.json().catch(() => ({}))
         alert(data.error || "Failed to delete user")
       }
     } catch (err) {
       console.error("Failed to delete user", err)
     }
   }
+
 
   const handleToggleUserGroup = async (groupId: string, isMember: boolean) => {
     if (!groupAssignUser) return
@@ -258,7 +264,11 @@ export function AdminUsersManager() {
             </div>
           )}
 
-          <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleCreateUser} autoComplete="off" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Fake inputs to prevent aggressive browser autofill */}
+            <input type="text" name="fake_username_trap" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
+            <input type="password" name="fake_password_trap" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
+
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
                 Username
@@ -269,6 +279,7 @@ export function AdminUsersManager() {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="e.g. john_doe"
                 required
+                autoComplete="off"
                 className={`w-full px-3.5 py-2 bg-slate-800 border rounded-xl text-sm text-slate-100 focus:ring-2 transition-all ${
                   usernameAvailable === false
                     ? "border-red-500 focus:ring-red-500"
@@ -304,6 +315,7 @@ export function AdminUsersManager() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. john@company.com"
                 required
+                autoComplete="off"
                 className="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-100 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -318,9 +330,11 @@ export function AdminUsersManager() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Initial password"
                 required
+                autoComplete="new-password"
                 className="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-100 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
+
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
@@ -409,13 +423,19 @@ export function AdminUsersManager() {
                       >
                         <UserCheck className="w-3.5 h-3.5" /> Add to Group
                       </button>
-                      <button
-                        onClick={() => handleDeleteUser(u)}
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-600/30 hover:text-red-300 text-slate-400 border border-slate-700/80 transition-all text-xs flex items-center gap-1"
-                        title="Delete User"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Delete
-                      </button>
+                      {u.id === currentUserId ? (
+                        <span className="px-2 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg text-[10px] font-bold">
+                          You
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleDeleteUser(u)}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-600/30 hover:text-red-300 text-slate-400 border border-slate-700/80 transition-all text-xs flex items-center gap-1"
+                          title="Delete User"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -424,6 +444,7 @@ export function AdminUsersManager() {
           )}
         </div>
       </div>
+
 
       {/* Edit User Modal */}
       {editingUser && (

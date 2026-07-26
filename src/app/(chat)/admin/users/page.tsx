@@ -8,5 +8,5 @@ export default async function AdminUsersPage() {
     redirect("/chat")
   }
 
-  return <AdminUsersManager />
+  return <AdminUsersManager currentUserId={session.user.id} />
 }

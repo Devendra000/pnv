@@ -1,5 +1,6 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { getIO } from "@/lib/socket-server"
 import bcrypt from "bcryptjs"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -84,9 +85,47 @@ export async function DELETE(
     return NextResponse.json({ error: "Cannot delete your own admin account" }, { status: 400 })
   }
 
-  await prisma.user.delete({
-    where: { id: userId },
+  // Find fallback admin to reassign created channels and groups to
+  const fallbackAdmin = await prisma.user.findFirst({
+    where: { role: "ADMIN", id: { not: userId } },
+    select: { id: true },
   })
+
+  const fallbackId = fallbackAdmin?.id || session.user.id
+
+  // Perform clean cascade deletion transaction
+  await prisma.$transaction([
+    // Reassign channel & group ownership to fallback admin
+    prisma.channel.updateMany({
+      where: { createdById: userId },
+      data: { createdById: fallbackId },
+    }),
+    prisma.userGroup.updateMany({
+      where: { createdById: userId },
+      data: { createdById: fallbackId },
+    }),
+    // Delete memberships, mentions, and notifications
+    prisma.channelMember.deleteMany({ where: { userId } }),
+    prisma.userGroupMember.deleteMany({ where: { userId } }),
+    prisma.notification.deleteMany({ where: { userId } }),
+    prisma.messageMention.deleteMany({ where: { mentionedUserId: userId } }),
+    // Delete Auth.js accounts and sessions
+    prisma.account.deleteMany({ where: { userId } }),
+    prisma.session.deleteMany({ where: { userId } }),
+    // Delete user messages
+    prisma.message.deleteMany({ where: { senderId: userId } }),
+    // Delete the user record
+    prisma.user.delete({ where: { id: userId } }),
+  ])
+
+  // Emit real-time WebSocket event to kick deleted user out immediately
+  try {
+    const io = getIO()
+    io.to(`user:${userId}`).emit("account-deleted", { userId })
+    io.emit("user-deleted", { userId })
+  } catch (err) {
+    console.error("[Socket.io] Error emitting account-deleted:", err)
+  }
 
   return NextResponse.json({ success: true })
 }

@@ -8,6 +8,16 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  // Verify that the sending user exists in DB and is active (prevents deleted/stale session users from messaging)
+  const senderUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, isActive: true },
+  })
+
+  if (!senderUser || !senderUser.isActive) {
+    return NextResponse.json({ error: "Unauthorized: Account disabled or deleted" }, { status: 401 })
+  }
+
   const { channelId, content, contentParsed, parentId } = await req.json()
 
   if (!channelId || !content?.trim()) {

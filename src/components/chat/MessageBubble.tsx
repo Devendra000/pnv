@@ -1,6 +1,7 @@
 "use client"
 
-import { MessageSquare } from "lucide-react"
+import Link from "next/link"
+import { MessageSquare, Users } from "lucide-react"
 
 interface MessageBubbleProps {
   message: any
@@ -19,22 +20,102 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
     minute: "2-digit",
   })
 
-  // Format content with highlighted mentions
+  // Map of valid mention handles for this message to metadata
+  const validMentionMap = new Map<
+    string,
+    {
+      type: "user" | "group" | "special"
+      username?: string
+      handle?: string
+      name?: string
+      members?: string[]
+    }
+  >()
+
+  // Register special broadcast tags
+  validMentionMap.set("everyone", { type: "special" })
+  validMentionMap.set("here", { type: "special" })
+  validMentionMap.set("channel", { type: "special" })
+
+  if (message.mentions && Array.isArray(message.mentions)) {
+    message.mentions.forEach((m: any) => {
+      if (m.mentionedUser?.username) {
+        validMentionMap.set(m.mentionedUser.username.toLowerCase(), {
+          type: "user",
+          username: m.mentionedUser.username,
+        })
+      }
+      if (m.group?.handle) {
+        const memberNames = (m.group.members || []).map(
+          (mem: any) => mem.user?.displayName || mem.user?.username || "user"
+        )
+        validMentionMap.set(m.group.handle.toLowerCase(), {
+          type: "group",
+          handle: m.group.handle,
+          name: m.group.name,
+          members: memberNames,
+        })
+      }
+    })
+  }
+
+  // Format content: block UI only for valid groups, users, and broadcast tags
   const renderFormattedContent = (text: string) => {
     if (!text) return null
     const parts = text.split(/(@[a-zA-Z0-9_-]+)/g)
 
     return parts.map((part, idx) => {
       if (part.startsWith("@")) {
-        return (
-          <span
-            key={idx}
-            className="px-1.5 py-0.5 mx-0.5 rounded-md bg-indigo-500/20 text-indigo-300 font-semibold text-xs border border-indigo-500/30"
-          >
-            {part}
-          </span>
-        )
+        const handleCandidate = part.slice(1).toLowerCase()
+        const mentionInfo = validMentionMap.get(handleCandidate)
+
+        if (mentionInfo) {
+          if (mentionInfo.type === "group") {
+            const memberCount = mentionInfo.members?.length || 0
+            const memberText =
+              memberCount > 0
+                ? `${memberCount} member(s): ${mentionInfo.members?.join(", ")}`
+                : "No members"
+
+            return (
+              <Link
+                key={idx}
+                href={`/chat/group-${mentionInfo.handle}`}
+                title={`Group @${mentionInfo.handle} • ${memberText}`}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 font-semibold text-xs border border-amber-500/30 transition-all cursor-pointer shadow-sm"
+              >
+                <Users className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>{part}</span>
+              </Link>
+            )
+          }
+
+          if (mentionInfo.type === "user") {
+            return (
+              <Link
+                key={idx}
+                href={`/dm/${mentionInfo.username}`}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 font-semibold text-xs border border-indigo-500/30 transition-all cursor-pointer shadow-sm"
+              >
+                <span>{part}</span>
+              </Link>
+            )
+          }
+
+          if (mentionInfo.type === "special") {
+            return (
+              <span
+                key={idx}
+                className="px-1.5 py-0.5 mx-0.5 rounded-md bg-indigo-500/20 text-indigo-300 font-semibold text-xs border border-indigo-500/30 shadow-sm"
+              >
+                {part}
+              </span>
+            )
+          }
+        }
       }
+
+      // Invalid handles (e.g. @nogkinggroup) render as plain text
       return part
     })
   }
