@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { resolvePublicFilePath } from '@/lib/actions';
+import { resolvePublicFilePath } from '@/lib/filePath';
 
 export async function GET(
   request: NextRequest,
