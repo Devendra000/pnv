@@ -93,6 +93,41 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
     }
   }, [pathname, session?.user?.id])
 
+  // Listen for group deletion events to update sidebar in real time across all users
+  useEffect(() => {
+    const handleGroupDeleted = (data: { groupId: string; slug: string }) => {
+      setChannels((prev) => prev.filter((c) => c.slug !== data.slug && c.id !== data.groupId))
+      if (pathname === `/chat/${data.slug}`) {
+        router.push("/chat")
+      }
+    }
+
+    socket.on("group-deleted", handleGroupDeleted)
+
+    return () => {
+      socket.off("group-deleted", handleGroupDeleted)
+    }
+  }, [pathname, router])
+
+  // Listen for account deletion event to kick deleted user out immediately
+  useEffect(() => {
+    const handleAccountDeleted = (data: { userId: string }) => {
+      if (data.userId === session?.user?.id) {
+        signOut({ callbackUrl: "/login" })
+      } else {
+        setUsers((prev) => prev.filter((u) => u.id !== data.userId))
+      }
+    }
+
+    socket.on("account-deleted", handleAccountDeleted)
+    socket.on("user-deleted", handleAccountDeleted)
+
+    return () => {
+      socket.off("account-deleted", handleAccountDeleted)
+      socket.off("user-deleted", handleAccountDeleted)
+    }
+  }, [session?.user?.id])
+
   // Automatically mark channel/DM as read when navigating to it
   useEffect(() => {
     if (!pathname || channels.length === 0) return

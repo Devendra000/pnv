@@ -1,5 +1,6 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { getIO } from "@/lib/socket-server"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function PATCH(
@@ -109,7 +110,7 @@ export async function DELETE(
 
   const channelSlug = `group-${group.handle}`
 
-  // Delete UserGroup (cascades userGroupMembers)
+  // Delete UserGroup
   await prisma.userGroup.delete({
     where: { id: groupId },
   })
@@ -118,6 +119,14 @@ export async function DELETE(
   await prisma.channel.deleteMany({
     where: { slug: channelSlug },
   })
+
+  // Emit real-time WebSocket event to all clients to update sidebars instantly
+  try {
+    const io = getIO()
+    io.emit("group-deleted", { groupId, slug: channelSlug })
+  } catch (err) {
+    console.error("[Socket.io] Error emitting group-deleted:", err)
+  }
 
   return NextResponse.json({ success: true })
 }

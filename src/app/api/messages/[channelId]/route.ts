@@ -56,6 +56,20 @@ export async function GET(
           avatarUrl: true,
         },
       },
+      mentions: {
+        include: {
+          mentionedUser: { select: { id: true, username: true, displayName: true } },
+          group: {
+            include: {
+              members: {
+                include: {
+                  user: { select: { id: true, username: true, displayName: true } },
+                },
+              },
+            },
+          },
+        },
+      },
       _count: {
         select: { replies: true },
       },
