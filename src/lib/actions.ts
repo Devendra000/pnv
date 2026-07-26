@@ -391,8 +391,7 @@ async function renderDocxTemplate(templateId: string, variables: Record<string, 
       },
     });
 
-    doc.setData(mergedData);
-    doc.render();
+    doc.render(mergedData);
 
     return Buffer.from(
       doc.getZip().generate({
