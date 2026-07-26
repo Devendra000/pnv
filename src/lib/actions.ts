@@ -677,10 +677,11 @@ export async function fetchAppData(): Promise<{
         const content = await readFileContent(d.docxUrl);
         return {
           id: d.id,
+          fileName: d.fileName || (d.variables as any)?.customFileName || null,
           templateId: d.templateId,
           templateName: d.template?.name || 'Unknown Template',
-        companyId: d.companyId,
-        companyName: d.company?.englishName || 'Unknown Company',
+          companyId: d.companyId,
+          companyName: d.company?.englishName || 'Unknown Company',
           folderId: d.folderId,
           docxUrl: d.docxUrl,
           pdfUrl: d.pdfUrl,
@@ -1325,7 +1326,9 @@ export async function moveDocumentAction(documentId: string, targetFolderId: str
     include: { company: true, template: true },
   });
   return {
-    id: saved.id, folderId: saved.folderId, templateId: saved.templateId,
+    id: saved.id,
+    fileName: saved.fileName || (saved.variables as any)?.customFileName || null,
+    folderId: saved.folderId, templateId: saved.templateId,
     templateName: saved.template.name, companyId: saved.companyId,
     companyName: saved.company.englishName, docxUrl: saved.docxUrl,
     pdfUrl: saved.pdfUrl, variables: (saved.variables as Record<string, string>) || undefined,
@@ -1338,6 +1341,7 @@ export async function copyDocumentAction(documentId: string, targetFolderId: str
   const copy = await prisma.generatedDocument.create({
     data: {
       companyId: document.companyId, templateId: document.templateId, folderId: folder.id,
+      fileName: document.fileName || (document.variables as any)?.customFileName || null,
       docxUrl: '', pdfUrl: null, variables: document.variables ?? undefined,
     },
     include: { company: true, template: true },
@@ -1352,7 +1356,9 @@ export async function copyDocumentAction(documentId: string, targetFolderId: str
     throw error;
   }
   return {
-    id: copy.id, folderId: folder.id, templateId: copy.templateId,
+    id: copy.id,
+    fileName: copy.fileName || (copy.variables as any)?.customFileName || null,
+    folderId: folder.id, templateId: copy.templateId,
     templateName: copy.template.name, companyId: copy.companyId,
     companyName: copy.company.englishName, docxUrl,
     variables: (copy.variables as Record<string, string>) || undefined,
@@ -1366,6 +1372,7 @@ export async function createDocumentAction(data: {
   templateId: string;
   content: string;
   variables: Record<string, string>;
+  fileName?: string;
   templateData?: Record<string, unknown>;
 }): Promise<Document> {
   // Ensure template exists in database to prevent FK constraint error
@@ -1416,13 +1423,22 @@ export async function createDocumentAction(data: {
     };
   }
 
+  const templateName = template.name || 'Document';
+  const companyName = companyRecord?.englishName || 'Company';
+  const defaultFileName = `${templateName} - ${companyName}`;
+  const customFileName = data.fileName?.trim() || data.variables?.customFileName?.trim() || defaultFileName;
+
   const d = await prisma.generatedDocument.create({
     data: {
       companyId: data.companyId,
       templateId: validTemplateId,
       folderId: targetFolder.id,
+      fileName: customFileName,
       docxUrl: '',
-      variables: data.variables as any,
+      variables: {
+        ...(data.variables as any),
+        customFileName,
+      },
     },
     include: {
       company: true,
@@ -1444,6 +1460,7 @@ export async function createDocumentAction(data: {
 
   return {
     id: d.id,
+    fileName: customFileName,
     folderId: targetFolder.id,
     templateId: d.templateId,
     templateName: d.template?.name || 'Unknown Template',
@@ -1574,7 +1591,7 @@ export async function renameDocumentAction(documentId: string, fileName: string)
 
   const updatedDoc = await prisma.generatedDocument.update({
     where: { id: documentId },
-    data: { variables: updatedVariables },
+    data: { fileName: name, variables: updatedVariables },
     include: { company: true, template: true },
   });
 
@@ -1643,6 +1660,7 @@ export async function duplicateCompanyFolderAction(folderId: string, targetParen
           companyId: doc.companyId,
           templateId: doc.templateId,
           folderId: destId,
+          fileName: doc.fileName,
           docxUrl: newDocxUrl,
           pdfUrl: doc.pdfUrl,
           variables: doc.variables as any,
