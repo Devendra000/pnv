@@ -132,14 +132,36 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // 5. Emit real-time WebSocket events via Socket.io getIO()
+  // 5. Refetch the complete message with mentions to return to the client and emit on socket
+  const completeMessage = await prisma.message.findUnique({
+    where: { id: message.id },
+    include: {
+      sender: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
+      mentions: {
+        include: {
+          mentionedUser: { select: { id: true, username: true, displayName: true } },
+          group: { select: { id: true, name: true, handle: true, members: { include: { user: { select: { username: true, displayName: true } } } } } },
+        },
+      },
+      _count: { select: { replies: true } },
+    },
+  })
+
+  // 6. Emit real-time WebSocket events via Socket.io getIO()
   try {
     const io = getIO()
 
     // Emit new-message event to all clients joined to channel room
-    io.to(`channel:${realChannelId}`).emit("new-message", message)
+    io.to(`channel:${realChannelId}`).emit("new-message", completeMessage)
     if (channelId !== realChannelId) {
-      io.to(`channel:${channelId}`).emit("new-message", message)
+      io.to(`channel:${channelId}`).emit("new-message", completeMessage)
     }
 
     // Emit personal notification event to each mentioned user's room
@@ -177,5 +199,5 @@ export async function POST(req: NextRequest) {
     console.error("[Socket.io] Error emitting WebSocket events:", err)
   }
 
-  return NextResponse.json({ message })
+  return NextResponse.json({ message: completeMessage })
 }
