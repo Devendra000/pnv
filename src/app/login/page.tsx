@@ -48,7 +48,7 @@ export default function LoginPage() {
             <MessageSquare className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white">
-            Welcome to Chat
+            Welcome to PNV
           </h1>
           <p className="text-sm text-slate-400 mt-1">
             Sign in with your workspace credentials to continue
@@ -101,7 +101,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading || !username.trim() || !password}
+            disabled={loading}
             className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center text-sm"
           >
             {loading ? (
