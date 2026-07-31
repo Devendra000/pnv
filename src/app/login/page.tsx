@@ -111,10 +111,6 @@ export default function LoginPage() {
             )}
           </button>
         </form>
-
-        <div className="mt-8 text-center text-xs text-slate-500">
-          Default seed credentials: <span className="text-slate-300 font-mono">admin</span> / <span className="text-slate-300 font-mono">admin123</span>
-        </div>
       </div>
     </div>
   )
