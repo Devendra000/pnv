@@ -749,21 +749,12 @@ function validateCompanyData(data: Omit<Company, 'id' | 'createdAt' | 'updatedAt
     required(o.citizenship, label('Citizenship No.'));
     required(o.jariJilla, label('Jari Jilla'));
     required(o.citizenshipJariDate, label('Citizenship Issued Date'));
-    if (o.citizenshipJariDate && !/^\d{4}-\d{2}-\d{2}$/.test(o.citizenshipJariDate)) {
-      throw new Error(`Owner ${idx + 1}: Citizenship Issued Date must be in YYYY-MM-DD format.`);
-    }
   });
 
   // Witnesses
   data.witnesses.forEach((w, idx) => {
     const label = (field: string) => `Witness ${idx + 1}: ${field}`;
     required(w.name, label('Name'));
-    required(w.citizenship, label('Citizenship No.'));
-    required(w.jariJilla, label('Jari Jilla'));
-    required(w.citizenshipJariDate, label('Citizenship Issued Date'));
-    if (w.citizenshipJariDate && !/^\d{4}-\d{2}-\d{2}$/.test(w.citizenshipJariDate)) {
-      throw new Error(`Witness ${idx + 1}: Citizenship Issued Date must be in YYYY-MM-DD format.`);
-    }
   });
 }
 
@@ -1481,6 +1472,67 @@ export async function deleteDocumentAction(id: string): Promise<void> {
     }
   }
   await prisma.generatedDocument.delete({ where: { id } });
+}
+
+export async function uploadDocumentAction(data: {
+  companyId: string;
+  folderId: string;
+  fileName: string;
+  fileData: string; // base64
+}): Promise<Document> {
+  let template = await prisma.template.findFirst();
+  if (!template) {
+    throw new Error('Please upload at least one template to the system first to enable document uploads.');
+  }
+
+  const validTemplateId = template.id;
+  const folder = await prisma.companyFolder.findUnique({ where: { id: data.folderId } });
+  if (!folder) throw new Error('Folder not found.');
+
+  const d = await prisma.generatedDocument.create({
+    data: {
+      companyId: data.companyId,
+      templateId: validTemplateId,
+      folderId: data.folderId,
+      fileName: data.fileName,
+      docxUrl: '',
+      variables: {
+        customFileName: data.fileName,
+        uploaded: true,
+      },
+    },
+    include: {
+      company: true,
+      template: true,
+    },
+  });
+
+  const extension = data.fileName.includes('.') ? data.fileName.split('.').pop() : 'docx';
+  const docxUrl = `${folder.path}/${d.id}.${extension}`;
+  const filePath = resolvePublicFilePath(docxUrl);
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+
+  const buffer = Buffer.from(data.fileData, 'base64');
+  await fs.writeFile(filePath, buffer);
+
+  await prisma.generatedDocument.update({
+    where: { id: d.id },
+    data: { docxUrl },
+  });
+
+  return {
+    id: d.id,
+    fileName: data.fileName,
+    folderId: data.folderId,
+    templateId: d.templateId,
+    templateName: 'Uploaded Document',
+    companyId: d.companyId,
+    companyName: d.company?.englishName || 'Unknown Company',
+    docxUrl,
+    variables: d.variables as Record<string, string>,
+    generatedAt: d.generatedAt.toISOString(),
+    content: '',
+  };
 }
 
 export async function renameCompanyFolderAction(folderId: string, newName: string): Promise<CompanyFolder> {

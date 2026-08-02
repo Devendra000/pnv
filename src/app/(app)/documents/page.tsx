@@ -20,6 +20,7 @@ import {
   renameCompanyFolderAction,
   renameDocumentAction,
   setDefaultGenerationFolderAction,
+  uploadDocumentAction,
 } from '@/lib/actions';
 import {
   AlertTriangle,
@@ -44,6 +45,7 @@ import {
   Target,
   Trash2,
   X,
+  Upload,
 } from 'lucide-react';
 
 function FolderBranch({
@@ -488,9 +490,12 @@ export default function DocumentsPage() {
 
   const [clipboardState, setClipboardState] = useState<ClipboardState>(null);
   const [explorerSearchQuery, setExplorerSearchQuery] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   const activeFolder = folders.find((folder) => folder.id === activeFolderId) || null;
   const activeCompany = companies.find((company) => company.id === activeFolder?.companyId) || null;
+
+
 
   const rootFolders = useMemo(() => {
     const list = folders.filter((folder) => !folder.parentFolderId);
@@ -725,6 +730,34 @@ export default function DocumentsPage() {
       await reloadFolders();
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to copy document.');
+    }
+  };
+
+  const handleUploadDocument = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !activeFolder) return;
+    
+    setIsUploading(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      bytes.forEach((byte) => (binary += String.fromCharCode(byte)));
+      const base64 = btoa(binary);
+
+      await uploadDocumentAction({
+        companyId: activeFolder.companyId,
+        folderId: activeFolder.id,
+        fileName: file.name,
+        fileData: base64,
+      });
+      await refreshData();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to upload document.');
+    } finally {
+      setIsUploading(false);
+      // Reset input value so same file can be selected again
+      event.target.value = '';
     }
   };
 
@@ -1090,16 +1123,30 @@ export default function DocumentsPage() {
                       Paste Here
                     </Button>
                   ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!activeFolder}
-                      onClick={openCreateFolderModal}
-                      className="border-slate-300 dark:border-slate-700"
-                    >
-                      <FolderPlus className="mr-1.5 h-4 w-4" />
-                      New folder
-                    </Button>
+                    <>
+                      <label
+                        className={`inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-slate-300 dark:border-slate-700 bg-background hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-accent-foreground h-9 px-3 ${!activeFolder ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <Upload className="mr-1.5 h-4 w-4" />
+                        {isUploading ? 'Uploading...' : 'Upload File'}
+                        <input
+                          type="file"
+                          className="hidden"
+                          disabled={!activeFolder || isUploading}
+                          onChange={handleUploadDocument}
+                        />
+                      </label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!activeFolder}
+                        onClick={openCreateFolderModal}
+                        className="border-slate-300 dark:border-slate-700"
+                      >
+                        <FolderPlus className="mr-1.5 h-4 w-4" />
+                        New folder
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>

@@ -23,7 +23,7 @@ const OWNER_LOOP_FIELDS = [
   { key: 'owner_jari_jilla', label: 'Jari Jilla', category: 'owner', defaultChecked: true },
   { key: 'owner_citizenship_jari_date', label: 'Citizenship Issued Date (B.S.)', category: 'owner', defaultChecked: true },
   { key: 'owner_phone_number', label: 'Phone Number', category: 'owner', defaultChecked: false },
-  { key: 'owner_shares', label: 'Shares', category: 'owner', defaultChecked: false },
+  { key: 'owner_shares', label: 'Share Sankhaya', category: 'owner', defaultChecked: false },
   
   // Assigned Witness fields inside owner loop
   { key: 'owner_witness_name', label: 'Witness Name', category: 'witness', defaultChecked: true },

@@ -109,82 +109,6 @@ function FieldLabel({ children, variableTag }: { children: ReactNode; variableTa
   );
 }
 
-/**
- * Nepali BS date input with auto-dash insertion: YYYY-MM-DD
- * Dashes are inserted automatically after year (4 digits) and month (2 digits).
- */
-function NepaliDateInput({
-  value,
-  onChange,
-  required,
-  placeholder = 'B.S. YYYY-MM-DD',
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  required?: boolean;
-  placeholder?: string;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const format = useCallback((raw: string): string => {
-    // Strip everything except digits
-    const digits = raw.replace(/\D/g, '').slice(0, 8);
-    if (digits.length <= 4) return digits;
-    if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
-    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
-  }, []);
-
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const formatted = format(e.target.value);
-      onChange(formatted);
-    },
-    [format, onChange],
-  );
-
-  // Prevent typing non-digit characters
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-      e.key.length === 1 &&
-      !e.ctrlKey &&
-      !e.metaKey &&
-      !e.altKey &&
-      !/\d/.test(e.key)
-    ) {
-      e.preventDefault();
-    }
-  }, []);
-
-  const isValid = !value || /^\d{4}-\d{2}-\d{2}$/.test(value);
-  const isComplete = value.length === 10;
-
-  return (
-    <div className="relative">
-      <input
-        ref={inputRef}
-        type="text"
-        inputMode="numeric"
-        value={value}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        required={required}
-        maxLength={10}
-        className={[
-          'flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors',
-          'bg-slate-950/60 text-white placeholder:text-slate-500',
-          'focus-visible:outline-none focus-visible:ring-1',
-          isComplete && !isValid
-            ? 'border-rose-600 focus-visible:ring-rose-600'
-            : 'border-slate-700 focus-visible:ring-slate-400',
-        ].join(' ')}
-      />
-      {isComplete && !isValid && (
-        <p className="mt-1 text-[11px] text-rose-400">Format must be YYYY-MM-DD</p>
-      )}
-    </div>
-  );
-}
 
 function PersonEditor({
   label,
@@ -250,12 +174,14 @@ function PersonEditor({
         )}
         <div>
           <FieldLabel variableTag={`${prefix}_citizenship_jari_date${tagSuffix}`}>
-            Citizenship Issued Date (B.S.) *
+            Citizenship Issued Date (B.S.) {isOwner ? '*' : ''}
           </FieldLabel>
-          <NepaliDateInput
+          <Input
             value={person.citizenshipJariDate || ''}
-            onChange={(val) => updateField('citizenshipJariDate', val)}
-            required
+            onChange={(event) => updateField('citizenshipJariDate', event.target.value)}
+            placeholder="e.g. 2080-01-01"
+            required={isOwner}
+            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
         <div>
@@ -278,32 +204,34 @@ function PersonEditor({
           />
         </div>
         <div>
-          <FieldLabel variableTag={`${prefix}_citizenship${tagSuffix}`}>Citizenship No. *</FieldLabel>
+          <FieldLabel variableTag={`${prefix}_citizenship${tagSuffix}`}>Citizenship No. {isOwner ? '*' : ''}</FieldLabel>
           <Input
             value={person.citizenship || ''}
             onChange={(event) => updateField('citizenship', event.target.value)}
             placeholder="Citizenship number"
-            required
+            required={isOwner}
             className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
-        <div>
-          <FieldLabel variableTag={`${prefix}_jari_jilla${tagSuffix}`}>Jari Jilla *</FieldLabel>
-          <Input
-            value={person.jariJilla || ''}
-            onChange={(event) => updateField('jariJilla', event.target.value)}
-            placeholder="Jari Jilla (Issuing District)"
-            required
-            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
-          />
-        </div>
+        {isOwner && (
+          <div>
+            <FieldLabel variableTag={`${prefix}_jari_jilla${tagSuffix}`}>Jari Jilla *</FieldLabel>
+            <Input
+              value={person.jariJilla || ''}
+              onChange={(event) => updateField('jariJilla', event.target.value)}
+              placeholder="Jari Jilla (Issuing District)"
+              required
+              className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+            />
+          </div>
+        )}
         {showShares && (
           <div>
-            <FieldLabel variableTag={`owner_shares${tagSuffix}`}>Shares</FieldLabel>
+            <FieldLabel variableTag={`owner_shares${tagSuffix}`}>Share Sankhaya</FieldLabel>
             <Input
               value={(person as Owner).shares || ''}
               onChange={(event) => updateField('shares', event.target.value)}
-              placeholder="Shares"
+              placeholder="Share Sankhaya"
               className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
             />
           </div>
