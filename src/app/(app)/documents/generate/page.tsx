@@ -128,6 +128,13 @@ export default function GenerateDocumentPage() {
   // Key currently being promoted (shows spinner on its button)
   const [promotingKey, setPromotingKey] = useState<string | null>(null);
 
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
+
+  // When company or template changes, reset validation state
+  useEffect(() => {
+    setShowValidationErrors(false);
+  }, [selectedCompany, selectedTemplate]);
+
   const selectedCompanyRecord = companies.find((company) => company.id === selectedCompany);
   const selectedTemplateRecord = templates.find((template) => template.id === selectedTemplate);
 
@@ -338,7 +345,16 @@ export default function GenerateDocumentPage() {
 
   const handleSave = async () => {
     if (!selectedCompanyRecord || !selectedTemplateRecord || !previewContent) return;
-    if (missingTemplateVariables.length > 0) return;
+    if (missingTemplateVariables.length > 0) {
+      setShowValidationErrors(true);
+      const firstMissing = missingTemplateVariables[0];
+      const element = document.getElementById(`variable-input-${firstMissing.key}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.focus();
+      }
+      return;
+    }
 
     // Store the fully-resolved values in the document record — NO DB save of variable values here
     await addDocument({
@@ -563,8 +579,10 @@ export default function GenerateDocumentPage() {
 
                           const isEdited = draftValue !== undefined && draftValue !== (savedValue || autoValue);
 
+                          const isMissing = showValidationErrors && !currentValue.trim();
+
                           return (
-                            <div key={key} className="space-y-2 rounded-lg border border-border bg-input/30 p-4">
+                            <div key={key} className={`space-y-2 rounded-lg border ${isMissing ? 'border-red-500 bg-red-50/10 dark:bg-red-500/10' : 'border-border bg-input/30'} p-4`}>
                               {/* Header row */}
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
@@ -623,17 +641,20 @@ export default function GenerateDocumentPage() {
 
                               {/* Input */}
                               <Input
+                                id={`variable-input-${key}`}
                                 value={currentValue}
-                                onChange={(event) =>
+                                onChange={(event) => {
+                                  if (showValidationErrors) setShowValidationErrors(false);
                                   setVariableDrafts((prev) => ({
                                     ...prev,
                                     [key]: event.target.value,
                                     ...(id ? { [id]: event.target.value } : {}),
-                                  }))
-                                }
+                                  }));
+                                }}
                                 placeholder={`Enter value for ${variable.label}`}
-                                className="bg-background text-sm"
+                                className={`bg-background text-sm ${isMissing ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                               />
+                              {isMissing && <p className="text-[11px] font-medium text-red-500 mt-1">This variable is required to generate the document.</p>}
 
                               {/* Status hint */}
                               <p className="text-xs text-muted-foreground">

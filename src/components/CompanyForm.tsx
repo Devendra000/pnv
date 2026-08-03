@@ -152,39 +152,38 @@ function PersonEditor({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div>
-          <FieldLabel variableTag={`${prefix}_name${tagSuffix}`}>Name *</FieldLabel>
+          <FieldLabel variableTag={`${prefix}_name${tagSuffix}`}>Name</FieldLabel>
           <Input
             value={person.name || ''}
             onChange={(event) => updateField('name', event.target.value)}
             placeholder="Full name"
-            required
             className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
         {isOwner && (
           <div>
-            <FieldLabel variableTag={`owner_father_name${tagSuffix}`}>Father&apos;s Name *</FieldLabel>
+            <FieldLabel variableTag={`owner_father_name${tagSuffix}`}>Father&apos;s Name</FieldLabel>
             <Input
               value={(person as Owner).fatherName || ''}
               onChange={(event) => updateField('fatherName', event.target.value)}
               placeholder="Father's name"
-              required
               className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
             />
           </div>
         )}
-        <div>
-          <FieldLabel variableTag={`${prefix}_citizenship_jari_date${tagSuffix}`}>
-            Citizenship Issued Date (B.S.) {isOwner ? '*' : ''}
-          </FieldLabel>
-          <Input
-            value={person.citizenshipJariDate || ''}
-            onChange={(event) => updateField('citizenshipJariDate', event.target.value)}
-            placeholder="e.g. 2080-01-01"
-            required={isOwner}
-            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
-          />
-        </div>
+        {isOwner && (
+          <div>
+            <FieldLabel variableTag={`${prefix}_citizenship_jari_date${tagSuffix}`}>
+              Citizenship Issued Date (B.S.)
+            </FieldLabel>
+            <Input
+              value={person.citizenshipJariDate || ''}
+              onChange={(event) => updateField('citizenshipJariDate', event.target.value)}
+              placeholder="e.g. 2080-01-01"
+              className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+            />
+          </div>
+        )}
         <div>
           <FieldLabel variableTag={`${prefix}_phone_number${tagSuffix}`}>Phone Number</FieldLabel>
           <Input
@@ -195,37 +194,32 @@ function PersonEditor({
           />
         </div>
         <div className="lg:col-span-2">
-          <FieldLabel variableTag={`${prefix}_address${tagSuffix}`}>Address {isOwner ? '*' : ''}</FieldLabel>
+          <FieldLabel variableTag={`${prefix}_address${tagSuffix}`}>Address</FieldLabel>
           <Input
             value={person.address || ''}
             onChange={(event) => updateField('address', event.target.value)}
             placeholder="Address"
-            required={isOwner}
             className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
         <div>
-          <FieldLabel variableTag={`${prefix}_citizenship${tagSuffix}`}>Citizenship No. {isOwner ? '*' : ''}</FieldLabel>
+          <FieldLabel variableTag={`${prefix}_citizenship${tagSuffix}`}>Citizenship No.</FieldLabel>
           <Input
             value={person.citizenship || ''}
             onChange={(event) => updateField('citizenship', event.target.value)}
             placeholder="Citizenship number"
-            required={isOwner}
             className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
-        {isOwner && (
-          <div>
-            <FieldLabel variableTag={`${prefix}_jari_jilla${tagSuffix}`}>Jari Jilla *</FieldLabel>
-            <Input
-              value={person.jariJilla || ''}
-              onChange={(event) => updateField('jariJilla', event.target.value)}
-              placeholder="Jari Jilla (Issuing District)"
-              required
-              className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
-            />
-          </div>
-        )}
+        <div>
+          <FieldLabel variableTag={`${prefix}_jari_jilla${tagSuffix}`}>Jari Jilla</FieldLabel>
+          <Input
+            value={person.jariJilla || ''}
+            onChange={(event) => updateField('jariJilla', event.target.value)}
+            placeholder="Jari Jilla (Issuing District)"
+            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+          />
+        </div>
         {showShares && (
           <div>
             <FieldLabel variableTag={`owner_shares${tagSuffix}`}>Share Sankhaya</FieldLabel>
@@ -460,22 +454,20 @@ export function CompanyForm({
                 />
               </div>
               <div>
-                <FieldLabel variableTag="company_name_np">Company Name (Nepali) *</FieldLabel>
+                <FieldLabel variableTag="company_nepali_name">Nepali Name</FieldLabel>
                 <Input
-                  value={formData.nepaliName}
-                  onChange={(event) => setFormData({ ...formData, nepaliName: event.target.value })}
-                  required
-                  placeholder="Company name in Nepali"
+                  value={formData.nepaliName || ''}
+                  onChange={(e) => setFormData((current) => ({ ...current, nepaliName: e.target.value }))}
+                  placeholder="e.g. एक्मे कर्प"
                   className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
                 />
               </div>
               <div className="lg:col-span-2">
-                <FieldLabel variableTag="company_address">Company Address *</FieldLabel>
+                <FieldLabel variableTag="company_address">Company Address</FieldLabel>
                 <Input
-                  value={formData.companyAddress}
-                  onChange={(event) => setFormData({ ...formData, companyAddress: event.target.value })}
-                  required
-                  placeholder="Company address"
+                  value={formData.companyAddress || ''}
+                  onChange={(e) => setFormData((current) => ({ ...current, companyAddress: e.target.value }))}
+                  placeholder="e.g. Kathmandu, Nepal"
                   className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
                 />
               </div>

@@ -720,25 +720,6 @@ function required(value: string | null | undefined, label: string) {
 function validateCompanyData(data: Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'documentCount'>) {
   // Company-level
   required(data.englishName, 'Company English Name');
-  required(data.nepaliName, 'Company Nepali Name');
-  required(data.companyAddress, 'Company Address');
-
-  // Owners
-  data.owners.forEach((o, idx) => {
-    const label = (field: string) => `Owner ${idx + 1}: ${field}`;
-    required(o.name, label('Name'));
-    required((o as { fatherName?: string | null }).fatherName, label("Father's Name"));
-    required(o.address, label('Address'));
-    required(o.citizenship, label('Citizenship No.'));
-    required(o.jariJilla, label('Jari Jilla'));
-    required(o.citizenshipJariDate, label('Citizenship Issued Date'));
-  });
-
-  // Witnesses
-  data.witnesses.forEach((w, idx) => {
-    const label = (field: string) => `Witness ${idx + 1}: ${field}`;
-    required(w.name, label('Name'));
-  });
 }
 
 // Company mutations
