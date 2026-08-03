@@ -311,6 +311,10 @@ export const useAppData = () => {
     }
   }, []);
 
+  const appendDocumentsLocally = useCallback((docs: Document[]) => {
+    setDocuments((prev) => [...prev, ...docs]);
+  }, []);
+
   // Stats calculation
   const stats: Stats = useMemo(
     () => ({
@@ -352,5 +356,6 @@ export const useAppData = () => {
     deleteTemplate,
     addDocument,
     deleteDocument,
+    appendDocumentsLocally,
   };
 };

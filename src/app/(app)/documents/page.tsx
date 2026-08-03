@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAppDataContext } from '@/contexts/AppDataContext';
 import { PageHeader } from '@/components/PageHeader';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getFileApiUrl } from '@/lib/utils';
 import { CompanyFolder, Document } from '@/lib/types';
@@ -46,7 +46,29 @@ import {
   Trash2,
   X,
   Upload,
+  Image as ImageIcon,
+  Video,
+  File,
 } from 'lucide-react';
+
+export function getDocumentIconAndColor(docxUrl: string) {
+  const fileExt = docxUrl.split('.').pop()?.toLowerCase() || 'docx';
+  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(fileExt);
+  const isVideo = ['mp4', 'webm', 'ogg'].includes(fileExt);
+  const isPdf = fileExt === 'pdf';
+  const isDocx = ['docx', 'doc'].includes(fileExt);
+
+  if (isImage) {
+    return { Icon: ImageIcon, textCol: 'text-purple-600', bgCol: 'bg-purple-100', darkText: 'dark:text-purple-400', darkBg: 'dark:bg-purple-950/80', label: fileExt.toUpperCase() };
+  } else if (isVideo) {
+    return { Icon: Video, textCol: 'text-pink-600', bgCol: 'bg-pink-100', darkText: 'dark:text-pink-400', darkBg: 'dark:bg-pink-950/80', label: fileExt.toUpperCase() };
+  } else if (isPdf) {
+    return { Icon: FileText, textCol: 'text-red-600', bgCol: 'bg-red-100', darkText: 'dark:text-red-400', darkBg: 'dark:bg-red-950/80', label: 'PDF' };
+  } else if (isDocx) {
+    return { Icon: FileText, textCol: 'text-blue-600', bgCol: 'bg-blue-100', darkText: 'dark:text-blue-400', darkBg: 'dark:bg-blue-950/80', label: 'DOCX' };
+  }
+  return { Icon: File, textCol: 'text-slate-600', bgCol: 'bg-slate-100', darkText: 'dark:text-slate-400', darkBg: 'dark:bg-slate-900', label: fileExt.toUpperCase() };
+}
 
 function FolderBranch({
   folders,
@@ -290,8 +312,16 @@ type ClipboardState =
   | { action: 'copyDoc'; doc: Document }
   | null;
 
+type UploadTask = {
+  id: string;
+  fileName: string;
+  progress: number;
+  status: 'pending' | 'uploading' | 'completed' | 'error';
+  error?: string;
+};
+
 export default function DocumentsPage() {
-  const { companies, documents, loading, refreshData } = useAppDataContext();
+  const { companies, documents, loading, refreshData, appendDocumentsLocally } = useAppDataContext();
   const [folders, setFolders] = useState<CompanyFolder[]>([]);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -490,7 +520,7 @@ export default function DocumentsPage() {
 
   const [clipboardState, setClipboardState] = useState<ClipboardState>(null);
   const [explorerSearchQuery, setExplorerSearchQuery] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadTasks, setUploadTasks] = useState<UploadTask[]>([]);
 
   const activeFolder = folders.find((folder) => folder.id === activeFolderId) || null;
   const activeCompany = companies.find((company) => company.id === activeFolder?.companyId) || null;
@@ -734,31 +764,84 @@ export default function DocumentsPage() {
   };
 
   const handleUploadDocument = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !activeFolder) return;
+    const fileList = event.target.files;
+    if (!fileList || fileList.length === 0 || !activeFolder) return;
     
-    setIsUploading(true);
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = '';
-      bytes.forEach((byte) => (binary += String.fromCharCode(byte)));
-      const base64 = btoa(binary);
+    const filesArray = Array.from(fileList);
+    
+    const newTasks: UploadTask[] = filesArray.map((file) => ({
+      id: crypto.randomUUID(),
+      fileName: file.name,
+      progress: 0,
+      status: 'pending',
+    }));
+    
+    setUploadTasks((prev) => [...prev, ...newTasks]);
 
-      await uploadDocumentAction({
-        companyId: activeFolder.companyId,
-        folderId: activeFolder.id,
-        fileName: file.name,
-        fileData: base64,
-      });
-      await refreshData();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to upload document.');
-    } finally {
-      setIsUploading(false);
-      // Reset input value so same file can be selected again
-      event.target.value = '';
+    // Reset input value so same file can be selected again later
+    event.target.value = '';
+
+    const currentCompanyId = activeFolder.companyId;
+    const currentFolderId = activeFolder.id;
+
+    for (let i = 0; i < filesArray.length; i++) {
+      const file = filesArray[i];
+      const task = newTasks[i];
+      
+      setUploadTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, status: 'uploading', progress: 10 } : t))
+      );
+
+      // Simulate progress visually
+      const progressInterval = setInterval(() => {
+        setUploadTasks((prev) =>
+          prev.map((t) =>
+            t.id === task.id && t.status === 'uploading'
+              ? { ...t, progress: Math.min(t.progress + 15, 90) }
+              : t
+          )
+        );
+      }, 300);
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        bytes.forEach((byte) => (binary += String.fromCharCode(byte)));
+        const base64 = btoa(binary);
+
+        const newDoc = await uploadDocumentAction({
+          companyId: currentCompanyId,
+          folderId: currentFolderId,
+          fileName: file.name,
+          fileData: base64,
+        });
+        
+        // Optimistically add it to the UI immediately!
+        appendDocumentsLocally([newDoc]);
+        
+        clearInterval(progressInterval);
+        setUploadTasks((prev) =>
+          prev.map((t) => (t.id === task.id ? { ...t, status: 'completed', progress: 100 } : t))
+        );
+      } catch (error) {
+        clearInterval(progressInterval);
+        setUploadTasks((prev) =>
+          prev.map((t) =>
+            t.id === task.id
+              ? {
+                  ...t,
+                  status: 'error',
+                  error: error instanceof Error ? error.message : 'Failed',
+                }
+              : t
+          )
+        );
+      }
     }
+    
+    // Refresh fully in the background to ensure parity (without blocking)
+    refreshData().catch(console.error);
   };
 
   return (
@@ -1125,14 +1208,19 @@ export default function DocumentsPage() {
                   ) : (
                     <>
                       <label
-                        className={`inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-slate-300 dark:border-slate-700 bg-background hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-accent-foreground h-9 px-3 ${!activeFolder ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        className={buttonVariants({
+                          variant: 'outline',
+                          size: 'sm',
+                          className: `border-slate-300 dark:border-slate-700 ${!activeFolder ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`,
+                        })}
                       >
                         <Upload className="mr-1.5 h-4 w-4" />
-                        {isUploading ? 'Uploading...' : 'Upload File'}
+                        Upload Files
                         <input
                           type="file"
+                          multiple
                           className="hidden"
-                          disabled={!activeFolder || isUploading}
+                          disabled={!activeFolder}
                           onChange={handleUploadDocument}
                         />
                       </label>
@@ -1152,7 +1240,48 @@ export default function DocumentsPage() {
               </div>
 
               {/* Folder & Document Grid/List View */}
-              <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+              <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6 relative">
+                {uploadTasks.length > 0 && (
+                  <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+                    <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2 dark:border-slate-800 dark:bg-slate-950">
+                      <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Upload Manager</h3>
+                      <button
+                        onClick={() => setUploadTasks((prev) => prev.filter(t => t.status === 'uploading' || t.status === 'pending'))}
+                        className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        Clear Completed
+                      </button>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto p-2">
+                      {uploadTasks.map(task => {
+                        const { Icon, textCol } = getDocumentIconAndColor(task.fileName);
+                        return (
+                          <div key={task.id} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <Icon className={`h-4 w-4 shrink-0 ${textCol}`} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex justify-between items-center mb-1">
+                              <p className="truncate text-xs font-medium text-slate-700 dark:text-slate-300" title={task.fileName}>{task.fileName}</p>
+                              <span className="text-[10px] font-semibold text-slate-500">
+                                {task.status === 'error' ? 'Failed' : task.status === 'completed' ? 'Done' : `${task.progress}%`}
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  task.status === 'error' ? 'bg-red-500' : task.status === 'completed' ? 'bg-emerald-500' : 'bg-blue-500'
+                                }`}
+                                style={{ width: `${task.progress}%` }}
+                              />
+                            </div>
+                            {task.error && <p className="mt-1 text-[10px] text-red-500">{task.error}</p>}
+                          </div>
+                        </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {viewMode === 'grid' ? (
                   /* Grid View (Windows Explorer Tile Cards) */
                   <div className="space-y-6">
@@ -1394,6 +1523,7 @@ export default function DocumentsPage() {
                             }>
                               {currentDocuments.map((doc) => {
                                 const displayName = doc.fileName || `${doc.templateName}.docx`;
+                                const { Icon, textCol, bgCol, darkText, darkBg, label } = getDocumentIconAndColor(doc.docxUrl);
                                 return (
                                   <div
                                     key={doc.id}
@@ -1407,9 +1537,9 @@ export default function DocumentsPage() {
                                         : 'p-4 min-h-[120px]'
                                     }`}
                                   >
-                                    <div className="w-full text-left">
+                                    <button onClick={() => setPreviewDoc(doc)} className="w-full text-left focus:outline-none">
                                       <div className="mb-3 flex items-start justify-between">
-                                        <div className={`inline-flex items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/80 dark:text-blue-400 ${
+                                        <div className={`inline-flex items-center justify-center rounded-xl ${bgCol} ${textCol} ${darkBg} ${darkText} ${
                                           cardSize === 'small'
                                             ? 'h-6 w-6'
                                             : cardSize === 'large'
@@ -1418,7 +1548,7 @@ export default function DocumentsPage() {
                                             ? 'h-20 w-20'
                                             : 'h-10 w-10'
                                         }`}>
-                                          <FileText className={
+                                          <Icon className={
                                             cardSize === 'small'
                                               ? 'h-3.5 w-3.5'
                                               : cardSize === 'large'
@@ -1429,7 +1559,7 @@ export default function DocumentsPage() {
                                           } />
                                         </div>
                                         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800">
-                                          DOCX
+                                          {label}
                                         </span>
                                       </div>
                                       <p className={`truncate text-slate-900 dark:text-white ${
@@ -1446,7 +1576,7 @@ export default function DocumentsPage() {
                                       <p className="mt-1 text-xs text-slate-500">
                                         {new Date(doc.generatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                                       </p>
-                                    </div>
+                                    </button>
 
                                     <div className="mt-2 hidden flex-wrap items-center justify-end gap-1 border-t border-slate-200/60 pt-1.5 group-hover:flex dark:border-slate-800">
                                       <button
@@ -1575,17 +1705,18 @@ export default function DocumentsPage() {
                         })}
                         {rootDocuments.map((doc) => {
                           const displayName = doc.fileName || `${doc.templateName}.docx`;
+                          const { Icon, textCol } = getDocumentIconAndColor(doc.docxUrl);
                           return (
                             <div
                               key={doc.id}
                               className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
                             >
-                              <div className="flex min-w-0 items-center gap-2">
-                                <FileText className="h-5 w-5 shrink-0 text-blue-500" />
+                              <button onClick={() => setPreviewDoc(doc)} className="flex min-w-0 items-center gap-2 text-left hover:opacity-80 focus:outline-none">
+                                <Icon className={`h-5 w-5 shrink-0 ${textCol}`} />
                                 <span className="truncate font-medium text-slate-900 dark:text-white" title={displayName}>
                                   {displayName}
                                 </span>
-                              </div>
+                              </button>
                               <span className="text-xs text-slate-500">
                                 {new Date(doc.generatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                               </span>
@@ -1714,17 +1845,18 @@ export default function DocumentsPage() {
 
                         {currentDocuments.map((doc) => {
                           const displayName = doc.fileName || `${doc.templateName}.docx`;
+                          const { Icon, textCol } = getDocumentIconAndColor(doc.docxUrl);
                           return (
                             <div
                               key={doc.id}
                               className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
                             >
-                              <div className="flex min-w-0 items-center gap-2">
-                                <FileText className="h-5 w-5 shrink-0 text-blue-500" />
+                              <button onClick={() => setPreviewDoc(doc)} className="flex min-w-0 items-center gap-2 text-left hover:opacity-80 focus:outline-none">
+                                <Icon className={`h-5 w-5 shrink-0 ${textCol}`} />
                                 <span className="truncate font-medium text-slate-900 dark:text-white" title={displayName}>
                                   {displayName}
                                 </span>
-                              </div>
+                              </button>
                               <span className="text-xs text-slate-500">
                                 {new Date(doc.generatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                               </span>
@@ -2031,7 +2163,19 @@ function DocumentPreviewModal({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fileExt = doc.docxUrl.split('.').pop()?.toLowerCase() || 'docx';
+  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(fileExt);
+  const isVideo = ['mp4', 'webm', 'ogg'].includes(fileExt);
+  const isPdf = fileExt === 'pdf';
+  const isDocx = fileExt === 'docx';
+  const isMedia = isImage || isVideo || isPdf;
+
   useEffect(() => {
+    if (isMedia || !isDocx) {
+      setLoading(false);
+      return;
+    }
+
     let active = true;
     async function loadAndRender() {
       setLoading(true);
@@ -2064,35 +2208,35 @@ function DocumentPreviewModal({
     return () => {
       active = false;
     };
-  }, [doc.docxUrl]);
+  }, [doc.docxUrl, isDocx, isMedia]);
 
-  const displayName = doc.fileName || `${doc.templateName}.docx`;
+  const displayName = doc.fileName || `${doc.templateName}.${fileExt}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
       <div className="flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400 shrink-0">
               <FileText className="h-5 w-5" />
             </div>
-            <div>
-              <h3 className="font-bold text-slate-900 dark:text-white">{displayName}</h3>
-              <p className="text-xs text-slate-500">
+            <div className="min-w-0">
+              <h3 className="font-bold text-slate-900 dark:text-white truncate" title={displayName}>{displayName}</h3>
+              <p className="text-xs text-slate-500 truncate">
                 {doc.companyName} · {doc.templateName}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <a
               href={getFileApiUrl(doc.docxUrl)}
               download={displayName}
               className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
             >
               <Download className="h-4 w-4" />
-              Download DOCX
+              Download
             </a>
             <button
               onClick={onClose}
@@ -2104,12 +2248,12 @@ function DocumentPreviewModal({
         </div>
 
         {/* Modal Body / Document Previewer */}
-        <div className="relative flex-1 overflow-y-auto bg-slate-100 p-6 dark:bg-slate-950">
+        <div className="relative flex-1 min-h-0 overflow-y-auto bg-slate-100 p-6 dark:bg-slate-950">
           {loading && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
               <p className="mt-3 text-sm font-medium text-slate-600 dark:text-slate-400">
-                Rendering document preview…
+                Rendering preview…
               </p>
             </div>
           )}
@@ -2119,11 +2263,47 @@ function DocumentPreviewModal({
               <p className="text-sm font-medium">{error}</p>
             </div>
           ) : (
-            <div className="mx-auto flex min-h-full justify-center">
-              <div
-                ref={containerRef}
-                className="w-full max-w-4xl overflow-x-auto rounded-xl bg-white p-6 text-slate-900 shadow-md"
-              />
+            <div className="mx-auto flex h-full justify-center">
+              {isImage ? (
+                <img
+                  src={getFileApiUrl(doc.docxUrl)}
+                  alt={displayName}
+                  className="max-h-full max-w-full object-contain rounded-lg shadow-sm bg-white"
+                />
+              ) : isVideo ? (
+                <video
+                  src={getFileApiUrl(doc.docxUrl)}
+                  controls
+                  className="max-h-full max-w-full rounded-lg shadow-sm bg-black"
+                />
+              ) : isPdf ? (
+                <iframe
+                  src={getFileApiUrl(doc.docxUrl)}
+                  className="h-full w-full max-w-4xl rounded-xl border-none shadow-md bg-white"
+                  title={displayName}
+                />
+              ) : isDocx ? (
+                <div
+                  ref={containerRef}
+                  className="w-full max-w-4xl overflow-x-auto rounded-xl bg-white p-6 text-slate-900 shadow-md"
+                />
+              ) : (
+                <div className="flex h-full w-full max-w-lg flex-col items-center justify-center rounded-2xl bg-white p-12 text-center shadow-sm dark:bg-slate-900">
+                  <FileText className="mb-4 h-16 w-16 text-slate-300 dark:text-slate-700" />
+                  <h4 className="mb-2 text-lg font-semibold text-slate-800 dark:text-slate-200">No Preview Available</h4>
+                  <p className="mb-6 text-sm text-slate-500">
+                    Preview is not supported for .{fileExt} files. Please download the file to view it.
+                  </p>
+                  <a
+                    href={getFileApiUrl(doc.docxUrl)}
+                    download={displayName}
+                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download File
+                  </a>
+                </div>
+              )}
             </div>
           )}
         </div>

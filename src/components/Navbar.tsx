@@ -7,7 +7,7 @@ import { FileText, Settings, MessageCircle } from 'lucide-react'
 export function Navbar() {
   const pathname = usePathname()
 
-  const isActive = (path: string) => pathname.startsWith(path)
+  const isActive = (path: string) => pathname?.startsWith(path)
 
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border z-50">

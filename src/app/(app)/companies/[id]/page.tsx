@@ -10,7 +10,7 @@ export default function CompanyDetailPage() {
   const params = useParams();
   const { getCompany, updateCompany, objectives, variables, loading } = useAppDataContext();
 
-  const company = getCompany(params.id as string);
+  const company = getCompany(params?.id as string);
 
   if (loading) {
     return (

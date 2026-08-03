@@ -18,7 +18,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!pathname.startsWith('/documents')) {
+    if (!pathname?.startsWith('/documents')) {
       try {
         sessionStorage.removeItem('docgen_active_folder_id');
       } catch (e) {
@@ -38,7 +38,7 @@ export function Sidebar() {
       <nav className="flex-1 p-3 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname.startsWith(item.href);
+          const isActive = pathname?.startsWith(item.href);
           return (
             <Link
               key={item.href}

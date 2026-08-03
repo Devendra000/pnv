@@ -3,6 +3,7 @@ import type { Company } from '@/lib/types';
 export type CompanyRuntimeVariableSource = {
   englishName: string;
   nepaliName?: string | null;
+  companyAddress?: string | null;
   ownerType: Company['ownerType'];
   owners: Array<{
     name: string;
@@ -93,6 +94,7 @@ export type CompanyVariableKey =
   // ── Company scalars ───────────────────────────────────────────────────────
   | 'company_name'
   | 'company_name_np'
+  | 'company_address'
   | 'owner_type'
   | 'owner_count'
   | 'date_generated'
@@ -160,6 +162,12 @@ export const COMPANY_VARIABLE_DEFINITIONS: CompanyVariableDefinition[] = [
     key: 'company_name_np',
     label: 'Company Name (Nepali)',
     description: 'The registered Nepali name of the company.',
+    type: 'text',
+  },
+  {
+    key: 'company_address',
+    label: 'Company Address',
+    description: 'The registered address of the company.',
     type: 'text',
   },
   {
@@ -310,6 +318,7 @@ export function buildCompanyRuntimeVariableValues(company: CompanyRuntimeVariabl
   const variables: Record<string, string> = {
     company_name: company.englishName || '',
     company_name_np: company.nepaliName || '',
+    company_address: company.companyAddress || '',
     owner_type: company.ownerType,
     owner_count: String(owners.length),
     owner_names: ownerNames.join(', '),

@@ -62,6 +62,7 @@ export interface Company {
   id: string;
   englishName: string;
   nepaliName?: string | null;
+  companyAddress?: string | null;
   ownerType: OwnerType; // 'SINGLE' | 'MULTIPLE'
   createdAt: string | Date;
   updatedAt: string | Date;

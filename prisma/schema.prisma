@@ -16,6 +16,7 @@ model Company {
   id               String              @id @default(cuid())
   englishName      String              @map("english_name")
   nepaliName       String              @map("nepali_name")
+  companyAddress   String?             @map("company_address")
   ownerType        OwnerType           @default(SINGLE) @map("owner_type")
   createdAt        DateTime            @default(now()) @map("created_at")
   updatedAt        DateTime            @updatedAt @map("updated_at")

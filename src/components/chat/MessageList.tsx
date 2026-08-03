@@ -20,7 +20,7 @@ export function MessageList({ channelId, currentUserId, onOpenThread }: MessageL
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const searchParams = useSearchParams()
-  const highlightParam = searchParams.get("highlight")
+  const highlightParam = searchParams?.get("highlight")
 
   const socket = useSocket(channelId)
 

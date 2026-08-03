@@ -154,10 +154,7 @@ function inferVariableType(key: string): 'text' | 'number' | 'date' | 'list' {
 async function ensureVariableForKey(key: string) {
   return prisma.variable.upsert({
     where: { key },
-    update: {
-      label: humanizeVariableKey(key),
-      type: inferVariableType(key),
-    },
+    update: {}, // Do not overwrite user-customized labels and types
     create: {
       key,
       label: humanizeVariableKey(key),
@@ -541,6 +538,7 @@ export async function fetchAppData(): Promise<{
       id: c.id,
       englishName: c.englishName,
       nepaliName: c.nepaliName,
+      companyAddress: c.companyAddress,
       ownerType: c.ownerType,
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),
@@ -739,6 +737,7 @@ function validateCompanyData(data: Omit<Company, 'id' | 'createdAt' | 'updatedAt
   // Company-level
   required(data.englishName, 'Company English Name');
   required(data.nepaliName, 'Company Nepali Name');
+  required(data.companyAddress, 'Company Address');
 
   // Owners
   data.owners.forEach((o, idx) => {
@@ -766,6 +765,7 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
     data: {
       englishName: data.englishName,
       nepaliName: data.nepaliName || '',
+      companyAddress: data.companyAddress || '',
       ownerType: data.ownerType,
       owners: {
         create: data.owners.map((o, idx) => ({
@@ -885,6 +885,7 @@ export async function updateCompanyAction(
     data: {
       englishName: data.englishName,
       nepaliName: data.nepaliName || '',
+      companyAddress: data.companyAddress || '',
       ownerType: data.ownerType,
       owners: {
         create: data.owners.map((o, idx) => ({

@@ -23,6 +23,7 @@ interface CompanyFormProps {
 type CompanyFormSubmission = {
   englishName: string;
   nepaliName: string | null;
+  companyAddress: string | null;
   ownerType: 'SINGLE' | 'MULTIPLE';
   owners: Array<{
     name: string;
@@ -275,10 +276,12 @@ export function CompanyForm({
   const [formData, setFormData] = useState<{
     englishName: string;
     nepaliName: string;
+    companyAddress: string;
     ownerType: 'SINGLE' | 'MULTIPLE';
   }>(() => ({
     englishName: company?.englishName || '',
     nepaliName: company?.nepaliName || '',
+    companyAddress: company?.companyAddress || '',
     ownerType: company?.ownerType || 'SINGLE',
   }));
 
@@ -369,6 +372,7 @@ export function CompanyForm({
   const runtimeValues = buildCompanyRuntimeVariableValues({
     englishName: formData.englishName,
     nepaliName: formData.nepaliName,
+    companyAddress: formData.companyAddress,
     ownerType: formData.ownerType,
     owners,
     witnesses,
@@ -387,6 +391,7 @@ export function CompanyForm({
     const formattedCompany = {
       englishName: formData.englishName,
       nepaliName: formData.nepaliName || null,
+      companyAddress: formData.companyAddress || null,
       ownerType: formData.ownerType,
       owners: owners.map((o, idx) => ({
         name: o.name,
@@ -461,6 +466,16 @@ export function CompanyForm({
                   onChange={(event) => setFormData({ ...formData, nepaliName: event.target.value })}
                   required
                   placeholder="Company name in Nepali"
+                  className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+                />
+              </div>
+              <div className="lg:col-span-2">
+                <FieldLabel variableTag="company_address">Company Address *</FieldLabel>
+                <Input
+                  value={formData.companyAddress}
+                  onChange={(event) => setFormData({ ...formData, companyAddress: event.target.value })}
+                  required
+                  placeholder="Company address"
                   className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
                 />
               </div>

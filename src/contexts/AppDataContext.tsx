@@ -48,6 +48,7 @@ interface AppDataContextType {
     }
   ) => Promise<void>;
   deleteDocument: (id: string) => Promise<void>;
+  appendDocumentsLocally: (docs: Document[]) => void;
 }
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
