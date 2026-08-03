@@ -12,7 +12,7 @@ import {
   isSystemVariableKey,
   TEMPLATE_LOOP_HELPER_KEYS,
 } from '@/lib/companyVariables';
-import { addTemplateVariableToManualAction, renderDocxPreviewAction } from '@/lib/actions';
+import { addTemplateVariableToManualAction } from '@/lib/actions';
 
 function buildInitialVariableDrafts(
   company: { variableValues: Array<{ variableId: string; value: string }> } | undefined,
@@ -97,61 +97,7 @@ function renderLoopSection(
   });
 }
 
-function DocxViewer({ docxBase64 }: { docxBase64: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [rendering, setRendering] = useState(false);
 
-  useEffect(() => {
-    if (!docxBase64 || !containerRef.current) return;
-    let active = true;
-
-    async function loadDocx() {
-      setRendering(true);
-      try {
-        const { renderAsync } = await import('docx-preview');
-        const binaryString = atob(docxBase64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-
-        if (containerRef.current && active) {
-          containerRef.current.innerHTML = '';
-          await renderAsync(bytes.buffer, containerRef.current, undefined, {
-            inWrapper: true,
-            ignoreWidth: false,
-            ignoreHeight: false,
-            experimental: false,
-          });
-        }
-      } catch (err) {
-        console.error('docx-preview error:', err);
-      } finally {
-        if (active) setRendering(false);
-      }
-    }
-
-    loadDocx();
-
-    return () => {
-      active = false;
-    };
-  }, [docxBase64]);
-
-  return (
-    <div className="relative w-full flex flex-col items-center">
-      {rendering && (
-        <div className="absolute top-4 right-4 bg-primary/90 text-primary-foreground text-xs px-3 py-1.5 rounded-full shadow-md z-20 animate-pulse">
-          Updating preview...
-        </div>
-      )}
-      <div
-        ref={containerRef}
-        className="w-full bg-slate-200/80 dark:bg-slate-950 p-4 rounded-lg overflow-x-auto min-h-[600px] flex justify-center text-slate-900"
-      />
-    </div>
-  );
-}
 
 function renderPreviewTemplate(
   template: string,
@@ -289,29 +235,7 @@ export default function GenerateDocumentPage() {
     return renderPreviewTemplate(selectedTemplateRecord.content, mergedVariables, templateData);
   }, [baseVariables, resolvedTemplateVariables, selectedTemplateRecord, templateData]);
 
-  const [docxBase64, setDocxBase64] = useState('');
 
-  useEffect(() => {
-    if (!selectedTemplateRecord || !selectedCompanyRecord) {
-      setDocxBase64('');
-      return;
-    }
-
-    let active = true;
-    const mergedVariables = { ...baseVariables, ...resolvedTemplateVariables };
-
-    renderDocxPreviewAction(selectedTemplateRecord.id, mergedVariables, templateData || undefined)
-      .then((b64) => {
-        if (active) setDocxBase64(b64);
-      })
-      .catch((err) => {
-        console.error('Failed to generate preview DOCX:', err);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [selectedTemplateRecord, selectedCompanyRecord, baseVariables, resolvedTemplateVariables, templateData]);
 
   // Which loop field keys does the template actually use?
   const detectedLoopOwnerFields = useMemo(() => {
@@ -438,11 +362,11 @@ export default function GenerateDocumentPage() {
         description="Create a new official document from a template by selecting a company and template"
       />
 
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Panel - Inputs */}
-          <div className="lg:col-span-1">
-              <div className="bg-card border border-border rounded-xl p-6 sticky top-5 max-h-[calc(100vh-6rem)] overflow-y-auto">
+      <div className="max-w-3xl mx-auto p-6">
+        <div className="flex flex-col gap-6">
+          {/* Main Panel - Inputs */}
+          <div>
+              <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
                   <h2 className="text-lg font-semibold text-foreground mb-6">
                     Document Inputs
                 </h2>
@@ -733,31 +657,10 @@ export default function GenerateDocumentPage() {
                   )}
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Right Panel - Preview and Actions */}
-          <div className="lg:col-span-2">
-            <div className="bg-card border border-border rounded-xl p-6 flex flex-col h-full">
-              <h2 className="text-lg font-semibold text-foreground mb-4">
-                Document Preview
-              </h2>
-
-              <div className="flex-1 bg-slate-900/40 border border-border rounded-lg p-4 overflow-y-auto mb-6 min-h-[500px]">
-                {docxBase64 ? (
-                  <DocxViewer docxBase64={docxBase64} />
-                ) : (
-                  <div className="flex items-center justify-center h-full min-h-[400px]">
-                    <p className="text-muted-foreground text-center">
-                      Select a company and template to view real Word document preview
-                    </p>
-                  </div>
-                )}
-              </div>
 
               {/* Action Buttons */}
               {Boolean(selectedCompany && selectedTemplate) && (
-                <div className="flex gap-3">
+                <div className="sticky bottom-0 z-10 bg-card flex gap-3 mt-6 pt-4 border-t border-border -mx-6 -mb-6 px-6 pb-6 rounded-b-xl shadow-[0_-12px_16px_-4px_rgba(0,0,0,0.05)] dark:shadow-[0_-12px_16px_-4px_rgba(0,0,0,0.2)]">
                   <Button
                     className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2.5 rounded-lg transition-colors"
                     onClick={handleSave}

@@ -333,7 +333,6 @@ export default function DocumentsPage() {
   const [targetFolderSearch, setTargetFolderSearch] = useState('');
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
   const [cardSize, setCardSize] = useState<'small' | 'medium' | 'large' | 'xlarge'>('medium');
-  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
   // Helper: compute full path string for a folder
   const getFolderPathString = (folder: CompanyFolder, allFolders: CompanyFolder[]): string => {
@@ -994,13 +993,7 @@ export default function DocumentsPage() {
                       </span>
 
                       <div className="hidden items-center justify-end gap-0.5 group-hover:flex">
-                        <button
-                          onClick={() => setPreviewDoc(doc)}
-                          title="Preview document"
-                          className="rounded-lg p-1.5 text-slate-600 hover:bg-blue-100 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-blue-950"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
+
                         <button
                           onClick={() => handleLocateDocumentInFolder(doc)}
                           title="Locate in folder"
@@ -1537,7 +1530,7 @@ export default function DocumentsPage() {
                                         : 'p-4 min-h-[120px]'
                                     }`}
                                   >
-                                    <button onClick={() => setPreviewDoc(doc)} className="w-full text-left focus:outline-none">
+                                    <div className="w-full text-left focus:outline-none">
                                       <div className="mb-3 flex items-start justify-between">
                                         <div className={`inline-flex items-center justify-center rounded-xl ${bgCol} ${textCol} ${darkBg} ${darkText} ${
                                           cardSize === 'small'
@@ -1576,19 +1569,10 @@ export default function DocumentsPage() {
                                       <p className="mt-1 text-xs text-slate-500">
                                         {new Date(doc.generatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                                       </p>
-                                    </button>
+                                      </div>
 
-                                    <div className="mt-2 hidden flex-wrap items-center justify-end gap-1 border-t border-slate-200/60 pt-1.5 group-hover:flex dark:border-slate-800">
-                                      <button
-                                        onClick={() => setPreviewDoc(doc)}
-                                        title="Preview document"
-                                        className={`rounded-lg text-slate-600 hover:bg-blue-100 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-blue-950 ${
-                                          cardSize === 'small' ? 'p-1' : 'p-1.5'
-                                        }`}
-                                      >
-                                        <Eye className="h-3.5 w-3.5" />
-                                      </button>
-                                      <a
+                                      <div className="mt-2 hidden flex-wrap items-center justify-end gap-1 border-t border-slate-200/60 pt-1.5 group-hover:flex dark:border-slate-800">
+                                        <a
                                         href={getFileApiUrl(doc.docxUrl)}
                                         download={displayName}
                                         title="Download"
@@ -1711,23 +1695,16 @@ export default function DocumentsPage() {
                               key={doc.id}
                               className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
                             >
-                              <button onClick={() => setPreviewDoc(doc)} className="flex min-w-0 items-center gap-2 text-left hover:opacity-80 focus:outline-none">
+                              <div className="flex min-w-0 items-center gap-2 text-left hover:opacity-80 focus:outline-none">
                                 <Icon className={`h-5 w-5 shrink-0 ${textCol}`} />
                                 <span className="truncate font-medium text-slate-900 dark:text-white" title={displayName}>
                                   {displayName}
                                 </span>
-                              </button>
+                                </div>
                               <span className="text-xs text-slate-500">
                                 {new Date(doc.generatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                               </span>
                               <div className="hidden items-center justify-end gap-0.5 group-hover:flex">
-                                <button
-                                  onClick={() => setPreviewDoc(doc)}
-                                  title="Preview document"
-                                  className="rounded p-1.5 text-slate-500 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-950"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </button>
                                 <a
                                   href={getFileApiUrl(doc.docxUrl)}
                                   download={displayName}
@@ -1851,23 +1828,16 @@ export default function DocumentsPage() {
                               key={doc.id}
                               className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
                             >
-                              <button onClick={() => setPreviewDoc(doc)} className="flex min-w-0 items-center gap-2 text-left hover:opacity-80 focus:outline-none">
+                              <div className="flex min-w-0 items-center gap-2 text-left hover:opacity-80 focus:outline-none">
                                 <Icon className={`h-5 w-5 shrink-0 ${textCol}`} />
                                 <span className="truncate font-medium text-slate-900 dark:text-white" title={displayName}>
                                   {displayName}
                                 </span>
-                              </button>
+                                </div>
                               <span className="text-xs text-slate-500">
                                 {new Date(doc.generatedAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                               </span>
                               <div className="hidden items-center justify-end gap-0.5 group-hover:flex">
-                                <button
-                                  onClick={() => setPreviewDoc(doc)}
-                                  title="Preview document"
-                                  className="rounded p-1.5 text-slate-500 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-950"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </button>
                                 <a
                                   href={getFileApiUrl(doc.docxUrl)}
                                   download={displayName}
@@ -2144,170 +2114,6 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* DOCUMENT PREVIEW MODAL */}
-      {previewDoc && (
-        <DocumentPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
-      )}
-    </div>
-  );
-}
-
-function DocumentPreviewModal({
-  doc,
-  onClose,
-}: {
-  doc: Document;
-  onClose: () => void;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fileExt = doc.docxUrl.split('.').pop()?.toLowerCase() || 'docx';
-  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(fileExt);
-  const isVideo = ['mp4', 'webm', 'ogg'].includes(fileExt);
-  const isPdf = fileExt === 'pdf';
-  const isDocx = fileExt === 'docx';
-  const isMedia = isImage || isVideo || isPdf;
-
-  useEffect(() => {
-    if (isMedia || !isDocx) {
-      setLoading(false);
-      return;
-    }
-
-    let active = true;
-    async function loadAndRender() {
-      setLoading(true);
-      setError(null);
-      try {
-        const { renderAsync } = await import('docx-preview');
-        const fileApiUrl = getFileApiUrl(doc.docxUrl);
-        const res = await fetch(fileApiUrl);
-        if (!res.ok) throw new Error('Failed to fetch document file.');
-        const buffer = await res.arrayBuffer();
-
-        if (containerRef.current && active) {
-          containerRef.current.innerHTML = '';
-          await renderAsync(buffer, containerRef.current, undefined, {
-            inWrapper: true,
-            ignoreWidth: false,
-            ignoreHeight: false,
-            experimental: false,
-          });
-        }
-      } catch (err) {
-        console.error('Failed to render DOCX preview:', err);
-        if (active) setError('Unable to render document preview.');
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    loadAndRender();
-    return () => {
-      active = false;
-    };
-  }, [doc.docxUrl, isDocx, isMedia]);
-
-  const displayName = doc.fileName || `${doc.templateName}.${fileExt}`;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
-      <div className="flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400 shrink-0">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-bold text-slate-900 dark:text-white truncate" title={displayName}>{displayName}</h3>
-              <p className="text-xs text-slate-500 truncate">
-                {doc.companyName} · {doc.templateName}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <a
-              href={getFileApiUrl(doc.docxUrl)}
-              download={displayName}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
-            >
-              <Download className="h-4 w-4" />
-              Download
-            </a>
-            <button
-              onClick={onClose}
-              className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Modal Body / Document Previewer */}
-        <div className="relative flex-1 min-h-0 overflow-y-auto bg-slate-100 p-6 dark:bg-slate-950">
-          {loading && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-              <p className="mt-3 text-sm font-medium text-slate-600 dark:text-slate-400">
-                Rendering preview…
-              </p>
-            </div>
-          )}
-
-          {error ? (
-            <div className="py-20 text-center text-red-500">
-              <p className="text-sm font-medium">{error}</p>
-            </div>
-          ) : (
-            <div className="mx-auto flex h-full justify-center">
-              {isImage ? (
-                <img
-                  src={getFileApiUrl(doc.docxUrl)}
-                  alt={displayName}
-                  className="max-h-full max-w-full object-contain rounded-lg shadow-sm bg-white"
-                />
-              ) : isVideo ? (
-                <video
-                  src={getFileApiUrl(doc.docxUrl)}
-                  controls
-                  className="max-h-full max-w-full rounded-lg shadow-sm bg-black"
-                />
-              ) : isPdf ? (
-                <iframe
-                  src={getFileApiUrl(doc.docxUrl)}
-                  className="h-full w-full max-w-4xl rounded-xl border-none shadow-md bg-white"
-                  title={displayName}
-                />
-              ) : isDocx ? (
-                <div
-                  ref={containerRef}
-                  className="w-full max-w-4xl overflow-x-auto rounded-xl bg-white p-6 text-slate-900 shadow-md"
-                />
-              ) : (
-                <div className="flex h-full w-full max-w-lg flex-col items-center justify-center rounded-2xl bg-white p-12 text-center shadow-sm dark:bg-slate-900">
-                  <FileText className="mb-4 h-16 w-16 text-slate-300 dark:text-slate-700" />
-                  <h4 className="mb-2 text-lg font-semibold text-slate-800 dark:text-slate-200">No Preview Available</h4>
-                  <p className="mb-6 text-sm text-slate-500">
-                    Preview is not supported for .{fileExt} files. Please download the file to view it.
-                  </p>
-                  <a
-                    href={getFileApiUrl(doc.docxUrl)}
-                    download={displayName}
-                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download File
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
