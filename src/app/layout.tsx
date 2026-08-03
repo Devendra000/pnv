@@ -40,7 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className="antialiased bg-background">
+      <body className="antialiased bg-background" suppressHydrationWarning>
         <AppDataProvider>
           {children}
         </AppDataProvider>
