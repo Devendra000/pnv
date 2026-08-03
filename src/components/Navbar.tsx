@@ -10,7 +10,7 @@ export function Navbar() {
   const isActive = (path: string) => pathname?.startsWith(path)
 
   return (
-    <nav className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border z-50">
+    <nav className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border z-50" suppressHydrationWarning>
       <div className="h-full max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Logo */}
         <Link href="/dashboard" className="font-bold text-lg text-primary hover:text-accent transition-colors">
