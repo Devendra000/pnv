@@ -11,6 +11,8 @@ export interface Owner {
   phoneNumber?: string | null;
   shares?: string | null;
   order: number;
+  ownerRoleId?: string | null;
+  ownerRole?: OwnerRole | null;
 }
 
 export interface Witness {
@@ -31,6 +33,13 @@ export interface ObjectiveCategory {
   description?: string | null;
   order: number;
   createdAt?: string | Date;
+}
+
+export interface OwnerRole {
+  id: string;
+  name: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export interface CompanyObjectiveTemplate {
@@ -77,6 +86,7 @@ export interface Variable {
   id: string;
   key: string;
   label: string;
+  description?: string | null;
   type: 'text' | 'number' | 'date' | 'list';
 }
 

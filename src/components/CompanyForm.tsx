@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, type ReactNode } from 'react';
+import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react';
 import { Company, CompanyObjectiveTemplate, Owner, Witness } from '@/lib/types';
 import { Variable } from '@/lib/types';
 import { useAppDataContext } from '@/contexts/AppDataContext';
@@ -66,6 +66,7 @@ type PersonEditorProps = {
   isOwner?: boolean;
   showShares?: boolean;
   slot?: number;
+  ownerRoles?: import('@/lib/types').OwnerRole[];
 };
 
 function SectionCard({
@@ -120,6 +121,7 @@ function PersonEditor({
   isOwner = false,
   showShares = false,
   slot,
+  ownerRoles = [],
 }: PersonEditorProps) {
   const prefix = isOwner ? 'owner' : 'witness';
   const tagSuffix = slot ? `_${slot}` : '';
@@ -160,6 +162,23 @@ function PersonEditor({
             className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
           />
         </div>
+        {isOwner && (
+          <div>
+            <FieldLabel variableTag={`owner_role${tagSuffix}`}>Owner Type</FieldLabel>
+            <select
+              value={(person as Owner).ownerRoleId || ''}
+              onChange={(event) => updateField('ownerRoleId', event.target.value)}
+              className="w-full rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Type (Optional)</option>
+              {ownerRoles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         {isOwner && (
           <div>
             <FieldLabel variableTag={`owner_father_name${tagSuffix}`}>Father&apos;s Name</FieldLabel>
@@ -302,7 +321,7 @@ export function CompanyForm({
     return [{ ...createBlankWitness('wit-0', 0), ownerIndex: 1 }];
   });
 
-  const { objectiveCategories = [] } = useAppDataContext();
+  const { objectiveCategories = [], ownerRoles = [] } = useAppDataContext();
   const [activeCategoryId, setActiveCategoryId] = useState<string | 'ALL'>('ALL');
   const [objectiveSearchQuery, setObjectiveSearchQuery] = useState('');
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
@@ -325,6 +344,21 @@ export function CompanyForm({
       return accumulator;
     }, initialValues);
   });
+
+  // Pre-select 'अध्यक्ष' for the first owner if they are newly added and don't have a role yet
+  useEffect(() => {
+    if (!company && owners.length === 1 && !owners[0].ownerRoleId && ownerRoles.length > 0) {
+      const adhakshyaRole = ownerRoles.find(r => r.name === 'अध्यक्ष');
+      if (adhakshyaRole) {
+        setOwners(current => {
+          if (current.length === 1 && !current[0].ownerRoleId) {
+            return [{ ...current[0], ownerRoleId: adhakshyaRole.id }];
+          }
+          return current;
+        });
+      }
+    }
+  }, [company, owners, ownerRoles]);
 
   // Helper: add a new witness for a new owner slot
   const addWitnessForOwner = (ownerIdx: number) =>
@@ -529,6 +563,7 @@ export function CompanyForm({
                       isOwner={true}
                       showShares={true}
                       slot={index + 1}
+                      ownerRoles={ownerRoles}
                     />
                   </div>
 

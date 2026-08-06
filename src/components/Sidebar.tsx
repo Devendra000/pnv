@@ -3,13 +3,14 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, Target, Variable, FileText, FileStack, BarChart3 } from 'lucide-react';
+import { Building2, Target, Variable, FileText, FileStack, BarChart3, Users } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
   { href: '/companies', label: 'Companies', icon: Building2 },
   { href: '/objectives', label: 'Objectives', icon: Target },
   { href: '/variables', label: 'Variables', icon: Variable },
+  { href: '/owner-roles', label: 'Owner Types', icon: Users },
   { href: '/templates', label: 'Templates', icon: FileText },
   { href: '/documents', label: 'Documents', icon: FileStack },
 ];

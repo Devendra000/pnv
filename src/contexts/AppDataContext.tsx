@@ -10,6 +10,7 @@ import {
   Template,
   Document,
   Stats,
+  OwnerRole,
 } from '@/lib/types';
 import { CompanyTemplateData } from '@/lib/companyVariables';
 
@@ -20,6 +21,7 @@ interface AppDataContextType {
   variables: Variable[];
   templates: Template[];
   documents: Document[];
+  ownerRoles: OwnerRole[];
   stats: Stats;
   loading: boolean;
   refreshData: () => Promise<void>;
@@ -37,6 +39,9 @@ interface AppDataContextType {
   addVariable: (variable: Omit<Variable, 'id'>) => Promise<void>;
   updateVariable: (id: string, updates: Partial<Variable>) => Promise<void>;
   deleteVariable: (id: string) => Promise<void>;
+  addOwnerRole: (name: string) => Promise<void>;
+  updateOwnerRole: (id: string, name: string) => Promise<void>;
+  deleteOwnerRole: (id: string) => Promise<void>;
   addTemplate: (template: { name: string; file: File }) => Promise<void>;
   updateTemplate: (id: string, updates: { name: string; file?: File | null }) => Promise<void>;
   deleteTemplate: (id: string) => Promise<void>;

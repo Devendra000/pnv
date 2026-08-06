@@ -15,6 +15,7 @@ export type CompanyRuntimeVariableSource = {
     phoneNumber?: string | null;
     shares?: string | null;
     order?: number;
+    ownerRole?: { id: string; name: string } | null;
   }>;
   witnesses: Array<{
     name: string;
@@ -54,6 +55,7 @@ export type CompanyTemplateOwnerRow = {
   owner_citizenship_jari_date: string;
   owner_phone_number: string;
   owner_shares: string;
+  owner_role: string;
   // Direct witness fields assigned to this specific owner
   owner_witness_name: string;
   owner_witness_address: string;
@@ -462,6 +464,7 @@ export function buildCompanyTemplateData(company: CompanyRuntimeVariableSource):
         owner_citizenship_jari_date: owner.citizenshipJariDate || '',
         owner_phone_number: owner.phoneNumber || '',
         owner_shares: owner.shares || '',
+        owner_role: owner.ownerRole?.name || '',
         owner_witness_name: witnessName,
         owner_witness_address: witnessAddress,
         owner_witness_citizenship: witnessCitizenship,

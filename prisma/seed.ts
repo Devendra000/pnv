@@ -47,7 +47,16 @@ async function main() {
     },
   })
 
-  console.log("Seeded admin user + #general channel successfully")
+  const rolesToSeed = ['अध्यक्ष', 'संचालक']
+  for (const roleName of rolesToSeed) {
+    await prisma.ownerRole.upsert({
+      where: { name: roleName },
+      update: {},
+      create: { name: roleName },
+    })
+  }
+
+  console.log("Seeded admin user, #general channel, and owner roles successfully")
 }
 
 main()

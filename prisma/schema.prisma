@@ -44,6 +44,8 @@ model CompanyOwner {
   phoneNumber         String?  @map("phone_number")
   shares              String?
   order               Int      @default(0)
+  ownerRoleId         String?  @map("owner_role_id")
+  ownerRole           OwnerRole? @relation(fields: [ownerRoleId], references: [id], onDelete: SetNull)
 
   @@map("company_owners")
 }
@@ -62,6 +64,17 @@ model CompanyWitness {
   order               Int      @default(0)
 
   @@map("company_witnesses")
+}
+
+model OwnerRole {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owners    CompanyOwner[]
+
+  @@map("owner_roles")
 }
 
 model ObjectiveCategory {
@@ -97,10 +110,11 @@ model CompanyObjective {
 }
 
 model Variable {
-  id    String @id @default(cuid())
-  key   String @unique
-  label String
-  type  String @default("text") // text | date | number | list
+  id          String  @id @default(cuid())
+  key         String  @unique
+  label       String
+  description String?
+  type        String  @default("text") // text | date | number | list
 
   companyValues CompanyVariableValue[]
 

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Variable } from '@/lib/types';
 import { isSystemVariableKey, COMPANY_VARIABLE_DEFINITIONS } from '@/lib/companyVariables';
 import { useState, useMemo } from 'react';
-import { Plus, X, Search, Lock, Repeat2 } from 'lucide-react';
+import { Plus, X, Search, Lock, Repeat2, Copy, Check } from 'lucide-react';
 
 // ── Loop field definitions ────────────────────────────────────────────────────
 // These keys work ONLY inside their respective loop blocks in the .docx template.
@@ -23,6 +23,7 @@ const OWNERS_LOOP_FIELDS = [
   { key: 'owner_citizenship_jari_date',         description: "Owner's citizenship issued date" },
   { key: 'owner_phone_number',                  description: "Owner's phone number" },
   { key: 'owner_shares',                        description: "Owner's share amount" },
+  { key: 'owner_role',                          description: "Owner's type/role (e.g. Adhakshya)" },
   { key: 'owner_witness_name',                  description: "Name of the witness assigned directly to this owner" },
   { key: 'owner_witness_address',               description: "Address of the witness assigned directly to this owner" },
   { key: 'owner_witness_citizenship',           description: "Citizenship number of the witness assigned directly to this owner" },
@@ -54,8 +55,20 @@ export default function VariablesPage() {
   const [newVariable, setNewVariable] = useState<{
     key: string;
     label: string;
+    description: string;
     type: Variable['type'];
-  }>({ key: '', label: '', type: 'text' });
+  }>({ key: '', label: '', description: '', type: 'text' });
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const copyToClipboard = async (text: string, identifier: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(identifier);
+      setTimeout(() => setCopiedKey(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
+  };
 
   const query = searchQuery.toLowerCase().trim();
 
@@ -100,24 +113,24 @@ export default function VariablesPage() {
 
   const handleAdd = () => {
     if (newVariable.key.trim() && newVariable.label.trim()) {
-      addVariable({ key: newVariable.key.trim(), label: newVariable.label.trim(), type: newVariable.type });
-      setNewVariable({ key: '', label: '', type: 'text' });
+      addVariable({ key: newVariable.key.trim(), label: newVariable.label.trim(), description: newVariable.description.trim() || undefined, type: newVariable.type });
+      setNewVariable({ key: '', label: '', description: '', type: 'text' });
       setIsAdding(false);
     }
   };
 
   const handleUpdate = (id: string) => {
     if (newVariable.key.trim() && newVariable.label.trim()) {
-      updateVariable(id, { key: newVariable.key.trim(), label: newVariable.label.trim(), type: newVariable.type });
+      updateVariable(id, { key: newVariable.key.trim(), label: newVariable.label.trim(), description: newVariable.description.trim() || undefined, type: newVariable.type });
       setEditingId(null);
-      setNewVariable({ key: '', label: '', type: 'text' });
+      setNewVariable({ key: '', label: '', description: '', type: 'text' });
     }
   };
 
   const cancelForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setNewVariable({ key: '', label: '', type: 'text' });
+    setNewVariable({ key: '', label: '', description: '', type: 'text' });
   };
 
   return (
@@ -223,6 +236,17 @@ export default function VariablesPage() {
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Description <span className="text-slate-500 font-normal">(Optional)</span>
+                    </label>
+                    <Input
+                      value={newVariable.description}
+                      onChange={(e) => setNewVariable({ ...newVariable, description: e.target.value })}
+                      placeholder="Explain what this variable is used for"
+                      className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-foreground"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Type</label>
                     <select
                       value={newVariable.type}
@@ -270,17 +294,28 @@ export default function VariablesPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <code className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">{`[${variable.key}]`}</code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-slate-400 hover:text-blue-500"
+                          onClick={() => copyToClipboard(`[${variable.key}]`, variable.key)}
+                        >
+                          {copiedKey === variable.key ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                        </Button>
                         <span className="rounded-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
                           {variable.type}
                         </span>
                       </div>
                       {variable.label && (
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{variable.label}</p>
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                          {variable.label}
+                          {variable.description && <span className="ml-2 text-slate-400">({variable.description})</span>}
+                        </p>
                       )}
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => { setEditingId(variable.id); setNewVariable({ key: variable.key, label: variable.label, type: variable.type }); setIsAdding(false); }}
+                        onClick={() => { setEditingId(variable.id); setNewVariable({ key: variable.key, label: variable.label, description: variable.description || '', type: variable.type }); setIsAdding(false); }}
                       >Edit</Button>
                       <Button size="sm" variant="outline"
                         className="border-red-200 dark:border-red-900/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
@@ -320,7 +355,17 @@ export default function VariablesPage() {
                     <div key={def.key}
                       className="flex items-start gap-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-4 py-2.5"
                     >
-                      <code className="shrink-0 text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">{`[${def.key}]`}</code>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <code className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">{`[${def.key}]`}</code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-slate-400 hover:text-blue-500"
+                          onClick={() => copyToClipboard(`[${def.key}]`, def.key)}
+                        >
+                          {copiedKey === def.key ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                        </Button>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{def.label}</span>
                         {'description' in def && (

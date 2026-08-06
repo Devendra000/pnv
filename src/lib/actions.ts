@@ -15,6 +15,7 @@ import {
   CompanyFolder,
   Stats,
   CompanyVariableValue as UICompanyVariableValue,
+  OwnerRole,
 } from './types';
 import {
   buildCompanyRuntimeVariableValues,
@@ -619,6 +620,7 @@ export async function fetchAppData(): Promise<{
       id: v.id,
       key: v.key,
       label: v.label,
+      description: v.description,
       type: v.type as UIVariable['type'],
     }));
 
@@ -743,6 +745,7 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
           phoneNumber: o.phoneNumber || null,
           shares: o.shares || null,
           order: idx,
+          ownerRoleId: o.ownerRoleId || null,
         })),
       },
       witnesses: {
@@ -766,7 +769,7 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
       },
     },
     include: {
-      owners: { orderBy: { order: 'asc' } },
+      owners: { include: { ownerRole: true }, orderBy: { order: 'asc' } },
       witnesses: { orderBy: { order: 'asc' } },
       objectives: { orderBy: { order: 'asc' } },
       variableValues: { include: { variable: true }, orderBy: { variable: { key: 'asc' } } },
@@ -784,7 +787,7 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
   const reloaded = await prisma.company.findUnique({
     where: { id: c.id },
     include: {
-      owners: { orderBy: { order: 'asc' } },
+      owners: { include: { ownerRole: true }, orderBy: { order: 'asc' } },
       witnesses: { orderBy: { order: 'asc' } },
       objectives: { orderBy: { order: 'asc' } },
       variableValues: { include: { variable: true }, orderBy: { variable: { key: 'asc' } } },
@@ -814,6 +817,8 @@ export async function createCompanyAction(data: Omit<Company, 'id' | 'createdAt'
       phoneNumber: o.phoneNumber,
       shares: o.shares,
       order: o.order,
+      ownerRoleId: o.ownerRoleId,
+      ownerRole: o.ownerRole ? { id: o.ownerRole.id, name: o.ownerRole.name } : null,
     })),
     witnesses: reloaded.witnesses.map((w) => ({
       id: w.id,
@@ -863,6 +868,7 @@ export async function updateCompanyAction(
           phoneNumber: o.phoneNumber || null,
           shares: o.shares || null,
           order: idx,
+          ownerRoleId: o.ownerRoleId || null,
         })),
       },
       witnesses: {
@@ -886,7 +892,7 @@ export async function updateCompanyAction(
       },
     },
     include: {
-      owners: { orderBy: { order: 'asc' } },
+      owners: { include: { ownerRole: true }, orderBy: { order: 'asc' } },
       witnesses: { orderBy: { order: 'asc' } },
       objectives: { orderBy: { order: 'asc' } },
       variableValues: { include: { variable: true }, orderBy: { variable: { key: 'asc' } } },
@@ -904,7 +910,7 @@ export async function updateCompanyAction(
   const reloaded = await prisma.company.findUnique({
     where: { id },
     include: {
-      owners: { orderBy: { order: 'asc' } },
+      owners: { include: { ownerRole: true }, orderBy: { order: 'asc' } },
       witnesses: { orderBy: { order: 'asc' } },
       objectives: { orderBy: { order: 'asc' } },
       variableValues: { include: { variable: true }, orderBy: { variable: { key: 'asc' } } },
@@ -934,6 +940,8 @@ export async function updateCompanyAction(
       phoneNumber: o.phoneNumber,
       shares: o.shares,
       order: o.order,
+      ownerRoleId: o.ownerRoleId,
+      ownerRole: o.ownerRole ? { id: o.ownerRole.id, name: o.ownerRole.name } : null,
     })),
     witnesses: reloaded.witnesses.map((w) => ({
       id: w.id,
@@ -1057,6 +1065,7 @@ export async function createVariableAction(data: Omit<UIVariable, 'id'>): Promis
     data: {
       key: data.key,
       label: data.label,
+      description: data.description,
       type: data.type,
     },
   });
@@ -1064,16 +1073,18 @@ export async function createVariableAction(data: Omit<UIVariable, 'id'>): Promis
     id: v.id,
     key: v.key,
     label: v.label,
+    description: v.description,
     type: v.type as UIVariable['type'],
   };
 }
 
-export async function updateVariableAction(id: string, data: Omit<UIVariable, 'id'>): Promise<UIVariable> {
+export async function updateVariableAction(id: string, data: Partial<Omit<UIVariable, 'id'>>): Promise<UIVariable> {
   const v = await prisma.variable.update({
     where: { id },
     data: {
       key: data.key,
       label: data.label,
+      description: data.description,
       type: data.type,
     },
   });
@@ -1081,6 +1092,7 @@ export async function updateVariableAction(id: string, data: Omit<UIVariable, 'i
     id: v.id,
     key: v.key,
     label: v.label,
+    description: v.description,
     type: v.type as UIVariable['type'],
   };
 }
@@ -1719,3 +1731,35 @@ export async function setDefaultGenerationFolderAction(folderId: string): Promis
   }));
 }
 
+// ─── OWNER ROLES ─────────────────────────────────────────────────────────────
+
+export async function getOwnerRolesAction(): Promise<OwnerRole[]> {
+  const roles = await prisma.ownerRole.findMany({ orderBy: { createdAt: 'asc' } });
+  return roles.map(r => ({
+    ...r,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  }));
+}
+
+export async function createOwnerRoleAction(name: string): Promise<OwnerRole> {
+  const r = await prisma.ownerRole.create({ data: { name } });
+  return {
+    ...r,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  };
+}
+
+export async function updateOwnerRoleAction(id: string, name: string): Promise<OwnerRole> {
+  const r = await prisma.ownerRole.update({ where: { id }, data: { name } });
+  return {
+    ...r,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  };
+}
+
+export async function deleteOwnerRoleAction(id: string): Promise<void> {
+  await prisma.ownerRole.delete({ where: { id } });
+}

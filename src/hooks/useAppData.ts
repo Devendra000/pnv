@@ -9,6 +9,7 @@ import {
   Template,
   Document,
   Stats,
+  OwnerRole,
 } from '@/lib/types';
 import {
   fetchAppData,
@@ -30,6 +31,10 @@ import {
   deleteTemplateAction,
   createDocumentAction,
   deleteDocumentAction,
+  getOwnerRolesAction,
+  createOwnerRoleAction,
+  updateOwnerRoleAction,
+  deleteOwnerRoleAction,
 } from '@/lib/actions';
 
 export const useAppData = () => {
@@ -39,6 +44,7 @@ export const useAppData = () => {
   const [variables, setVariables] = useState<Variable[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [ownerRoles, setOwnerRoles] = useState<OwnerRole[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refreshData = useCallback(async () => {
@@ -49,6 +55,8 @@ export const useAppData = () => {
     setVariables(data.variables);
     setTemplates(data.templates);
     setDocuments(data.documents);
+    const roles = await getOwnerRolesAction();
+    setOwnerRoles(roles);
   }, []);
 
   // Fetch initial data from DB on mount
@@ -240,6 +248,34 @@ export const useAppData = () => {
     }
   }, []);
 
+  // OwnerRoles operations
+  const addOwnerRole = useCallback(async (name: string) => {
+    try {
+      const created = await createOwnerRoleAction(name);
+      setOwnerRoles((prev) => [...prev, created]);
+    } catch (error) {
+      console.error('Error adding owner role:', error);
+    }
+  }, []);
+
+  const updateOwnerRole = useCallback(async (id: string, name: string) => {
+    try {
+      const updated = await updateOwnerRoleAction(id, name);
+      setOwnerRoles((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    } catch (error) {
+      console.error('Error updating owner role:', error);
+    }
+  }, []);
+
+  const deleteOwnerRole = useCallback(async (id: string) => {
+    try {
+      await deleteOwnerRoleAction(id);
+      setOwnerRoles((prev) => prev.filter((r) => r.id !== id));
+    } catch (error) {
+      console.error('Error deleting owner role:', error);
+    }
+  }, []);
+
   // Templates operations
   const addTemplate = useCallback(async (template: { name: string; file: File }) => {
     try {
@@ -334,6 +370,7 @@ export const useAppData = () => {
     variables,
     templates,
     documents,
+    ownerRoles,
     stats,
     loading,
     refreshData,
@@ -351,6 +388,9 @@ export const useAppData = () => {
     addVariable,
     updateVariable,
     deleteVariable,
+    addOwnerRole,
+    updateOwnerRole,
+    deleteOwnerRole,
     addTemplate,
     updateTemplate,
     deleteTemplate,
