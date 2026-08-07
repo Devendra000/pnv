@@ -8,6 +8,7 @@ import {
   buildCompanyRuntimeVariableValues,
   isRuntimeCompanyVariableKey,
 } from '@/lib/companyVariables';
+import { resolveFormulaVariables } from '@/lib/formulaEvaluator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, BadgeInfo, Building2, FileText, Lock, Plus, Trash2, Users, Search, Tag, Check, Filter } from 'lucide-react';
@@ -396,8 +397,7 @@ export function CompanyForm({
     }
   };
 
-  // Build runtime values from current form state (owners, witnesses, objectives)
-  const runtimeValues = buildCompanyRuntimeVariableValues({
+  const baseRuntimeValues = buildCompanyRuntimeVariableValues({
     englishName: formData.englishName,
     nepaliName: formData.nepaliName,
     companyAddress: formData.companyAddress,
@@ -406,6 +406,21 @@ export function CompanyForm({
     witnesses,
     objectives: selectedObjectives.map((id) => ({ text: objectives.find((o) => o.id === id)?.text || '' })),
   });
+
+  const formulaMap = new Map<string, string>();
+  for (const v of variables) {
+    if (v.formula) formulaMap.set(v.key, v.formula);
+  }
+
+  const dict: Record<string, string> = { ...baseRuntimeValues };
+  for (const v of variables) {
+    if (variableValues[v.id]) {
+      dict[v.key] = variableValues[v.id];
+    }
+  }
+
+  const formulaResults = resolveFormulaVariables(formulaMap, dict);
+  const runtimeValues = { ...dict, ...formulaResults };
 
   const resolvedVariableValues = variables.map((variable) => ({
     variableId: variable.id,
@@ -795,7 +810,7 @@ export function CompanyForm({
               <div className="space-y-8">
                 {/* ── Auto-mapped (read-only) ── */}
                 {(() => {
-                  const autoVars = variables.filter((v) => isRuntimeCompanyVariableKey(v.key) || runtimeValues[v.key] !== undefined);
+                  const autoVars = variables.filter((v) => isRuntimeCompanyVariableKey(v.key) || runtimeValues[v.key] !== undefined || !!v.formula);
                   if (autoVars.length === 0) return null;
                   return (
                     <div>
@@ -827,7 +842,7 @@ export function CompanyForm({
                                     ? 'border-slate-800 bg-slate-950/20 text-slate-600'
                                     : 'border-slate-700/50 bg-slate-950/40 text-slate-300'
                                 }`}>
-                                  {isEmpty ? <span className="italic">not set yet</span> : derivedValue}
+                                  {isEmpty ? <span className="italic">{variable.formula ? `Computed: ${derivedValue}` : 'not set yet'}</span> : derivedValue}
                                 </div>
                               )}
                             </div>
@@ -840,7 +855,7 @@ export function CompanyForm({
 
                 {/* ── Manual input ── */}
                 {(() => {
-                  const manualVars = variables.filter((v) => !isRuntimeCompanyVariableKey(v.key) && runtimeValues[v.key] === undefined);
+                  const manualVars = variables.filter((v) => !isRuntimeCompanyVariableKey(v.key) && runtimeValues[v.key] === undefined && !v.formula);
                   if (manualVars.length === 0) return null;
                   return (
                     <div>

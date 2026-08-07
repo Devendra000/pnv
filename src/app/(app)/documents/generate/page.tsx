@@ -13,6 +13,7 @@ import {
   TEMPLATE_LOOP_HELPER_KEYS,
 } from '@/lib/companyVariables';
 import { addTemplateVariableToManualAction } from '@/lib/actions';
+import { resolveFormulaVariables } from '@/lib/formulaEvaluator';
 
 function buildInitialVariableDrafts(
   company: { variableValues: Array<{ variableId: string; value: string }> } | undefined,
@@ -217,7 +218,7 @@ export default function GenerateDocumentPage() {
       return {} as Record<string, string>;
     }
 
-    return Object.fromEntries(
+    const baseResolved = Object.fromEntries(
       templateVariables.map((variable) => {
         const draftValue = variableDrafts[variable.key] ?? (variable.id ? variableDrafts[variable.id] : undefined);
         const savedValue = variable.source === 'database' && variable.id ? companyVariableMap.get(variable.id) || '' : '';
@@ -232,6 +233,24 @@ export default function GenerateDocumentPage() {
         return [variable.key, finalValue];
       })
     );
+
+    const formulaMap = new Map<string, string>();
+    for (const variable of templateVariables) {
+      if (variable.formula && !baseResolved[variable.key]) {
+        formulaMap.set(variable.key, variable.formula);
+      }
+    }
+
+    if (formulaMap.size > 0) {
+      const formulaResults = resolveFormulaVariables(formulaMap, baseResolved);
+      for (const [key, val] of Object.entries(formulaResults)) {
+        if (!baseResolved[key]) {
+          baseResolved[key] = val;
+        }
+      }
+    }
+
+    return baseResolved;
   }, [baseVariables, companyVariableMap, selectedTemplateRecord, templateVariables, variableDrafts]);
 
   const previewContent = useMemo(() => {
@@ -306,7 +325,7 @@ export default function GenerateDocumentPage() {
       const autoValue = baseVariables[key] || '';
 
       const effectiveValue = draftValue ?? (savedValue || autoValue);
-      return !effectiveValue.trim();
+      return !effectiveValue.trim() && !variable.formula;
     });
   }, [baseVariables, companyVariableMap, selectedTemplateRecord, singleTemplateVariables, variableDrafts]);
 
@@ -577,7 +596,8 @@ export default function GenerateDocumentPage() {
                             : '';
                           const autoValue = baseVariables[key] || '';
                           const draftValue = variableDrafts[key] ?? (id ? variableDrafts[id] : undefined);
-                          const currentValue = draftValue ?? (savedValue || autoValue);
+                          const computedValue = isManual && variable.formula && !savedValue && draftValue === undefined ? resolvedTemplateVariables[key] : '';
+                          const currentValue = draftValue ?? (savedValue || autoValue || computedValue);
 
                           const isEdited = draftValue !== undefined && draftValue !== (savedValue || autoValue);
 
@@ -653,6 +673,7 @@ export default function GenerateDocumentPage() {
                               <Input
                                 id={`variable-input-${key}`}
                                 value={currentValue}
+                                readOnly={isManual && !!variable.formula && !savedValue && draftValue === undefined}
                                 onChange={(event) => {
                                   if (showValidationErrors) setShowValidationErrors(false);
                                   setVariableDrafts((prev) => ({
@@ -661,8 +682,8 @@ export default function GenerateDocumentPage() {
                                     ...(id ? { [id]: event.target.value } : {}),
                                   }));
                                 }}
-                                placeholder={`Enter value for ${variable.label}`}
-                                className={`bg-background text-sm ${isMissing ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                placeholder={isManual && variable.formula && !savedValue ? `Computed from formula: ${variable.formula}` : `Enter value for ${variable.label}`}
+                                className={`bg-background text-sm ${isMissing ? 'border-red-500 focus-visible:ring-red-500' : ''} ${isManual && !!variable.formula && !savedValue && draftValue === undefined ? 'text-amber-700/80 dark:text-amber-400/80 bg-amber-50/30 dark:bg-amber-950/20' : ''}`}
                               />
                               {isMissing && <p className="text-[11px] font-medium text-red-500 mt-1">This variable is required to generate the document.</p>}
 
@@ -676,7 +697,7 @@ export default function GenerateDocumentPage() {
                                   'Company value loaded. Edits apply to this document only.'
                                 ) : isManual && variable.formula ? (
                                   <span className="text-amber-600 dark:text-amber-400">
-                                    ⚡ No saved value — will be computed from formula: <code className="font-mono text-[11px] bg-amber-50 dark:bg-amber-950/30 px-1 rounded">{variable.formula}</code>
+                                    ⚡ Computed from formula: <code className="font-mono text-[11px] bg-amber-50 dark:bg-amber-950/30 px-1 rounded">{variable.formula}</code>
                                   </span>
                                 ) : isManual ? (
                                   'No saved value yet for this company.'

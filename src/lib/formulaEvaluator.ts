@@ -203,6 +203,11 @@ export function resolveFormulaVariables(
   baseValues: Record<string, string>
 ): Record<string, string> {
   const resolved: Record<string, string> = { ...baseValues };
+  for (const key of formulaVars.keys()) {
+    if (resolved[key] === '') {
+      delete resolved[key]; // treat empty string as "not provided", force evaluation
+    }
+  }
   const inProgress = new Set<string>();
 
   function resolve(key: string): string {

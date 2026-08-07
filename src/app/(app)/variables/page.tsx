@@ -112,8 +112,32 @@ export default function VariablesPage() {
     );
   }, [query]);
 
+  const validateFormula = (formula: string): boolean => {
+    if (!formula.trim()) return true;
+    const regex = /\[(.*?)\]/g;
+    let match;
+    const invalidKeys: string[] = [];
+    while ((match = regex.exec(formula)) !== null) {
+      const key = match[1];
+      const isSystem = COMPANY_VARIABLE_DEFINITIONS.some(def => def.key === key) || isSystemVariableKey(key);
+      const isCustom = variables.some(v => v.key === key);
+      const isLoopField = OWNERS_LOOP_FIELDS.some(f => f.key === key) || WITNESSES_LOOP_FIELDS.some(f => f.key === key);
+      
+      if (!isSystem && !isCustom && !isLoopField) {
+        invalidKeys.push(key);
+      }
+    }
+    
+    if (invalidKeys.length > 0) {
+      alert(`Invalid variable(s) in formula: ${invalidKeys.map(k => `[${k}]`).join(', ')}.\nPlease make sure these variables exist.`);
+      return false;
+    }
+    return true;
+  };
+
   const handleAdd = () => {
     if (newVariable.key.trim() && newVariable.label.trim()) {
+      if (!validateFormula(newVariable.formula)) return;
       addVariable({
         key: newVariable.key.trim(),
         label: newVariable.label.trim(),
@@ -128,6 +152,7 @@ export default function VariablesPage() {
 
   const handleUpdate = (id: string) => {
     if (newVariable.key.trim() && newVariable.label.trim()) {
+      if (!validateFormula(newVariable.formula)) return;
       updateVariable(id, {
         key: newVariable.key.trim(),
         label: newVariable.label.trim(),
