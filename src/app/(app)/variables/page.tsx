@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Variable } from '@/lib/types';
 import { isSystemVariableKey, COMPANY_VARIABLE_DEFINITIONS } from '@/lib/companyVariables';
 import { useState, useMemo } from 'react';
-import { Plus, X, Search, Lock, Repeat2, Copy, Check } from 'lucide-react';
+import { Plus, X, Search, Lock, Repeat2, Copy, Check, Zap } from 'lucide-react';
 
 // ── Loop field definitions ────────────────────────────────────────────────────
 // These keys work ONLY inside their respective loop blocks in the .docx template.
@@ -56,8 +56,9 @@ export default function VariablesPage() {
     key: string;
     label: string;
     description: string;
+    formula: string;
     type: Variable['type'];
-  }>({ key: '', label: '', description: '', type: 'text' });
+  }>({ key: '', label: '', description: '', formula: '', type: 'text' });
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const copyToClipboard = async (text: string, identifier: string) => {
@@ -113,24 +114,36 @@ export default function VariablesPage() {
 
   const handleAdd = () => {
     if (newVariable.key.trim() && newVariable.label.trim()) {
-      addVariable({ key: newVariable.key.trim(), label: newVariable.label.trim(), description: newVariable.description.trim() || undefined, type: newVariable.type });
-      setNewVariable({ key: '', label: '', description: '', type: 'text' });
+      addVariable({
+        key: newVariable.key.trim(),
+        label: newVariable.label.trim(),
+        description: newVariable.description.trim() || undefined,
+        formula: newVariable.formula.trim() || undefined,
+        type: newVariable.type,
+      });
+      setNewVariable({ key: '', label: '', description: '', formula: '', type: 'text' });
       setIsAdding(false);
     }
   };
 
   const handleUpdate = (id: string) => {
     if (newVariable.key.trim() && newVariable.label.trim()) {
-      updateVariable(id, { key: newVariable.key.trim(), label: newVariable.label.trim(), description: newVariable.description.trim() || undefined, type: newVariable.type });
+      updateVariable(id, {
+        key: newVariable.key.trim(),
+        label: newVariable.label.trim(),
+        description: newVariable.description.trim() || undefined,
+        formula: newVariable.formula.trim() || undefined,
+        type: newVariable.type,
+      });
       setEditingId(null);
-      setNewVariable({ key: '', label: '', description: '', type: 'text' });
+      setNewVariable({ key: '', label: '', description: '', formula: '', type: 'text' });
     }
   };
 
   const cancelForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setNewVariable({ key: '', label: '', description: '', type: 'text' });
+    setNewVariable({ key: '', label: '', description: '', formula: '', type: 'text' });
   };
 
   return (
@@ -259,6 +272,28 @@ export default function VariablesPage() {
                       <option value="list">List</option>
                     </select>
                   </div>
+
+                  {/* Formula */}
+                  <div className="rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/20 p-4 space-y-2">
+                    <label className="flex items-center gap-1.5 text-sm font-medium text-amber-700 dark:text-amber-400 mb-1">
+                      <Zap className="w-4 h-4" />
+                      Formula <span className="text-slate-500 font-normal">(Optional)</span>
+                    </label>
+                    <Input
+                      value={newVariable.formula}
+                      onChange={(e) => setNewVariable({ ...newVariable, formula: e.target.value })}
+                      placeholder={`e.g.  TODAY  or  [adhikrit_puji] / 100  or  [var_a] - [var_b]`}
+                      className="bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700/60 text-foreground font-mono text-sm"
+                    />
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Evaluated at generation time when no per-company value is set.{' '}
+                      <strong>Supported:</strong>{' '}
+                      <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">TODAY</code>{' '}
+                      · arithmetic <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">+ - * /</code>{' '}
+                      · variable references <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">[key]</code>{' '}
+                      · string literals <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">&quot;text&quot;</code>
+                    </p>
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       onClick={() => editingId ? handleUpdate(editingId) : handleAdd()}
@@ -305,6 +340,15 @@ export default function VariablesPage() {
                         <span className="rounded-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
                           {variable.type}
                         </span>
+                        {variable.formula && (
+                          <span
+                            title={`Formula: ${variable.formula}`}
+                            className="flex items-center gap-1 rounded-full border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400"
+                          >
+                            <Zap className="h-3 w-3" />
+                            Formula
+                          </span>
+                        )}
                       </div>
                       {variable.label && (
                         <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
@@ -312,10 +356,25 @@ export default function VariablesPage() {
                           {variable.description && <span className="ml-2 text-slate-400">({variable.description})</span>}
                         </p>
                       )}
+                      {variable.formula && (
+                        <p className="mt-0.5 text-[11px] font-mono text-amber-600 dark:text-amber-400 truncate">
+                          ⚡ {variable.formula}
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => { setEditingId(variable.id); setNewVariable({ key: variable.key, label: variable.label, description: variable.description || '', type: variable.type }); setIsAdding(false); }}
+                        onClick={() => {
+                          setEditingId(variable.id);
+                          setNewVariable({
+                            key: variable.key,
+                            label: variable.label,
+                            description: variable.description || '',
+                            formula: variable.formula || '',
+                            type: variable.type,
+                          });
+                          setIsAdding(false);
+                        }}
                       >Edit</Button>
                       <Button size="sm" variant="outline"
                         className="border-red-200 dark:border-red-900/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"

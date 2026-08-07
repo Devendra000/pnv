@@ -46,6 +46,7 @@ type TemplateVariableItem = {
   label: string;
   source: 'database' | 'detected';
   id?: string;
+  formula?: string | null;
 };
 
 function replacePlaceholders(template: string, values: Record<string, unknown>) {
@@ -167,6 +168,7 @@ export default function GenerateDocumentPage() {
       label: variable.label,
       source: 'database' as const,
       id: variable.id,
+      formula: variable.formula,
     }));
 
     // Merge in any variables promoted to manual this session (before context refreshes)
@@ -598,6 +600,14 @@ export default function GenerateDocumentPage() {
                                         Manual
                                       </span>
                                     )}
+                                    {isManual && variable.formula && !savedValue && (
+                                      <span
+                                        title={`Formula: ${variable.formula}`}
+                                        className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-400/20 px-1.5 py-0.5 rounded"
+                                      >
+                                        ⚡ Formula
+                                      </span>
+                                    )}
                                     {isTemplateOnly && (
                                       <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-400/20 px-1.5 py-0.5 rounded">
                                         Template Only
@@ -664,6 +674,10 @@ export default function GenerateDocumentPage() {
                                   'Auto-filled from company data. Edits apply to this document only.'
                                 ) : savedValue ? (
                                   'Company value loaded. Edits apply to this document only.'
+                                ) : isManual && variable.formula ? (
+                                  <span className="text-amber-600 dark:text-amber-400">
+                                    ⚡ No saved value — will be computed from formula: <code className="font-mono text-[11px] bg-amber-50 dark:bg-amber-950/30 px-1 rounded">{variable.formula}</code>
+                                  </span>
                                 ) : isManual ? (
                                   'No saved value yet for this company.'
                                 ) : (

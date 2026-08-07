@@ -22,6 +22,7 @@ import {
   buildCompanyTemplateData,
   COMPANY_VARIABLE_DEFINITIONS,
 } from '@/lib/companyVariables';
+import { resolveFormulaVariables } from '@/lib/formulaEvaluator';
 import { extractDocxTemplateData, cleanDocxZipTags } from '@/lib/templateParser';
 
 type CompanyVariableValueRow = {
@@ -621,6 +622,7 @@ export async function fetchAppData(): Promise<{
       key: v.key,
       label: v.label,
       description: v.description,
+      formula: v.formula,
       type: v.type as UIVariable['type'],
     }));
 
@@ -1067,6 +1069,7 @@ export async function createVariableAction(data: Omit<UIVariable, 'id'>): Promis
       label: data.label,
       description: data.description,
       type: data.type,
+      formula: data.formula ?? null,
     },
   });
   return {
@@ -1074,6 +1077,7 @@ export async function createVariableAction(data: Omit<UIVariable, 'id'>): Promis
     key: v.key,
     label: v.label,
     description: v.description,
+    formula: v.formula,
     type: v.type as UIVariable['type'],
   };
 }
@@ -1086,6 +1090,7 @@ export async function updateVariableAction(id: string, data: Partial<Omit<UIVari
       label: data.label,
       description: data.description,
       type: data.type,
+      formula: data.formula !== undefined ? (data.formula ?? null) : undefined,
     },
   });
   return {
@@ -1093,6 +1098,7 @@ export async function updateVariableAction(id: string, data: Partial<Omit<UIVari
     key: v.key,
     label: v.label,
     description: v.description,
+    formula: v.formula,
     type: v.type as UIVariable['type'],
   };
 }
@@ -1388,6 +1394,44 @@ export async function createDocumentAction(data: {
       ...fullTemplateData,
     };
   }
+
+  // ── Resolve formula variables ──────────────────────────────────────────────
+  // Load all variables that have a formula set.
+  // For each one, if the company already has an explicit value → skip (it wins).
+  // Otherwise → evaluate the formula using already-resolved values.
+  const formulaVarRecords = await prisma.variable.findMany({
+    where: { formula: { not: null } },
+  });
+
+  if (formulaVarRecords.length > 0) {
+    // Build the set of keys that already have an explicit company value
+    const companyRecord2 = await prisma.company.findUnique({
+      where: { id: data.companyId },
+      include: { variableValues: { include: { variable: true } } },
+    });
+    const explicitKeys = new Set(
+      (companyRecord2?.variableValues || []).map((cv) => cv.variable.key)
+    );
+
+    // Build the formula map — only for variables without an explicit company value
+    const formulaMap = new Map<string, string>();
+    for (const v of formulaVarRecords) {
+      if (!explicitKeys.has(v.key) && v.formula) {
+        formulaMap.set(v.key, v.formula);
+      }
+    }
+
+    if (formulaMap.size > 0) {
+      const formulaResults = resolveFormulaVariables(formulaMap, data.variables);
+      // Merge formula results into variables (explicit values in data.variables take precedence)
+      for (const [key, value] of Object.entries(formulaResults)) {
+        if (!data.variables[key]) {
+          data.variables[key] = value;
+        }
+      }
+    }
+  }
+  // ──────────────────────────────────────────────────────────────────────────
 
   const templateName = template.name || 'Document';
   const companyName = companyRecord?.englishName || 'Company';

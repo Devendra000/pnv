@@ -87,6 +87,7 @@ export interface Variable {
   key: string;
   label: string;
   description?: string | null;
+  formula?: string | null;
   type: 'text' | 'number' | 'date' | 'list';
 }
 
