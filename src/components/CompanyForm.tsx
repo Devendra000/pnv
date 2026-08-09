@@ -414,7 +414,7 @@ export function CompanyForm({
 
   const dict: Record<string, string> = { ...baseRuntimeValues };
   for (const v of variables) {
-    if (variableValues[v.id]) {
+    if (variableValues[v.id] && !v.formula) {
       dict[v.key] = variableValues[v.id];
     }
   }
@@ -810,7 +810,7 @@ export function CompanyForm({
               <div className="space-y-8">
                 {/* ── Auto-mapped (read-only) ── */}
                 {(() => {
-                  const autoVars = variables.filter((v) => isRuntimeCompanyVariableKey(v.key) || runtimeValues[v.key] !== undefined || !!v.formula);
+                  const autoVars = variables.filter((v) => isRuntimeCompanyVariableKey(v.key) || baseRuntimeValues[v.key] !== undefined || !!v.formula);
                   if (autoVars.length === 0) return null;
                   return (
                     <div>
@@ -842,8 +842,13 @@ export function CompanyForm({
                                     ? 'border-slate-800 bg-slate-950/20 text-slate-600'
                                     : 'border-slate-700/50 bg-slate-950/40 text-slate-300'
                                 }`}>
-                                  {isEmpty ? <span className="italic">{variable.formula ? `Computed: ${derivedValue}` : 'not set yet'}</span> : derivedValue}
+                                  {isEmpty ? <span className="italic">not set yet</span> : derivedValue}
                                 </div>
+                              )}
+                              {variable.formula && (
+                                <p className="mt-1.5 text-[11px] font-medium text-amber-600/80 dark:text-amber-500/80">
+                                  ⚡ Formula: <code className="font-mono bg-amber-50 dark:bg-amber-950/30 px-1 py-0.5 rounded text-[10px]">{variable.formula}</code>
+                                </p>
                               )}
                             </div>
                           );
@@ -855,7 +860,7 @@ export function CompanyForm({
 
                 {/* ── Manual input ── */}
                 {(() => {
-                  const manualVars = variables.filter((v) => !isRuntimeCompanyVariableKey(v.key) && runtimeValues[v.key] === undefined && !v.formula);
+                  const manualVars = variables.filter((v) => !isRuntimeCompanyVariableKey(v.key) && baseRuntimeValues[v.key] === undefined && !v.formula);
                   if (manualVars.length === 0) return null;
                   return (
                     <div>
@@ -864,7 +869,8 @@ export function CompanyForm({
                       </div>
                       <div className="grid gap-4 lg:grid-cols-2">
                         {manualVars.map((variable) => {
-                          const inputType = variable.type === 'date' ? 'date' : variable.type === 'number' ? 'number' : 'text';
+                          // Use 'text' even for numbers because HTML 'number' input strictly rejects commas and Nepali digits
+                          const inputType = variable.type === 'date' ? 'date' : 'text';
                           const derivedValue = runtimeValues[variable.key] || '';
                           return (
                             <div key={variable.id} className={variable.type === 'list' ? 'lg:col-span-2' : ''}>

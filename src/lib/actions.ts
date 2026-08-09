@@ -1413,10 +1413,9 @@ export async function createDocumentAction(data: {
       (companyRecord2?.variableValues || []).map((cv) => cv.variable.key)
     );
 
-    // Build the formula map — only for variables without an explicit company value
     const formulaMap = new Map<string, string>();
     for (const v of formulaVarRecords) {
-      if (!explicitKeys.has(v.key) && v.formula) {
+      if (v.formula) {
         formulaMap.set(v.key, v.formula);
       }
     }

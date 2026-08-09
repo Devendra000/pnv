@@ -160,24 +160,59 @@ export function evaluateFormula(
     return new Date().toISOString().split('T')[0];
   }
 
-  // Substitute [key] references; track whether all referenced values are numeric
+  // Helper to normalize a single value
+  const normalizeNumeric = (val: string) => {
+    let hasNepali = false;
+    let clean = val.replace(/[\u0966-\u096F]/g, (m) => {
+      hasNepali = true;
+      return String(m.charCodeAt(0) - 0x0966);
+    });
+    // Remove commas
+    clean = clean.replace(/,/g, '');
+    return { clean, hasNepali };
+  };
+
   let allNumeric = true;
+  let anyNepali = false;
+
+  // Substitute [key] references; track whether all referenced values are numeric
   const substituted = trimmed.replace(/\[([A-Za-z0-9_.-]+)\]/g, (_, key: string) => {
     const val = resolvedValues[key] ?? resolvedValues[key.toLowerCase()] ?? '';
-    const num = parseFloat(val);
-    if (val.trim() === '' || isNaN(num)) allNumeric = false;
-    return val;
+    if (val.trim() === '') {
+      allNumeric = false;
+      return val;
+    }
+
+    const { clean, hasNepali } = normalizeNumeric(val);
+    const num = parseFloat(clean);
+    if (isNaN(num)) {
+      allNumeric = false;
+      return val; // Keep original text if not a number
+    }
+
+    if (hasNepali) anyNepali = true;
+    return clean; // Return english digits for parser
   });
 
   // Try numeric evaluation when all substituted values are numbers
   if (allNumeric) {
     try {
-      const tokens = tokenize(substituted);
+      // The formula string itself might contain nepali numbers (e.g. "[a] / १००")
+      const { clean: fullyCleanFormula, hasNepali: formulaHasNepali } = normalizeNumeric(substituted);
+      if (formulaHasNepali) anyNepali = true;
+
+      const tokens = tokenize(fullyCleanFormula);
       if (tokens) {
         const parser = new Parser(tokens);
         const result = parser.parseExpr();
         if (result !== null && parser.isFullyConsumed()) {
-          return String(result);
+          if (anyNepali) {
+            // Use en-IN for South Asian comma formatting (e.g. 1,00,000)
+            const formatted = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 10 }).format(result);
+            return formatted.replace(/[0-9]/g, (m) => String.fromCharCode(m.charCodeAt(0) - 48 + 0x0966));
+          } else {
+            return String(result);
+          }
         }
       }
     } catch {

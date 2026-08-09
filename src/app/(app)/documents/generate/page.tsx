@@ -19,7 +19,7 @@ function buildInitialVariableDrafts(
   company: { variableValues: Array<{ variableId: string; value: string }> } | undefined,
   template:
     | {
-        matchedVariables?: Array<{ id: string; key: string }>;
+        matchedVariables?: Array<{ id: string; key: string; formula?: string | null }>;
         detectedKeys?: string[];
       }
     | undefined
@@ -34,6 +34,9 @@ function buildInitialVariableDrafts(
   for (const variable of (template.matchedVariables || [])) {
     // Skip auto/system variables — let them read directly from baseVariables
     if (isSystemVariableKey(variable.key) || variable.id?.startsWith('auto-')) continue;
+    // Skip formula variables — their values should always be computed
+    if (variable.formula) continue;
+    
     const saved = savedValues.get(variable.id);
     if (saved) {
       drafts[variable.id] = saved;
@@ -120,7 +123,7 @@ function renderPreviewTemplate(
 
 export default function GenerateDocumentPage() {
   const router = useRouter();
-  const { companies, templates, loading, addDocument, saveCompanyVariableValues, refreshData } = useAppDataContext();
+  const { companies, templates, loading, addDocument, saveCompanyVariableValues, refreshData, variables } = useAppDataContext();
 
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
@@ -218,40 +221,66 @@ export default function GenerateDocumentPage() {
       return {} as Record<string, string>;
     }
 
+    const fullDict: Record<string, string> = { ...baseVariables };
+    
+    for (const v of variables) {
+      const savedValue = companyVariableMap.get(v.id) || '';
+      const draftValue = variableDrafts[v.key] ?? variableDrafts[v.id];
+      
+      let finalValue = '';
+      if (v.formula) {
+        finalValue = '';
+      } else if (draftValue !== undefined && draftValue !== '') {
+        finalValue = draftValue;
+      } else if (savedValue !== '') {
+        finalValue = savedValue;
+      }
+      
+      if (finalValue !== '') {
+        fullDict[v.key] = finalValue;
+      }
+    }
+
     const baseResolved = Object.fromEntries(
       templateVariables.map((variable) => {
         const draftValue = variableDrafts[variable.key] ?? (variable.id ? variableDrafts[variable.id] : undefined);
         const savedValue = variable.source === 'database' && variable.id ? companyVariableMap.get(variable.id) || '' : '';
         const autoValue = baseVariables[variable.key] || '';
 
-        const finalValue = draftValue !== undefined && draftValue !== ''
-          ? draftValue
-          : savedValue !== ''
-            ? savedValue
-            : autoValue;
+        let finalValue = autoValue;
+        if (variable.formula) {
+          finalValue = '';
+        } else if (draftValue !== undefined && draftValue !== '') {
+          finalValue = draftValue;
+        } else if (savedValue !== '') {
+          finalValue = savedValue;
+        }
 
         return [variable.key, finalValue];
       })
     );
+    
+    const combinedDict = { ...fullDict, ...baseResolved };
 
     const formulaMap = new Map<string, string>();
+    for (const v of variables) {
+      if (v.formula) formulaMap.set(v.key, v.formula);
+    }
     for (const variable of templateVariables) {
-      if (variable.formula && !baseResolved[variable.key]) {
+      if (variable.formula && !formulaMap.has(variable.key)) {
         formulaMap.set(variable.key, variable.formula);
       }
     }
 
     if (formulaMap.size > 0) {
-      const formulaResults = resolveFormulaVariables(formulaMap, baseResolved);
+      const formulaResults = resolveFormulaVariables(formulaMap, combinedDict);
       for (const [key, val] of Object.entries(formulaResults)) {
-        if (!baseResolved[key]) {
-          baseResolved[key] = val;
-        }
+        baseResolved[key] = val;
       }
     }
 
     return baseResolved;
-  }, [baseVariables, companyVariableMap, selectedTemplateRecord, templateVariables, variableDrafts]);
+  }, [baseVariables, companyVariableMap, selectedTemplateRecord, templateVariables, variableDrafts, variables]);
 
   const previewContent = useMemo(() => {
     if (!selectedTemplateRecord) {
@@ -588,20 +617,22 @@ export default function GenerateDocumentPage() {
 
                           // Determine variable kind — isAuto takes priority over everything
                           const isAuto = isSystemVariableKey(key) || id?.startsWith('auto-');
-                          const isManual = !isAuto && variable.source === 'database' && id && !id.startsWith('loop-');
-                          const isTemplateOnly = !isAuto && !isManual && variable.source === 'detected';
+                          const isGlobalVar = !isAuto && variable.source === 'database' && id && !id.startsWith('loop-');
+                          const isFormula = isGlobalVar && !!variable.formula;
+                          const isManual = isGlobalVar && !isFormula;
+                          const isTemplateOnly = !isAuto && !isGlobalVar && variable.source === 'detected';
 
                           const savedValue = isManual && id
                             ? companyRecord.variableValues.find((entry) => entry.variableId === id)?.value || ''
                             : '';
                           const autoValue = baseVariables[key] || '';
                           const draftValue = variableDrafts[key] ?? (id ? variableDrafts[id] : undefined);
-                          const computedValue = isManual && variable.formula && !savedValue && draftValue === undefined ? resolvedTemplateVariables[key] : '';
-                          const currentValue = draftValue ?? (savedValue || autoValue || computedValue);
+                          const computedValue = isFormula ? resolvedTemplateVariables[key] : '';
+                          const currentValue = isFormula ? computedValue : (draftValue ?? (savedValue || autoValue));
 
-                          const isEdited = draftValue !== undefined && draftValue !== (savedValue || autoValue);
+                          const isEdited = !isFormula && draftValue !== undefined && draftValue !== (savedValue || autoValue);
 
-                          const isMissing = showValidationErrors && !currentValue.trim();
+                          const isMissing = showValidationErrors && !currentValue.trim() && !variable.formula;
 
                           return (
                             <div key={key} className={`space-y-2 rounded-lg border ${isMissing ? 'border-red-500 bg-red-50/10 dark:bg-red-500/10' : 'border-border bg-input/30'} p-4`}>
@@ -620,7 +651,7 @@ export default function GenerateDocumentPage() {
                                         Manual
                                       </span>
                                     )}
-                                    {isManual && variable.formula && !savedValue && (
+                                    {isFormula && (
                                       <span
                                         title={`Formula: ${variable.formula}`}
                                         className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-400/20 px-1.5 py-0.5 rounded"
@@ -670,41 +701,53 @@ export default function GenerateDocumentPage() {
                               </div>
 
                               {/* Input */}
-                              <Input
-                                id={`variable-input-${key}`}
-                                value={currentValue}
-                                readOnly={isManual && !!variable.formula && !savedValue && draftValue === undefined}
-                                onChange={(event) => {
-                                  if (showValidationErrors) setShowValidationErrors(false);
-                                  setVariableDrafts((prev) => ({
-                                    ...prev,
-                                    [key]: event.target.value,
-                                    ...(id ? { [id]: event.target.value } : {}),
-                                  }));
-                                }}
-                                placeholder={isManual && variable.formula && !savedValue ? `Computed from formula: ${variable.formula}` : `Enter value for ${variable.label}`}
-                                className={`bg-background text-sm ${isMissing ? 'border-red-500 focus-visible:ring-red-500' : ''} ${isManual && !!variable.formula && !savedValue && draftValue === undefined ? 'text-amber-700/80 dark:text-amber-400/80 bg-amber-50/30 dark:bg-amber-950/20' : ''}`}
-                              />
+                              {variable.formula ? (
+                                <div className="space-y-1.5">
+                                  <div className={`flex items-center rounded-md border px-3 py-2 text-sm font-mono ${
+                                    !currentValue
+                                      ? 'border-border bg-input/10 text-muted-foreground'
+                                      : 'border-border bg-muted/40 text-foreground'
+                                  }`}>
+                                    {!currentValue ? <span className="italic">waiting to compute...</span> : currentValue}
+                                  </div>
+                                  <p className="text-[11px] font-medium text-amber-600/80 dark:text-amber-500/80">
+                                    ⚡ Formula: <code className="font-mono bg-amber-50 dark:bg-amber-950/30 px-1 py-0.5 rounded text-[10px]">{variable.formula}</code>
+                                  </p>
+                                </div>
+                              ) : (
+                                <Input
+                                  id={`variable-input-${key}`}
+                                  value={currentValue}
+                                  onChange={(event) => {
+                                    if (showValidationErrors) setShowValidationErrors(false);
+                                    setVariableDrafts((prev) => ({
+                                      ...prev,
+                                      [key]: event.target.value,
+                                      ...(id ? { [id]: event.target.value } : {}),
+                                    }));
+                                  }}
+                                  placeholder={`Enter value for ${variable.label}`}
+                                  className={`bg-background text-sm ${isMissing ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                />
+                              )}
                               {isMissing && <p className="text-[11px] font-medium text-red-500 mt-1">This variable is required to generate the document.</p>}
 
                               {/* Status hint */}
-                              <p className="text-xs text-muted-foreground">
-                                {isEdited ? (
-                                  <span className="text-amber-500 font-medium">✎ Customized for this document run only</span>
-                                ) : isAuto ? (
-                                  'Auto-filled from company data. Edits apply to this document only.'
-                                ) : savedValue ? (
-                                  'Company value loaded. Edits apply to this document only.'
-                                ) : isManual && variable.formula ? (
-                                  <span className="text-amber-600 dark:text-amber-400">
-                                    ⚡ Computed from formula: <code className="font-mono text-[11px] bg-amber-50 dark:bg-amber-950/30 px-1 rounded">{variable.formula}</code>
-                                  </span>
-                                ) : isManual ? (
-                                  'No saved value yet for this company.'
-                                ) : (
-                                  'Not in database. Fill a value or click "+ Add as Manual" to save it.'
-                                )}
-                              </p>
+                              {!variable.formula && (
+                                <p className="text-xs text-muted-foreground">
+                                  {isEdited ? (
+                                    <span className="text-amber-500 font-medium">✎ Customized for this document run only</span>
+                                  ) : isAuto ? (
+                                    'Auto-filled from company data. Edits apply to this document only.'
+                                  ) : savedValue ? (
+                                    'Company value loaded. Edits apply to this document only.'
+                                  ) : isManual ? (
+                                    'No saved value yet for this company.'
+                                  ) : (
+                                    'Not in database. Fill a value or click "+ Add as Manual" to save it.'
+                                  )}
+                                </p>
+                              )}
                             </div>
                           );
                         })}
