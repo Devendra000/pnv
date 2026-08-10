@@ -17,6 +17,7 @@ import { signOut } from "next-auth/react"
 import { CreateChannelModal } from "./CreateChannelModal"
 import { NotificationBell } from "./NotificationBell"
 import { socket } from "@/lib/socket-client"
+import { useChatPresence } from "@/contexts/ChatPresenceContext"
 
 interface ChannelSidebarProps {
   session: any
@@ -28,6 +29,7 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
+  const { isOnline } = useChatPresence()
 
   const fetchChannels = async () => {
     try {
@@ -56,11 +58,18 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
   useEffect(() => {
     fetchChannels()
     fetchUsers()
+
+    // Request notification permission on load
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission()
+      }
+    }
   }, [])
 
   // Listen for real-time channel activity emitted to personal user room
   useEffect(() => {
-    const handleChannelActivity = (data: { channelId: string; senderId: string }) => {
+    const handleChannelActivity = (data: { channelId: string; senderId: string; senderName?: string; contentPreview?: string }) => {
       if (data.senderId === session?.user?.id) return
 
       setChannels((prev) =>
@@ -77,13 +86,42 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
 
             if (isCurrentChannel) {
               fetch(`/api/channels/${c.id}/read`, { method: "POST" })
+              
+              // Only notify if window is out of focus
+              if (typeof document !== "undefined" && !document.hasFocus()) {
+                playNotificationSound()
+                showPushNotification(data.senderName, data.contentPreview)
+              }
               return { ...c, unreadCount: 0 }
             }
+            
+            // If it's not the current channel, always notify
+            playNotificationSound()
+            showPushNotification(data.senderName, data.contentPreview, c.name)
+            
             return { ...c, unreadCount: (c.unreadCount || 0) + 1 }
           }
           return c
         })
       )
+    }
+
+    const playNotificationSound = () => {
+      try {
+        const audio = new Audio("/notification.mp3")
+        audio.play().catch(e => console.log("Audio play failed:", e))
+      } catch (err) {}
+    }
+
+    const showPushNotification = (senderName?: string, contentPreview?: string, channelName?: string) => {
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        const title = channelName && !channelName.startsWith('@') 
+          ? `New message in ${channelName}` 
+          : `New message from ${senderName || 'someone'}`
+        new Notification(title, {
+          body: contentPreview || "You have a new message",
+        })
+      }
     }
 
     socket.on("channel-activity", handleChannelActivity)
@@ -113,6 +151,7 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
   useEffect(() => {
     const handleAccountDeleted = (data: { userId: string }) => {
       if (data.userId === session?.user?.id) {
+        socket.disconnect()
         signOut({ callbackUrl: "/login" })
       } else {
         setUsers((prev) => prev.filter((u) => u.id !== data.userId))
@@ -356,7 +395,10 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
                     <div className="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-200 uppercase shrink-0">
                       {u.username[0]}
                     </div>
-                    <span className="truncate flex-1">{u.displayName || u.username}</span>
+                    <span className="truncate flex-1 flex items-center gap-1.5">
+                      {u.displayName || u.username}
+                      <span className={`w-1.5 h-1.5 rounded-full ${isOnline(u.id) ? 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.5)]' : 'bg-slate-600'}`} />
+                    </span>
                     {unread > 0 && (
                       <span className="px-1.5 py-0.2 min-w-4 h-4 rounded-full text-[10px] font-bold bg-indigo-500 text-white flex items-center justify-center shrink-0">
                         {unread > 9 ? "9+" : unread}
@@ -407,8 +449,11 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
           ← Back to App
         </Link>
         <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-all"
+          onClick={() => {
+            socket.disconnect()
+            signOut({ callbackUrl: "/login" })
+          }}
+          className="p-1.5 rounded-md hover:bg-slate-800 text-slate-400 hover:text-rose-400 transition-all flex items-center gap-1.5"
           title="Sign Out"
         >
           <LogOut className="w-4 h-4" />

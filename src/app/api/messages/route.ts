@@ -192,6 +192,8 @@ export async function POST(req: NextRequest) {
           channelId: realChannelId,
           senderId: session.user.id,
           messageId: message.id,
+          senderName: message.sender.displayName || message.sender.username,
+          contentPreview: content.slice(0, 100)
         })
       }
     }

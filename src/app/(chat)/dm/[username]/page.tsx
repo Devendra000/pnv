@@ -38,10 +38,7 @@ export default async function DirectMessagePage({
         createdById: session.user.id,
         members: {
           createMany: {
-            data: [
-              { userId: session.user.id },
-              { userId: targetUser.id },
-            ],
+            data: Array.from(new Set([session.user.id, targetUser.id])).map(id => ({ userId: id })),
           },
         },
       },

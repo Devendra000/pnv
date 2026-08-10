@@ -4,7 +4,10 @@ import type { Server as HTTPServer } from "http"
 
 // Global singleton guard — prevents re-initialization on Next.js hot reload.
 // Without this, hot reload triggers "cannot attach to closed server" errors.
-const globalWithIO = global as typeof globalThis & { _io?: Server }
+const globalWithIO = global as typeof globalThis & { 
+  _io?: Server;
+  _activeConnections?: Map<string, number>;
+}
 
 function parseCookieValue(cookieHeader: string, name: string): string | undefined {
   const match = cookieHeader
@@ -17,6 +20,11 @@ function parseCookieValue(cookieHeader: string, name: string): string | undefine
 export function initSocketServer(httpServer: HTTPServer): Server {
   // Return existing instance on hot reload — do not re-attach
   if (globalWithIO._io) return globalWithIO._io
+
+  if (!globalWithIO._activeConnections) {
+    globalWithIO._activeConnections = new Map<string, number>()
+  }
+  const activeConnections = globalWithIO._activeConnections
 
   const io = new Server(httpServer, {
     path: "/api/socketio",   // must match socket-client.ts
@@ -60,6 +68,19 @@ export function initSocketServer(httpServer: HTTPServer): Server {
   io.on("connection", (socket) => {
     const userId = socket.data.userId as string
 
+    // Track presence
+    const currentCount = activeConnections.get(userId) || 0
+    activeConnections.set(userId, currentCount + 1)
+    if (currentCount === 0) {
+      io.emit("user-online", { userId })
+    }
+
+    socket.on("get-online-users", (callback) => {
+      if (typeof callback === "function") {
+        callback(Array.from(activeConnections.keys()))
+      }
+    })
+
     // Auto-join personal notification room on connect (identity from verified JWT)
     socket.join(`user:${userId}`)
 
@@ -75,6 +96,13 @@ export function initSocketServer(httpServer: HTTPServer): Server {
 
     socket.on("disconnect", () => {
       // socket.io automatically removes from all rooms on disconnect
+      const count = activeConnections.get(userId) || 0
+      if (count <= 1) {
+        activeConnections.delete(userId)
+        io.emit("user-offline", { userId })
+      } else {
+        activeConnections.set(userId, count - 1)
+      }
     })
   })
 

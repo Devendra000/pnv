@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { MessageSquare, Users } from "lucide-react"
+import { useChatPresence } from "@/contexts/ChatPresenceContext"
 
 interface MessageBubbleProps {
   message: any
@@ -11,6 +12,7 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({ message, currentUserId, onOpenThread, isHighlighted }: MessageBubbleProps) {
+  const { isOnline } = useChatPresence()
   const isOwner = message.senderId === currentUserId
   const senderName = message.sender?.displayName || message.sender?.username || "Unknown"
   const avatarLetter = (message.sender?.username || "U")[0].toUpperCase()
@@ -140,8 +142,11 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-xs font-bold text-slate-200">{senderName}</span>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+            {senderName}
+            <span className={`w-1.5 h-1.5 rounded-full ${isOnline(message.senderId) ? 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.5)]' : 'bg-slate-600'}`} />
+          </span>
           <span className="text-[10px] text-slate-500">{formattedTime}</span>
         </div>
 
