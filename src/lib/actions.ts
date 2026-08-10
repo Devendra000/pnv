@@ -325,7 +325,10 @@ async function readFileContent(relativeUrl: string): Promise<string> {
     }
 
     return await fs.readFile(filePath, 'utf8');
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message?.includes("Can't find end of central directory")) {
+      return 'File content could not be parsed (Invalid DOCX).';
+    }
     console.error(`Error reading file at ${relativeUrl}:`, error);
     return 'File content not found on disk.';
   }
@@ -655,9 +658,7 @@ export async function fetchAppData(): Promise<{
       orderBy: { generatedAt: 'desc' },
     });
 
-    const documents: Document[] = await Promise.all(
-      dbDocuments.map(async (d) => {
-        const content = await readFileContent(d.docxUrl);
+    const documents: Document[] = dbDocuments.map((d) => {
         return {
           id: d.id,
           fileName: d.fileName || (d.variables as any)?.customFileName || null,
@@ -670,10 +671,9 @@ export async function fetchAppData(): Promise<{
           pdfUrl: d.pdfUrl,
           variables: (d.variables as Record<string, string>) || undefined,
           generatedAt: d.generatedAt.toISOString(),
-          content,
+          content: '',
         };
-      })
-    );
+      });
 
     // 6. Calculate Stats
     const stats: Stats = {
