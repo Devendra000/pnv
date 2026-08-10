@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
@@ -26,6 +26,7 @@ interface ChannelSidebarProps {
 export function ChannelSidebar({ session }: ChannelSidebarProps) {
   const [channels, setChannels] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
+  const channelsRef = useRef<any[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
@@ -37,6 +38,7 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
       if (res.ok) {
         const data = await res.json()
         setChannels(data.channels || [])
+        channelsRef.current = data.channels || []
       }
     } catch (err) {
       console.error("Failed to fetch channels", err)
@@ -72,51 +74,53 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
     const handleChannelActivity = (data: { channelId: string; senderId: string; senderName?: string; contentPreview?: string }) => {
       if (data.senderId === session?.user?.id) return
 
-      setChannels((prev) =>
-        prev.map((c) => {
-          if (c.id === data.channelId) {
-            const isCurrentChannel =
-              pathname === `/chat/${c.slug}` ||
-              pathname === `/chat/${c.id}` ||
-              (c.type === "DM" &&
-                c.members?.some(
-                  (m: any) =>
-                    m.user?.username && pathname === `/dm/${m.user.username}`
-                ))
+      const c = channelsRef.current.find(ch => ch.id === data.channelId)
+      if (c) {
+        const isCurrentChannel =
+          pathname === `/chat/${c.slug}` ||
+          pathname === `/chat/${c.id}` ||
+          (c.type === "DM" &&
+            c.members?.some(
+              (m: any) =>
+                m.user?.username && pathname === `/dm/${m.user.username}`
+            ))
 
-            if (isCurrentChannel) {
-              fetch(`/api/channels/${c.id}/read`, { method: "POST" })
-              
-              // Only notify if window is out of focus
-              if (typeof document !== "undefined" && !document.hasFocus()) {
-                playNotificationSound()
-                showPushNotification(data.senderName, data.contentPreview)
-              }
-              return { ...c, unreadCount: 0 }
-            }
-            
-            // If it's not the current channel, always notify
+        if (isCurrentChannel) {
+          fetch(`/api/channels/${c.id}/read`, { method: "POST" })
+          
+          if (typeof document !== "undefined" && !document.hasFocus()) {
             playNotificationSound()
-            showPushNotification(data.senderName, data.contentPreview, c.name)
-            
-            return { ...c, unreadCount: (c.unreadCount || 0) + 1 }
+            showPushNotification(data.senderName, data.contentPreview)
           }
-          return c
+        } else {
+          playNotificationSound()
+          showPushNotification(data.senderName, data.contentPreview, c.name)
+        }
+
+        setChannels((prev) => {
+          const next = prev.map((ch: any) => {
+            if (ch.id === data.channelId) {
+              return { ...ch, unreadCount: isCurrentChannel ? 0 : (ch.unreadCount || 0) + 1 }
+            }
+            return ch
+          })
+          channelsRef.current = next
+          return next
         })
-      )
+      }
     }
 
     const playNotificationSound = () => {
       try {
-        const audio = new Audio("/notification.mp3")
+        const audio = new Audio("/notification.wav")
         audio.play().catch(e => console.log("Audio play failed:", e))
-      } catch (err) {}
+      } catch (err) { }
     }
 
     const showPushNotification = (senderName?: string, contentPreview?: string, channelName?: string) => {
       if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-        const title = channelName && !channelName.startsWith('@') 
-          ? `New message in ${channelName}` 
+        const title = channelName && !channelName.startsWith('@')
+          ? `New message in ${channelName}`
           : `New message from ${senderName || 'someone'}`
         new Notification(title, {
           body: contentPreview || "You have a new message",
@@ -189,18 +193,22 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
       )
       if (dmChannel && dmChannel.unreadCount > 0) {
         fetch(`/api/channels/${dmChannel.id}/read`, { method: "POST" })
-        setChannels((prev) =>
-          prev.map((c) => (c.id === dmChannel.id ? { ...c, unreadCount: 0 } : c))
-        )
+        setChannels((prev) => {
+          const next = prev.map((c) => (c.id === dmChannel.id ? { ...c, unreadCount: 0 } : c))
+          channelsRef.current = next
+          return next
+        })
       }
     }
   }, [pathname, channels])
 
   const markChannelRead = (channelId: string) => {
     fetch(`/api/channels/${channelId}/read`, { method: "POST" })
-    setChannels((prev) =>
-      prev.map((c) => (c.id === channelId ? { ...c, unreadCount: 0 } : c))
-    )
+    setChannels((prev) => {
+      const next = prev.map((c) => (c.id === channelId ? { ...c, unreadCount: 0 } : c))
+      channelsRef.current = next
+      return next
+    })
   }
 
   const publicChannels = channels.filter(c => (c.type === "PUBLIC" || c.type === "ANNOUNCEMENT") && !c.slug.startsWith("group-"))
@@ -220,7 +228,11 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
     })
 
   const handleChannelCreated = (newChannel: any) => {
-    setChannels(prev => [...prev, { ...newChannel, unreadCount: 0 }])
+    setChannels(prev => {
+      const next = [...prev, { ...newChannel, unreadCount: 0 }]
+      channelsRef.current = next
+      return next
+    })
     router.push(`/chat/${newChannel.slug}`)
   }
 
@@ -266,11 +278,10 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
                   key={c.id}
                   href={`/chat/${c.slug}`}
                   onClick={() => markChannelRead(c.id)}
-                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all ${
-                    active
-                      ? "bg-indigo-600/20 text-indigo-400 font-semibold border border-indigo-500/30"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-                  }`}
+                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all ${active
+                    ? "bg-indigo-600/20 text-indigo-400 font-semibold border border-indigo-500/30"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                    }`}
                 >
                   <Icon className="w-4 h-4 shrink-0 opacity-80" />
                   <span className="truncate flex-1">{c.name}</span>
@@ -301,11 +312,10 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
                     key={c.id}
                     href={`/chat/${c.slug}`}
                     onClick={() => markChannelRead(c.id)}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all ${
-                      active
-                        ? "bg-indigo-600/20 text-indigo-400 font-semibold border border-indigo-500/30"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-                    }`}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all ${active
+                      ? "bg-indigo-600/20 text-indigo-400 font-semibold border border-indigo-500/30"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                      }`}
                   >
                     <span className="font-mono text-indigo-400 font-bold">@</span>
                     <span className="truncate flex-1">{c.name.replace(/^@/, "")}</span>
@@ -335,11 +345,10 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
                     key={c.id}
                     href={`/chat/${c.slug}`}
                     onClick={() => markChannelRead(c.id)}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all ${
-                      active
-                        ? "bg-indigo-600/20 text-indigo-400 font-semibold border border-indigo-500/30"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-                    }`}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all ${active
+                      ? "bg-indigo-600/20 text-indigo-400 font-semibold border border-indigo-500/30"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                      }`}
                   >
                     <Lock className="w-4 h-4 shrink-0 text-amber-400/80" />
                     <span className="truncate flex-1">{c.name}</span>
@@ -386,11 +395,10 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
                   <Link
                     key={u.id}
                     href={`/dm/${u.username}`}
-                    className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-xs transition-all ${
-                      active
-                        ? "bg-indigo-600/20 text-indigo-400 font-semibold border border-indigo-500/30"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-                    }`}
+                    className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-xs transition-all ${active
+                      ? "bg-indigo-600/20 text-indigo-400 font-semibold border border-indigo-500/30"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                      }`}
                   >
                     <div className="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-200 uppercase shrink-0">
                       {u.username[0]}
@@ -420,21 +428,19 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
             <div className="space-y-0.5">
               <Link
                 href="/admin/users"
-                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all ${
-                  pathname === "/admin/users"
-                    ? "bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-                }`}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all ${pathname === "/admin/users"
+                  ? "bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                  }`}
               >
                 <Users className="w-4 h-4 text-amber-400/80" /> Manage Users
               </Link>
               <Link
                 href="/admin/groups"
-                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all ${
-                  pathname === "/admin/groups"
-                    ? "bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-                }`}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all ${pathname === "/admin/groups"
+                  ? "bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                  }`}
               >
                 <UserCheck className="w-4 h-4 text-amber-400/80" /> User Groups
               </Link>
