@@ -167,34 +167,62 @@ export default function GenerateDocumentPage() {
       return [];
     }
 
-    const databaseVariables = (selectedTemplateRecord.matchedVariables || []).map((variable) => ({
-      key: variable.key,
-      label: variable.label,
-      source: 'database' as const,
-      id: variable.id,
-      formula: variable.formula,
-    }));
+    const matchedKeys = new Set<string>();
+    const result: TemplateVariableItem[] = [];
 
-    // Merge in any variables promoted to manual this session (before context refreshes)
-    const matchedKeys = new Set(databaseVariables.map((variable) => variable.key));
-    const promotedVariables: TemplateVariableItem[] = [];
+    // 1. Process variables that were matched in the DB
+    for (const dbVar of (selectedTemplateRecord.matchedVariables || [])) {
+      const globalVar = variables.find(v => v.id === dbVar.id);
+      result.push({
+        key: dbVar.key,
+        label: dbVar.label,
+        source: 'database',
+        id: dbVar.id,
+        formula: globalVar ? globalVar.formula : dbVar.formula,
+      });
+      matchedKeys.add(dbVar.key);
+    }
+
+    // 2. Process variables promoted to manual in this session
     for (const [key, variableId] of promotedToManual) {
       if (!matchedKeys.has(key)) {
-        promotedVariables.push({ key, label: key, source: 'database' as const, id: variableId });
+        const globalVar = variables.find(v => v.id === variableId);
+        result.push({ 
+          key, 
+          label: key, 
+          source: 'database', 
+          id: variableId, 
+          formula: globalVar?.formula 
+        });
         matchedKeys.add(key);
       }
     }
 
-    const detectedOnlyVariables = (selectedTemplateRecord.detectedKeys || [])
-      .filter((key) => !matchedKeys.has(key) && !TEMPLATE_LOOP_HELPER_KEYS.has(key))
-      .map((key) => ({
-        key,
-        label: key,
-        source: 'detected' as const,
-      }));
+    // 3. Process detected keys (check if they exist in global variables now!)
+    for (const key of (selectedTemplateRecord.detectedKeys || [])) {
+      if (!matchedKeys.has(key) && !TEMPLATE_LOOP_HELPER_KEYS.has(key)) {
+        const globalVar = variables.find(v => v.key === key);
+        if (globalVar) {
+          result.push({
+            key: key,
+            label: globalVar.label || key,
+            source: 'database',
+            id: globalVar.id,
+            formula: globalVar.formula,
+          });
+        } else {
+          result.push({
+            key,
+            label: key,
+            source: 'detected',
+          });
+        }
+        matchedKeys.add(key);
+      }
+    }
 
-    return [...databaseVariables, ...promotedVariables, ...detectedOnlyVariables];
-  }, [selectedTemplateRecord, promotedToManual]);
+    return result;
+  }, [selectedTemplateRecord, promotedToManual, variables]);
 
   // Single scalar variables in template (exclude loop block tags & per-row loop fields)
   const singleTemplateVariables = useMemo<TemplateVariableItem[]>(() => {
