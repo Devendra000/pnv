@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { MessageSquare, Users, Building } from "lucide-react"
 import { useChatPresence } from "@/contexts/ChatPresenceContext"
+import { RenderTiptapContent } from "./RenderTiptapContent"
 
 interface MessageBubbleProps {
   message: any
@@ -78,8 +79,8 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
     extractCompanies(message.contentParsed)
   }
 
-  // Format content: block UI only for valid groups, users, companies, and broadcast tags
-  const renderFormattedContent = (text: string) => {
+  // Fallback for older messages that only have text
+  const renderFallbackText = (text: string) => {
     if (!text) return null
     const parts = text.split(/((?:@|#)[a-zA-Z0-9_-]+)/g)
 
@@ -95,7 +96,7 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
                 key={idx}
                 href={`/companies/${mentionInfo.id}/view`}
                 title={`Company #${mentionInfo.handle}`}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 font-semibold text-xs border border-emerald-500/30 transition-all cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 font-semibold text-xs border border-emerald-500/30 transition-all cursor-pointer shadow-sm no-underline"
               >
                 <Building className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span>{part}</span>
@@ -115,7 +116,7 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
                 key={idx}
                 href={`/chat/group-${mentionInfo.handle}`}
                 title={`Group @${mentionInfo.handle} • ${memberText}`}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 font-semibold text-xs border border-amber-500/30 transition-all cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 font-semibold text-xs border border-amber-500/30 transition-all cursor-pointer shadow-sm no-underline"
               >
                 <Users className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span>{part}</span>
@@ -128,7 +129,7 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
               <Link
                 key={idx}
                 href={`/dm/${mentionInfo.username}`}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 font-semibold text-xs border border-indigo-500/30 transition-all cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 font-semibold text-xs border border-indigo-500/30 transition-all cursor-pointer shadow-sm no-underline"
               >
                 <span>{part}</span>
               </Link>
@@ -180,8 +181,14 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
           <span className="text-[10px] text-slate-500">{formattedTime}</span>
         </div>
 
-        <div className="text-sm text-slate-300 leading-relaxed break-words">
-          {renderFormattedContent(message.contentRaw)}
+        <div className="text-sm">
+          {message.contentParsed && message.contentParsed.type === "doc" ? (
+            <RenderTiptapContent content={message.contentParsed} validMentionMap={validMentionMap} />
+          ) : (
+            <div className="text-slate-300 leading-relaxed break-words">
+              {renderFallbackText(message.contentRaw)}
+            </div>
+          )}
         </div>
 
         {/* Thread reply button */}

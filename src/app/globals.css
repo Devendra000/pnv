@@ -159,4 +159,44 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  .ProseMirror {
+    @apply text-slate-100;
+  }
+
+  .ProseMirror p {
+    @apply my-1;
+  }
+
+  .ProseMirror h1 {
+    @apply mt-4 mb-2 text-2xl font-bold tracking-tight text-slate-100;
+  }
+
+  .ProseMirror h2 {
+    @apply mt-4 mb-2 text-xl font-bold tracking-tight text-slate-100;
+  }
+
+  .ProseMirror h3 {
+    @apply mt-3 mb-1.5 text-lg font-semibold tracking-tight text-slate-100;
+  }
+
+  .ProseMirror ul {
+    @apply my-2 list-disc space-y-1 pl-6;
+  }
+
+  .ProseMirror ol {
+    @apply my-2 list-decimal space-y-1 pl-6;
+  }
+
+  .ProseMirror li {
+    @apply pl-1;
+  }
+
+  .ProseMirror blockquote {
+    @apply my-2 rounded-r-lg border-l-4 border-indigo-500/50 bg-slate-800/30 py-1 pl-4 italic text-slate-400;
+  }
+
+  .ProseMirror pre {
+    @apply my-2 overflow-x-auto rounded-lg border border-slate-800 bg-slate-900 p-3 text-xs text-slate-300;
+  }
 }
