@@ -151,6 +151,35 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
           const isTippyVisible = document.querySelector(".tippy-box") !== null
           if (isTippyVisible) return false
 
+          const isInsideListItem = () => {
+            for (let depth = view.state.selection.$from.depth; depth > 0; depth -= 1) {
+              if (view.state.selection.$from.node(depth).type.name === "listItem") {
+                return true
+              }
+            }
+            return false
+          }
+
+          const isEmptyListItem = () => {
+            for (let depth = view.state.selection.$from.depth; depth > 0; depth -= 1) {
+              const node = view.state.selection.$from.node(depth)
+              if (node.type.name === "listItem") {
+                return node.textContent.trim().length === 0
+              }
+            }
+            return false
+          }
+
+          if (isInsideListItem()) {
+            event.preventDefault()
+
+            if (isEmptyListItem()) {
+              return editor?.commands.liftListItem("listItem") ?? false
+            }
+
+            return editor?.commands.splitListItem("listItem") ?? false
+          }
+
           if (!SEND_ON_ENTER) {
             return false
           }
