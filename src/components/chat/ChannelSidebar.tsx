@@ -76,6 +76,14 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
 
       const c = channelsRef.current.find(ch => ch.id === data.channelId)
       if (c) {
+        let url = `/chat/${c.slug}`
+        if (c.type === "DM") {
+          const otherMember = c.members?.find((m: any) => m.userId !== session?.user?.id)
+          if (otherMember?.user?.username) {
+            url = `/dm/${otherMember.user.username}`
+          }
+        }
+
         const isCurrentChannel =
           pathname === `/chat/${c.slug}` ||
           pathname === `/chat/${c.id}` ||
@@ -90,11 +98,11 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
           
           if (typeof document !== "undefined" && !document.hasFocus()) {
             playNotificationSound()
-            showPushNotification(data.senderName, data.contentPreview)
+            showPushNotification(data.senderName, data.contentPreview, c.name, url)
           }
         } else {
           playNotificationSound()
-          showPushNotification(data.senderName, data.contentPreview, c.name)
+          showPushNotification(data.senderName, data.contentPreview, c.name, url)
         }
 
         setChannels((prev) => {
@@ -117,14 +125,21 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
       } catch (err) { }
     }
 
-    const showPushNotification = (senderName?: string, contentPreview?: string, channelName?: string) => {
+    const showPushNotification = (senderName?: string, contentPreview?: string, channelName?: string, url?: string) => {
       if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
         const title = channelName && !channelName.startsWith('@')
           ? `New message in ${channelName}`
           : `New message from ${senderName || 'someone'}`
-        new Notification(title, {
+        const notification = new Notification(title, {
           body: contentPreview || "You have a new message",
         })
+        notification.onclick = () => {
+          window.focus()
+          if (url) {
+            router.push(url)
+          }
+          notification.close()
+        }
       }
     }
 

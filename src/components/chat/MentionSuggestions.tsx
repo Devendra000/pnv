@@ -1,13 +1,13 @@
 "use client"
 
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from "react"
-import { User, Users } from "lucide-react"
+import { User, Users, Building } from "lucide-react"
 
 export interface MentionSuggestionsProps {
   items: Array<{
     id: string
     label: string
-    type: "user" | "group"
+    type: "user" | "group" | "company"
     handle?: string
     memberCount?: number
   }>
@@ -61,7 +61,7 @@ export const MentionSuggestions = forwardRef((props: MentionSuggestionsProps, re
   if (!props.items.length) {
     return (
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-2xl text-xs text-slate-500">
-        No matching users or groups
+        No matching users, groups, or companies
       </div>
     )
   }
@@ -72,18 +72,19 @@ export const MentionSuggestions = forwardRef((props: MentionSuggestionsProps, re
         <button
           key={item.id}
           onClick={() => selectItem(index)}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all text-left ${
-            index === selectedIndex
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all text-left ${index === selectedIndex
               ? "bg-indigo-600/30 text-indigo-300 font-semibold border border-indigo-500/40"
               : "text-slate-300 hover:bg-slate-800/80"
-          }`}
+            }`}
         >
-          {item.type === "group" ? (
+          {item.type === "company" ? (
+            <Building className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+          ) : item.type === "group" ? (
             <Users className="w-3.5 h-3.5 text-amber-400 shrink-0" />
           ) : (
             <User className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
           )}
-          <span className="truncate flex-1">@{item.label}</span>
+          <span className="truncate flex-1">{item.type === "company" ? "#" : "@"}{item.label}</span>
           {item.type === "group" && item.memberCount !== undefined && (
             <span className="text-[10px] text-slate-400 font-normal bg-slate-800/90 px-2 py-0.5 rounded-full border border-slate-700/60 shrink-0">
               {item.memberCount} {item.memberCount === 1 ? "member" : "members"}

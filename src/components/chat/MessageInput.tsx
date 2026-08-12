@@ -5,8 +5,9 @@ import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Mention from "@tiptap/extension-mention"
 import Placeholder from "@tiptap/extension-placeholder"
-import { Send, Loader2, AtSign } from "lucide-react"
+import { Send, Loader2, AtSign, Hash } from "lucide-react"
 import { createMentionSuggestion } from "./mentionSuggestion"
+import { createCompanyMentionSuggestion } from "./companyMentionSuggestion"
 
 interface MessageInputProps {
   channelId: string
@@ -36,6 +37,12 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
           class: "mention font-semibold text-indigo-400 bg-indigo-500/20 px-1 py-0.5 rounded-md",
         },
         suggestion: createMentionSuggestion(channelId),
+      }),
+      Mention.extend({ name: 'companyMention' }).configure({
+        HTMLAttributes: {
+          class: "mention company-mention font-semibold text-emerald-400 bg-emerald-500/20 px-1 py-0.5 rounded-md",
+        },
+        suggestion: createCompanyMentionSuggestion(),
       }),
     ],
 
@@ -123,6 +130,14 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
             title="Insert @mention"
           >
             <AtSign className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => editor?.commands.insertContent("#")}
+            className="p-1.5 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-slate-700/60 transition-all"
+            title="Insert #company"
+          >
+            <Hash className="w-4 h-4" />
           </button>
           <button
             type="button"

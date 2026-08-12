@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { MessageSquare, Users } from "lucide-react"
+import { MessageSquare, Users, Building } from "lucide-react"
 import { useChatPresence } from "@/contexts/ChatPresenceContext"
 
 interface MessageBubbleProps {
@@ -26,11 +26,12 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
   const validMentionMap = new Map<
     string,
     {
-      type: "user" | "group" | "special"
+      type: "user" | "group" | "special" | "company"
       username?: string
       handle?: string
       name?: string
       members?: string[]
+      id?: string
     }
   >()
 
@@ -61,17 +62,47 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
     })
   }
 
-  // Format content: block UI only for valid groups, users, and broadcast tags
+  if (message.contentParsed) {
+    const extractCompanies = (node: any) => {
+      if (node.type === "companyMention" && node.attrs) {
+        validMentionMap.set(node.attrs.label.toLowerCase(), {
+          type: "company",
+          id: node.attrs.id,
+          handle: node.attrs.label,
+        })
+      }
+      if (node.content && Array.isArray(node.content)) {
+        node.content.forEach(extractCompanies)
+      }
+    }
+    extractCompanies(message.contentParsed)
+  }
+
+  // Format content: block UI only for valid groups, users, companies, and broadcast tags
   const renderFormattedContent = (text: string) => {
     if (!text) return null
-    const parts = text.split(/(@[a-zA-Z0-9_-]+)/g)
+    const parts = text.split(/((?:@|#)[a-zA-Z0-9_-]+)/g)
 
     return parts.map((part, idx) => {
-      if (part.startsWith("@")) {
+      if (part.startsWith("@") || part.startsWith("#")) {
         const handleCandidate = part.slice(1).toLowerCase()
         const mentionInfo = validMentionMap.get(handleCandidate)
 
         if (mentionInfo) {
+          if (mentionInfo.type === "company" && part.startsWith("#")) {
+            return (
+              <Link
+                key={idx}
+                href={`/companies/${mentionInfo.id}`}
+                title={`Company #${mentionInfo.handle}`}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 font-semibold text-xs border border-emerald-500/30 transition-all cursor-pointer shadow-sm"
+              >
+                <Building className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>{part}</span>
+              </Link>
+            )
+          }
+
           if (mentionInfo.type === "group") {
             const memberCount = mentionInfo.members?.length || 0
             const memberText =
