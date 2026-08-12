@@ -76,5 +76,29 @@ export async function GET(
     },
   })
 
-  return NextResponse.json({ messages })
+  // Protect against huge message payloads (very large contentParsed JSON)
+  const SAFE_BYTES = 100 * 1024 // 100KB
+
+  const sanitized = messages.map((m: any) => {
+    let safeContent = m.contentParsed
+    let preview: string | null = null
+
+    try {
+      const str = JSON.stringify(m.contentParsed)
+      if (str.length > SAFE_BYTES) {
+        preview = str.slice(0, 10 * 1024) // store first 10KB as preview
+        safeContent = null
+        console.warn(`[messages] trimmed contentParsed for message ${m.id} (${str.length} bytes)`)
+      }
+    } catch (err) {
+      // If stringify fails, drop the field to avoid throwing during serialization
+      safeContent = null
+      preview = null
+      console.warn(`[messages] failed stringify contentParsed for message ${m.id}`)
+    }
+
+    return { ...m, contentParsed: safeContent, contentParsedPreview: preview }
+  })
+
+  return NextResponse.json({ messages: sanitized })
 }

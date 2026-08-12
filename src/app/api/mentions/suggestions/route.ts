@@ -30,6 +30,10 @@ export async function GET(req: NextRequest) {
   const totalWorkspaceMembers = await prisma.user.count({ where: { isActive: true } })
   const channelMembersCount = targetChannel ? targetChannel.members.length : totalWorkspaceMembers
 
+  // If channel is PUBLIC, `@everyone` should represent all active workspace users;
+  // otherwise it makes more sense to show the channel membership count.
+  const everyoneCount = targetChannel?.type === "PUBLIC" ? totalWorkspaceMembers : channelMembersCount
+
   // 1. Direct Message (DM) - Only recipient username
   if (targetChannel?.type === "DM") {
     const recipientMember = targetChannel.members.find((m: any) => m.userId !== session.user.id)
@@ -61,7 +65,7 @@ export async function GET(req: NextRequest) {
     const specialMentions = [
       { id: "channel", label: "channel", handle: "channel", type: "group" as const, memberCount: channelMembersCount },
       { id: "here", label: "here", handle: "here", type: "group" as const, memberCount: channelMembersCount },
-      { id: "everyone", label: "everyone", handle: "everyone", type: "group" as const, memberCount: totalWorkspaceMembers },
+      { id: "everyone", label: "everyone", handle: "everyone", type: "group" as const, memberCount: everyoneCount },
     ].filter((m) => m.label.toLowerCase().includes(query))
 
     const groupMembers = (targetChannel.members || [])
@@ -83,12 +87,14 @@ export async function GET(req: NextRequest) {
   const specialMentions = [
     { id: "channel", label: "channel", handle: "channel", type: "group" as const, memberCount: channelMembersCount },
     { id: "here", label: "here", handle: "here", type: "group" as const, memberCount: channelMembersCount },
-    { id: "everyone", label: "everyone", handle: "everyone", type: "group" as const, memberCount: totalWorkspaceMembers },
+    { id: "everyone", label: "everyone", handle: "everyone", type: "group" as const, memberCount: everyoneCount },
   ].filter((m) => m.label.toLowerCase().includes(query))
 
   let userMembers: any[] = []
   if (targetChannel) {
     userMembers = targetChannel.members
+      // Exclude the current user from the suggestions by default so typing @ doesn't suggest yourself.
+      // If you'd like to include the current user in the list, remove the `.filter` below.
       .filter((m: any) => m.userId !== session.user.id)
       .map((m: any) => ({
         id: m.user.id,

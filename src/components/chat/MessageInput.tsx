@@ -8,6 +8,7 @@ import Placeholder from "@tiptap/extension-placeholder"
 import { Send, Loader2, AtSign, Hash, Bold, Italic, Strikethrough, Code, List, ListOrdered, Quote, Heading1, Heading2, Heading3 } from "lucide-react"
 import { createMentionSuggestion } from "./mentionSuggestion"
 import { createCompanyMentionSuggestion } from "./companyMentionSuggestion"
+import trimTrailingEmptyBlocks from '@/lib/trimTiptap'
 
 const SEND_ON_ENTER = false
 
@@ -118,6 +119,7 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
   const [sending, setSending] = useState(false)
   const [hasContent, setHasContent] = useState(false)
   const handleSendRef = useRef<() => void>(() => {})
+  const editorRef = useRef<any>(null)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -145,7 +147,7 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
       setHasContent(!editor.isEmpty && !!editor.getText().trim())
     },
     editorProps: {
-      handleKeyDown(view, event) {
+      handleKeyDown(view: any, event: KeyboardEvent): boolean {
         if (event.key === "Enter" && !event.shiftKey) {
           // If mention autocomplete popup is open, let mention extension handle Enter selection
           const isTippyVisible = document.querySelector(".tippy-box") !== null
@@ -174,10 +176,10 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
             event.preventDefault()
 
             if (isEmptyListItem()) {
-              return editor?.commands.liftListItem("listItem") ?? false
+              return editorRef.current?.commands.liftListItem("listItem") ?? false
             }
 
-            return editor?.commands.splitListItem("listItem") ?? false
+            return editorRef.current?.commands.splitListItem("listItem") ?? false
           }
 
           if (!SEND_ON_ENTER) {
@@ -185,7 +187,7 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
           }
 
           event.preventDefault()
-          handleSendRef.current()
+            handleSendRef.current()
           return true
         }
         return false
@@ -196,6 +198,10 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
       },
     },
   })
+
+  useEffect(() => {
+    editorRef.current = editor
+  }, [editor])
 
   // Auto-focus input cursor whenever switching to any channel, group, or DM
   useEffect(() => {
@@ -214,6 +220,7 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
     if (!textContent && editor.isEmpty) return
 
     const jsonContent = editor.getJSON()
+    const cleanedContent = trimTrailingEmptyBlocks(jsonContent)
     setSending(true)
 
     try {
@@ -223,7 +230,7 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
         body: JSON.stringify({
           channelId,
           content: textContent || " ",
-          contentParsed: jsonContent,
+          contentParsed: cleanedContent,
           parentId: parentId || null,
         }),
       })
