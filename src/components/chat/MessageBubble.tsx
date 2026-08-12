@@ -93,7 +93,7 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
             return (
               <Link
                 key={idx}
-                href={`/companies/${mentionInfo.id}`}
+                href={`/companies/${mentionInfo.id}/view`}
                 title={`Company #${mentionInfo.handle}`}
                 className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 font-semibold text-xs border border-emerald-500/30 transition-all cursor-pointer shadow-sm"
               >
@@ -158,13 +158,12 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
   return (
     <div
       id={`message-${message.id}`}
-      className={`flex gap-3 px-4 py-2.5 transition-all duration-500 group ${
-        isHighlighted
+      className={`flex gap-3 px-4 py-2.5 transition-all duration-500 group ${isHighlighted
           ? "bg-indigo-600/30 border-y-2 border-indigo-500 shadow-xl shadow-indigo-500/20 ring-1 ring-indigo-500/50"
           : isOwner
-          ? "bg-indigo-950/10 hover:bg-slate-800/30"
-          : "hover:bg-slate-800/30"
-      }`}
+            ? "bg-indigo-950/10 hover:bg-slate-800/30"
+            : "hover:bg-slate-800/30"
+        }`}
     >
       {/* Avatar */}
       <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-slate-700 to-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-slate-200 uppercase shrink-0 mt-0.5">

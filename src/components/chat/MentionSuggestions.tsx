@@ -20,7 +20,7 @@ export const MentionSuggestions = forwardRef((props: MentionSuggestionsProps, re
   const selectItem = (index: number) => {
     const item = props.items[index]
     if (item) {
-      props.command({ id: item.handle || item.label, label: item.label })
+      props.command({ id: item.id, label: item.label })
     }
   }
 
@@ -73,8 +73,8 @@ export const MentionSuggestions = forwardRef((props: MentionSuggestionsProps, re
           key={item.id}
           onClick={() => selectItem(index)}
           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all text-left ${index === selectedIndex
-              ? "bg-indigo-600/30 text-indigo-300 font-semibold border border-indigo-500/40"
-              : "text-slate-300 hover:bg-slate-800/80"
+            ? "bg-indigo-600/30 text-indigo-300 font-semibold border border-indigo-500/40"
+            : "text-slate-300 hover:bg-slate-800/80"
             }`}
         >
           {item.type === "company" ? (
