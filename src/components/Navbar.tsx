@@ -114,7 +114,7 @@ export function Navbar() {
       <div className="h-full max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Logo */}
         <Link href="/dashboard" className="font-bold text-lg text-primary hover:text-accent transition-colors">
-          DocGen
+          PNV Consultants
         </Link>
 
         {/* Navigation Links */}
@@ -174,8 +174,8 @@ export function Navbar() {
 
             {isDropdownOpen && (
               <>
-                <div 
-                  className="fixed inset-0 z-40" 
+                <div
+                  className="fixed inset-0 z-40"
                   onClick={() => setIsDropdownOpen(false)}
                 />
                 <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
@@ -215,10 +215,10 @@ export function Navbar() {
           </div>
         </div>
       </div>
-      
-      <UserSettingsModal 
-        isOpen={isThemeModalOpen} 
-        onClose={() => setIsThemeModalOpen(false)} 
+
+      <UserSettingsModal
+        isOpen={isThemeModalOpen}
+        onClose={() => setIsThemeModalOpen(false)}
       />
     </nav>
   )

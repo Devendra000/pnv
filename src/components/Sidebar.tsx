@@ -44,11 +44,10 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm ${
-                isActive
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm ${isActive
                   ? 'bg-primary text-primary-foreground font-medium'
                   : 'text-foreground hover:bg-muted'
-              }`}
+                }`}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
               <span>{item.label}</span>
@@ -59,7 +58,7 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-border text-xs text-muted-foreground">
-        <p>DocGen v1.0.0</p>
+        <p>PNV Consultants v1.0.0</p>
       </div>
     </aside>
   );
