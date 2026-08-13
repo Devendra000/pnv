@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   // 0. Resolve channelId (supports both channel UUID/CUID and slug)
   const targetChannel = await prisma.channel.findFirst({
     where: { OR: [{ id: channelId }, { slug: channelId }] },
-    select: { id: true, type: true, members: { select: { userId: true } } },
+    select: { id: true, type: true, slug: true, name: true, members: { select: { userId: true } } },
   })
 
   if (!targetChannel) {
@@ -193,7 +193,9 @@ export async function POST(req: NextRequest) {
           senderId: session.user.id,
           messageId: message.id,
           senderName: message.sender.displayName || message.sender.username,
-          contentPreview: content.slice(0, 100)
+          contentPreview: content.slice(0, 100),
+          url: targetChannel.type === "DM" ? `/dm/${message.sender.username}` : `/chat/${targetChannel.slug}`,
+          channelName: targetChannel.type === "DM" ? undefined : targetChannel.name
         })
       }
     }

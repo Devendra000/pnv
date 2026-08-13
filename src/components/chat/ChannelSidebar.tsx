@@ -15,7 +15,7 @@ import {
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { CreateChannelModal } from "./CreateChannelModal"
-import { NotificationBell } from "./NotificationBell"
+
 import { socket } from "@/lib/socket-client"
 import { useChatPresence } from "@/contexts/ChatPresenceContext"
 
@@ -60,13 +60,6 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
   useEffect(() => {
     fetchChannels()
     fetchUsers()
-
-    // Request notification permission on load
-    if (typeof window !== "undefined" && "Notification" in window) {
-      if (Notification.permission === "default") {
-        Notification.requestPermission()
-      }
-    }
   }, [])
 
   // Listen for real-time channel activity emitted to personal user room
@@ -95,14 +88,6 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
 
         if (isCurrentChannel) {
           fetch(`/api/channels/${c.id}/read`, { method: "POST" })
-          
-          if (typeof document !== "undefined" && !document.hasFocus()) {
-            playNotificationSound()
-            showPushNotification(data.senderName, data.contentPreview, c.name, url)
-          }
-        } else {
-          playNotificationSound()
-          showPushNotification(data.senderName, data.contentPreview, c.name, url)
         }
 
         setChannels((prev) => {
@@ -118,30 +103,7 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
       }
     }
 
-    const playNotificationSound = () => {
-      try {
-        const audio = new Audio("/notification.wav")
-        audio.play().catch(e => console.log("Audio play failed:", e))
-      } catch (err) { }
-    }
 
-    const showPushNotification = (senderName?: string, contentPreview?: string, channelName?: string, url?: string) => {
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-        const title = channelName && !channelName.startsWith('@')
-          ? `New message in ${channelName}`
-          : `New message from ${senderName || 'someone'}`
-        const notification = new Notification(title, {
-          body: contentPreview || "You have a new message",
-        })
-        notification.onclick = () => {
-          window.focus()
-          if (url) {
-            router.push(url)
-          }
-          notification.close()
-        }
-      }
-    }
 
     socket.on("channel-activity", handleChannelActivity)
 
@@ -267,7 +229,6 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
             </div>
           </div>
         </div>
-        <NotificationBell />
       </div>
 
       {/* Navigation List */}

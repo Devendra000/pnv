@@ -18,7 +18,9 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
   const senderName = message.sender?.displayName || message.sender?.username || "Unknown"
   const avatarLetter = (message.sender?.username || "U")[0].toUpperCase()
 
-  const formattedTime = new Date(message.createdAt).toLocaleTimeString([], {
+  const formattedTime = new Date(message.createdAt).toLocaleString([], {
+    month: "short",
+    day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   })
