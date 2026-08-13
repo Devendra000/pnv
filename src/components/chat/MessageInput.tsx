@@ -148,10 +148,10 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
     },
     editorProps: {
       handleKeyDown(view: any, event: KeyboardEvent): boolean {
-        if (event.key === "Enter" && !event.shiftKey) {
+        if (event.key === "Enter") {
           // If mention autocomplete popup is open, let mention extension handle Enter selection
           const isTippyVisible = document.querySelector(".tippy-box") !== null
-          if (isTippyVisible) return false
+          if (isTippyVisible && !event.shiftKey && !event.altKey) return false
 
           const isInsideListItem = () => {
             for (let depth = view.state.selection.$from.depth; depth > 0; depth -= 1) {
@@ -172,22 +172,30 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
             return false
           }
 
-          if (isInsideListItem()) {
+          // Alt+Enter or Shift+Enter behaves like a newline/paragraph break
+          if (event.altKey || event.shiftKey) {
             event.preventDefault()
-
-            if (isEmptyListItem()) {
-              return editorRef.current?.commands.liftListItem("listItem") ?? false
+            
+            // If they pressed Shift+Enter ONLY (no Alt), always insert a hard break (br), even in lists
+            if (event.shiftKey && !event.altKey) {
+              return editorRef.current?.commands.setHardBreak() ?? false
             }
-
-            return editorRef.current?.commands.splitListItem("listItem") ?? false
+            
+            // Otherwise it's Alt+Enter (or Alt+Shift+Enter), which should act like the traditional "Enter"
+            if (isInsideListItem()) {
+              if (isEmptyListItem()) {
+                return editorRef.current?.commands.liftListItem("listItem") ?? false
+              }
+              return editorRef.current?.commands.splitListItem("listItem") ?? false
+            }
+            
+            // Alt+Enter outside a list inserts a new paragraph
+            return editorRef.current?.commands.splitBlock() ?? false
           }
 
-          if (!SEND_ON_ENTER) {
-            return false
-          }
-
+          // Bare Enter ALWAYS sends the message
           event.preventDefault()
-            handleSendRef.current()
+          handleSendRef.current()
           return true
         }
         return false
