@@ -11,10 +11,18 @@ import { socket } from "@/lib/socket-client"
  */
 export function useSocket(channelId: string) {
   useEffect(() => {
+    const handleConnect = () => {
+      socket.emit("join-channel", channelId)
+    }
+
     // Join the channel room on the server so we receive new-message events
     socket.emit("join-channel", channelId)
 
+    // Re-join on reconnect
+    socket.on("connect", handleConnect)
+
     return () => {
+      socket.off("connect", handleConnect)
       socket.emit("leave-channel", channelId)
     }
   }, [channelId])

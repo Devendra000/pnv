@@ -44,7 +44,7 @@ export default async function RootLayout({
 
   // Default to dark mode if not specified
   const themeMode = prefs.themeMode || 'dark'
-  const htmlClass = themeMode === 'system' ? '' : themeMode
+  const htmlClass = themeMode
 
   // Build inline styles for accent colors if selected
   const inlineStyles = {

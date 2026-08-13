@@ -15,7 +15,7 @@ export default async function DirectMessagePage({
 
   const targetUser = await prisma.user.findUnique({
     where: { username },
-    select: { id: true, username: true, displayName: true },
+    select: { id: true, username: true, displayName: true, avatarUrl: true },
   })
 
   if (!targetUser) {

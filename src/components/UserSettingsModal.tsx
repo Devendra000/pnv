@@ -10,7 +10,6 @@ interface UserSettingsModalProps {
 }
 
 const THEME_MODES = [
-  { id: 'system', label: 'System', icon: Monitor },
   { id: 'light', label: 'Light', icon: Sun },
   { id: 'dark', label: 'Dark', icon: Moon }
 ]
@@ -66,14 +65,8 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
     const htmlEl = document.documentElement
     
     // Apply Mode
-    if (themeMode === 'system') {
-      htmlEl.classList.remove('light', 'dark')
-      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      htmlEl.classList.add(systemDark ? 'dark' : 'light')
-    } else {
-      htmlEl.classList.remove('light', 'dark')
-      htmlEl.classList.add(themeMode)
-    }
+    htmlEl.classList.remove('light', 'dark')
+    htmlEl.classList.add(themeMode)
 
     // Apply Accent
     if (accentColor && accentColor !== '#6366f1') {
@@ -132,7 +125,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
       const htmlEl = document.documentElement
       const origMode = prefs.themeMode || 'dark'
       htmlEl.classList.remove('light', 'dark')
-      if (origMode !== 'system') htmlEl.classList.add(origMode)
+      htmlEl.classList.add(origMode)
       
       if (prefs.accentColor) {
         htmlEl.style.setProperty('--primary', prefs.accentColor)
@@ -243,6 +236,14 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
                                 const data = await res.json()
                                 if (res.ok) {
                                   setAvatarUrl(data.url)
+                                  
+                                  // Auto-save avatar immediately
+                                  await fetch("/api/users/profile", {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ displayName, username, email, bio, avatarUrl: data.url }),
+                                  })
+                                  await update({ avatarUrl: data.url })
                                 } else {
                                   setErrorMsg(data.error || "Upload failed")
                                 }
@@ -329,7 +330,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
                   {/* Theme Mode */}
                   <div className="space-y-3">
                     <label className="text-sm font-semibold text-foreground">Theme Mode</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-sm">
                       {THEME_MODES.map((mode) => (
                         <button
                           key={mode.id}

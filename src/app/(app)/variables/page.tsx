@@ -509,49 +509,7 @@ export default function VariablesPage() {
               )}
             </section>
 
-            {/* ── Loop: witnesses_list ── */}
-            <section>
-              <div className="mb-1 flex items-center gap-2">
-                <Repeat2 className="w-4 h-4 text-violet-500" />
-                <h2 className="text-base font-semibold text-foreground">Loop — <code className="text-violet-600 dark:text-violet-400">{'[#witnesses_list]'}</code></h2>
-              </div>
-              <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
-                Repeats once per witness (flat list of all witnesses). Use when you need all witnesses in a table regardless of which owner they belong to.
-              </p>
-              <div className="mb-4 rounded-lg bg-slate-950 px-4 py-3 text-xs font-mono text-slate-300 overflow-x-auto">
-                <span className="text-violet-400">{'[#witnesses_list]'}</span>{'  '}
-                <span className="text-yellow-300">{'[witness_name]'}</span>{'  '}
-                <span className="text-yellow-300">{'[witness_father_name]'}</span>{'  '}
-                <span className="text-yellow-300">{'[witness_citizenship]'}</span>{'  '}
-                <span className="text-violet-400">{'[/witnesses_list]'}</span>
-              </div>
-              {filteredWitnessesLoop.length === 0 ? (
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-6 text-center text-slate-500">
-                  No witness loop fields match &quot;{searchQuery}&quot;
-                </div>
-              ) : (
-                <div className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-slate-100 dark:bg-slate-800/60 text-left">
-                        <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider w-56">Field</th>
-                        <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {filteredWitnessesLoop.map((f) => (
-                        <tr key={f.key} className="bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                          <td className="px-4 py-2.5">
-                            <code className="text-xs font-mono font-semibold text-yellow-600 dark:text-yellow-400">{`[${f.key}]`}</code>
-                          </td>
-                          <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-400">{f.description}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
+
           </div>
         )}
 

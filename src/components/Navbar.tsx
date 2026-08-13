@@ -1,11 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { FileText, Settings, MessageCircle, Palette, LogOut } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { FileText, Settings, MessageCircle, LogOut } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { socket } from '@/lib/socket-client'
 import { UserSettingsModal } from './UserSettingsModal'
 
@@ -16,6 +15,7 @@ export function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isLogoutAlertOpen, setIsLogoutAlertOpen] = useState(false)
 
   const isActive = (path: string) => pathname?.startsWith(path)
 
@@ -201,7 +201,7 @@ export function Navbar() {
                     <button
                       onClick={() => {
                         setIsDropdownOpen(false)
-                        window.location.href = "/api/auth/signout"
+                        setIsLogoutAlertOpen(true)
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors text-left mt-1"
                     >
@@ -220,6 +220,30 @@ export function Navbar() {
         isOpen={isThemeModalOpen}
         onClose={() => setIsThemeModalOpen(false)}
       />
+
+      {/* Logout Confirmation Modal */}
+      {isLogoutAlertOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
+          <div className="bg-card border border-border w-full max-w-sm rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-foreground mb-2">Log out</h3>
+            <p className="text-sm text-muted-foreground mb-6">Are you sure you want to log out of your account?</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsLogoutAlertOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                className="px-4 py-2 text-sm font-medium text-white bg-destructive hover:bg-destructive/90 rounded-lg shadow-md transition-colors"
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }

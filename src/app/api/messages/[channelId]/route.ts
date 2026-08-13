@@ -46,7 +46,7 @@ export async function GET(
     },
     take: limit,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" },
     include: {
       sender: {
         select: {
@@ -100,5 +100,6 @@ export async function GET(
     return { ...m, contentParsed: safeContent, contentParsedPreview: preview }
   })
 
-  return NextResponse.json({ messages: sanitized })
+  // We fetched descending to get the newest messages, but client expects chronological order
+  return NextResponse.json({ messages: sanitized.reverse() })
 }

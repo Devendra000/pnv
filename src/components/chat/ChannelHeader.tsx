@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Hash, Lock, Users, Megaphone } from "lucide-react"
 
 interface ChannelHeaderProps {
@@ -13,13 +14,21 @@ export function ChannelHeader({ channel, isDm, dmUser }: ChannelHeaderProps) {
     return (
       <header className="h-16 px-6 bg-background/50 border-b border-border flex items-center justify-between backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white text-xs uppercase shadow-md shadow-indigo-500/20">
-            {dmUser.username[0]}
-          </div>
+          <Link href={`/u/${dmUser.username}`} className="shrink-0 hover:opacity-80 transition-opacity">
+            {dmUser.avatarUrl ? (
+              <img src={dmUser.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover shadow-md" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white text-xs uppercase shadow-md shadow-indigo-500/20">
+                {dmUser.username[0]}
+              </div>
+            )}
+          </Link>
           <div>
-            <h1 className="text-base font-bold text-foreground flex items-center gap-2">
-              {dmUser.displayName || dmUser.username}
-            </h1>
+            <Link href={`/u/${dmUser.username}`} className="hover:underline">
+              <h1 className="text-base font-bold text-foreground flex items-center gap-2">
+                {dmUser.displayName || dmUser.username}
+              </h1>
+            </Link>
             <p className="text-xs text-muted-foreground">Direct Message thread</p>
           </div>
         </div>

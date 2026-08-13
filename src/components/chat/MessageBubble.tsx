@@ -1,7 +1,8 @@
 "use client"
 
+import React, { useState } from "react"
 import Link from "next/link"
-import { MessageSquare, Users, Building } from "lucide-react"
+import { MessageSquare, Users, Building, X } from "lucide-react"
 import { useChatPresence } from "@/contexts/ChatPresenceContext"
 import { RenderTiptapContent } from "./RenderTiptapContent"
 
@@ -14,6 +15,7 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message, currentUserId, onOpenThread, isHighlighted }: MessageBubbleProps) {
   const { isOnline } = useChatPresence()
+  const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false)
   const isOwner = message.senderId === currentUserId
   const senderName = message.sender?.displayName || message.sender?.username || "Unknown"
   const avatarLetter = (message.sender?.username || "U")[0].toUpperCase()
@@ -130,7 +132,7 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
             return (
               <Link
                 key={idx}
-                href={`/dm/${mentionInfo.username}`}
+                href={`/u/${mentionInfo.username}`}
                 className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-primary/20 text-primary hover:bg-primary/30 font-semibold text-xs border border-primary/30 transition-all cursor-pointer shadow-sm no-underline"
               >
                 <span>{part}</span>
@@ -169,9 +171,37 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
         }`}
     >
       {/* Avatar */}
-      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-slate-700 to-slate-800 border border-border flex items-center justify-center font-bold text-xs text-foreground uppercase shrink-0 mt-0.5">
-        {avatarLetter}
-      </div>
+      <button 
+        onClick={() => message.sender?.avatarUrl && setAvatarLightboxOpen(true)}
+        className={`w-8 h-8 rounded-xl bg-gradient-to-tr from-slate-700 to-slate-800 border border-border flex items-center justify-center font-bold text-xs text-foreground uppercase shrink-0 mt-0.5 relative overflow-hidden transition-all ${message.sender?.avatarUrl ? 'cursor-pointer hover:ring-2 hover:ring-primary' : 'cursor-default'}`}
+      >
+        {message.sender?.avatarUrl ? (
+          <img src={message.sender.avatarUrl} alt={senderName} className="w-full h-full object-cover" />
+        ) : (
+          avatarLetter
+        )}
+      </button>
+
+      {/* Avatar Lightbox */}
+      {avatarLightboxOpen && message.sender?.avatarUrl && (
+        <div 
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200 p-4"
+          onClick={() => setAvatarLightboxOpen(false)}
+        >
+          <button 
+            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white bg-black/50 hover:bg-black/70 rounded-full transition-colors"
+            onClick={(e) => { e.stopPropagation(); setAvatarLightboxOpen(false); }}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img 
+            src={message.sender.avatarUrl} 
+            alt={senderName} 
+            className="max-w-full max-h-[90vh] object-contain rounded-md shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()} 
+          />
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 min-w-0">

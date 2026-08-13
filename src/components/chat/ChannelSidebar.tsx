@@ -376,9 +376,13 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                       }`}
                   >
-                    <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold text-foreground uppercase shrink-0">
-                      {u.username[0]}
-                    </div>
+                    {u.avatarUrl ? (
+                      <img src={u.avatarUrl} alt={u.username} className="w-5 h-5 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold text-foreground uppercase shrink-0">
+                        {u.username[0]}
+                      </div>
+                    )}
                     <span className="truncate flex-1 flex items-center gap-1.5">
                       {u.displayName || u.username}
                       <span className={`w-1.5 h-1.5 rounded-full ${isOnline(u.id) ? 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.5)]' : 'bg-slate-600'}`} />
