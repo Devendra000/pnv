@@ -336,22 +336,22 @@ export function AdminGroupsManager() {
   )
 
   return (
-    <div className="flex-1 p-8 overflow-y-auto bg-slate-950 text-slate-100 select-none">
+    <div className="flex-1 p-8 overflow-y-auto bg-background text-foreground select-none">
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Navigation Header Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-3 text-white tracking-tight">
               <Shield className="w-7 h-7 text-amber-400 shrink-0" /> Admin User Groups
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Create and manage team groups for instant @mentions and private group discussion channels.
             </p>
           </div>
-          <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shrink-0">
+          <div className="flex items-center gap-2 bg-card p-1.5 rounded-2xl border border-border shrink-0">
             <Link
               href="/admin/users"
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all flex items-center gap-2"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all flex items-center gap-2"
             >
               <Users className="w-4 h-4" /> Manage Users
             </Link>
@@ -365,12 +365,12 @@ export function AdminGroupsManager() {
         </div>
 
         {/* Create Group Form Card */}
-        <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-6 shadow-2xl space-y-5 backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+        <div className="bg-card/90 border border-border/90 rounded-2xl p-6 shadow-2xl space-y-5 backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-border/80 pb-3">
             <h2 className="text-base font-bold text-white flex items-center gap-2.5">
-              <Sparkles className="w-5 h-5 text-indigo-400" /> Create New User Group
+              <Sparkles className="w-5 h-5 text-primary" /> Create New User Group
             </h2>
-            <span className="text-[11px] text-slate-400 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700/80 font-mono">
+            <span className="text-[11px] text-muted-foreground bg-muted/80 px-3 py-1 rounded-full border border-border/80 font-mono">
               Auto-creates @group channel
             </span>
           </div>
@@ -388,7 +388,7 @@ export function AdminGroupsManager() {
 
           <form onSubmit={handleCreateGroup} className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
                 Group Name
               </label>
               <input
@@ -397,36 +397,36 @@ export function AdminGroupsManager() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Developers"
                 required
-                className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className="w-full px-4 py-2.5 bg-muted/80 border border-border/80 rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
                 Handle (for @mention)
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-slate-500 font-mono text-sm">@</span>
+                <span className="absolute left-3.5 top-2.5 text-muted-foreground font-mono text-sm">@</span>
                 <input
                   type="text"
                   value={handle}
                   onChange={(e) => setHandle(e.target.value)}
                   placeholder="e.g. devs"
                   required
-                  className={`w-full pl-8 pr-4 py-2.5 bg-slate-800/80 border rounded-xl text-sm text-slate-100 font-mono placeholder:text-slate-500 focus:ring-2 transition-all ${
+                  className={`w-full pl-8 pr-4 py-2.5 bg-muted/80 border rounded-xl text-sm text-foreground font-mono placeholder:text-muted-foreground focus:ring-2 transition-all ${
                     handleAvailable === false
                       ? "border-red-500 focus:ring-red-500"
                       : handleAvailable === true
                       ? "border-emerald-500 focus:ring-emerald-500"
-                      : "border-slate-700/80 focus:ring-indigo-500"
+                      : "border-border/80 focus:ring-primary"
                   }`}
                 />
               </div>
 
               {/* Instant GitHub-style live feedback */}
               {handleChecking ? (
-                <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1.5">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" /> Checking availability...
+                <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1.5">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> Checking availability...
                 </p>
               ) : handleAvailable === true ? (
                 <p className="text-[11px] text-emerald-400 mt-1.5 flex items-center gap-1 font-semibold">
@@ -443,7 +443,7 @@ export function AdminGroupsManager() {
               <button
                 type="submit"
                 disabled={submitting || handleAvailable === false || handleChecking}
-                className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition-all"
+                className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-primary/20 transition-all"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 Create Group
@@ -456,29 +456,29 @@ export function AdminGroupsManager() {
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Layers className="w-5 h-5 text-indigo-400" /> Existing User Groups ({groups.length})
+              <Layers className="w-5 h-5 text-primary" /> Existing User Groups ({groups.length})
             </h2>
 
             {/* Search Bar */}
             <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search groups..."
-                className="w-full pl-9 pr-4 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-9 pr-4 py-2 bg-card/90 border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
 
           {loading ? (
-            <div className="py-16 text-center text-xs text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800">
-              <Loader2 className="w-6 h-6 animate-spin text-indigo-400 mx-auto mb-2" />
+            <div className="py-16 text-center text-xs text-muted-foreground bg-card/40 rounded-2xl border border-border">
+              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
               Loading workspace groups...
             </div>
           ) : filteredGroups.length === 0 ? (
-            <div className="py-16 text-center text-xs text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800">
+            <div className="py-16 text-center text-xs text-muted-foreground bg-card/40 rounded-2xl border border-border">
               No user groups found.
             </div>
           ) : (
@@ -492,19 +492,19 @@ export function AdminGroupsManager() {
                 return (
                   <div
                     key={g.id}
-                    className="bg-slate-900 border border-slate-800/90 hover:border-slate-700/80 rounded-2xl p-6 shadow-xl space-y-5 transition-all group"
+                    className="bg-card border border-border/90 hover:border-border/80 rounded-2xl p-6 shadow-xl space-y-5 transition-all group"
                   >
                     {/* Card Header & Controls */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center font-bold text-indigo-400 font-mono text-base shadow-sm">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 border border-primary/30 flex items-center justify-center font-bold text-primary font-mono text-base shadow-sm">
                           @
                         </div>
                         <div>
                           <div className="font-bold text-base text-white flex items-center gap-2">
                             {g.name}
                           </div>
-                          <div className="text-xs text-indigo-400 font-mono font-semibold">
+                          <div className="text-xs text-primary font-mono font-semibold">
                             @{g.handle}
                           </div>
                         </div>
@@ -514,33 +514,33 @@ export function AdminGroupsManager() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <button
                           onClick={() => handleOpenEdit(g)}
-                          className="px-3 py-1.5 bg-slate-800 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-300 border border-slate-700/80 hover:border-indigo-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+                          className="px-3 py-1.5 bg-muted hover:bg-primary/20 text-foreground hover:text-primary border border-border/80 hover:border-primary/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
                           title="Edit Group Name or Handle"
                         >
                           <Edit2 className="w-3.5 h-3.5" /> Edit
                         </button>
                         <button
                           onClick={() => setActiveGroupModal(g)}
-                          className="px-3.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+                          className="px-3.5 py-1.5 bg-primary/20 hover:bg-primary/40 text-primary border border-primary/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
                         >
                           <UserPlus className="w-3.5 h-3.5" /> Add Users (Multi-select)
                         </button>
                         <button
                           onClick={() => handleDeleteGroup(g)}
-                          className="px-3 py-1.5 bg-slate-800 hover:bg-red-600/20 text-slate-400 hover:text-red-300 border border-slate-700/80 hover:border-red-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
+                          className="px-3 py-1.5 bg-muted hover:bg-red-600/20 text-muted-foreground hover:text-red-300 border border-border/80 hover:border-red-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
                           title="Delete Group"
                         >
                           <Trash2 className="w-3.5 h-3.5" /> Delete
                         </button>
-                        <span className="text-xs font-bold text-slate-300 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700/80">
+                        <span className="text-xs font-bold text-foreground bg-muted/90 px-3 py-1.5 rounded-xl border border-border/80">
                           {g.members?.length || 0} members
                         </span>
                       </div>
                     </div>
 
                     {/* Member Grid */}
-                    <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4 space-y-3">
-                      <div className="flex items-center justify-between text-xs text-slate-400 font-semibold">
+                    <div className="bg-background/60 border border-border/80 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold">
                         <span>Group Members</span>
                         {selectedRemoveIds.length > 0 && (
                           <button
@@ -553,7 +553,7 @@ export function AdminGroupsManager() {
                       </div>
 
                       {g.members?.length === 0 ? (
-                        <div className="text-xs text-slate-500 italic py-2 text-center">
+                        <div className="text-xs text-muted-foreground italic py-2 text-center">
                           No members in this group yet. Click &quot;Add Users&quot; to assign team members.
                         </div>
                       ) : (
@@ -571,27 +571,27 @@ export function AdminGroupsManager() {
                                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs cursor-pointer border transition-all ${
                                   isSelected
                                     ? "bg-red-950/40 border-red-500/50 text-red-300 shadow-md"
-                                    : "bg-slate-800/80 border-slate-700/80 text-slate-200 hover:bg-slate-800 hover:border-slate-600"
+                                    : "bg-muted/80 border-border/80 text-foreground hover:bg-muted hover:border-slate-600"
                                 }`}
                               >
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
                                   onChange={() => {}}
-                                  className="w-3.5 h-3.5 rounded border-slate-700 bg-slate-800 text-red-500 focus:ring-red-500"
+                                  className="w-3.5 h-3.5 rounded border-border bg-muted text-red-500 focus:ring-red-500"
                                 />
-                                <div className="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center font-bold text-[10px] text-slate-200 uppercase">
+                                <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center font-bold text-[10px] text-foreground uppercase">
                                   {uHandle[0]}
                                 </div>
                                 <span className="font-semibold">{uName}</span>
-                                <span className="text-slate-400 font-mono text-[11px]">(@{uHandle})</span>
+                                <span className="text-muted-foreground font-mono text-[11px]">(@{uHandle})</span>
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation()
                                     handleRemoveMember(g.id, uId)
                                   }}
-                                  className="text-slate-400 hover:text-red-400 transition-all p-0.5 ml-1 rounded hover:bg-slate-700"
+                                  className="text-muted-foreground hover:text-red-400 transition-all p-0.5 ml-1 rounded hover:bg-accent"
                                   title="Remove member"
                                 >
                                   <X className="w-3.5 h-3.5" />
@@ -612,15 +612,15 @@ export function AdminGroupsManager() {
 
       {/* Edit Group Modal */}
       {editingGroup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-indigo-400" /> Edit User Group @{editingGroup.handle}
+                <Edit2 className="w-4 h-4 text-primary" /> Edit User Group @{editingGroup.handle}
               </h3>
               <button
                 onClick={() => setEditingGroup(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1 rounded-lg text-muted-foreground hover:text-white hover:bg-muted"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -628,7 +628,7 @@ export function AdminGroupsManager() {
 
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
                   Group Name
                 </label>
                 <input
@@ -636,34 +636,34 @@ export function AdminGroupsManager() {
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-100"
+                  className="w-full px-3.5 py-2 bg-muted border border-border rounded-xl text-xs text-foreground"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
                   Handle (for @mention)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-2 text-slate-500 font-mono text-xs">@</span>
+                  <span className="absolute left-3.5 top-2 text-muted-foreground font-mono text-xs">@</span>
                   <input
                     type="text"
                     value={editHandle}
                     onChange={(e) => setEditHandle(e.target.value)}
                     required
-                    className={`w-full pl-8 pr-4 py-2 bg-slate-800 border rounded-xl text-xs font-mono text-slate-100 ${
+                    className={`w-full pl-8 pr-4 py-2 bg-muted border rounded-xl text-xs font-mono text-foreground ${
                       editHandleAvailable === false
                         ? "border-red-500 focus:ring-red-500"
                         : editHandleAvailable === true
                         ? "border-emerald-500 focus:ring-emerald-500"
-                        : "border-slate-700 focus:ring-indigo-500"
+                        : "border-border focus:ring-primary"
                     }`}
                   />
                 </div>
 
                 {editHandleChecking ? (
-                  <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin text-indigo-400" /> Checking handle...
+                  <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin text-primary" /> Checking handle...
                   </p>
                 ) : editHandleAvailable === false ? (
                   <p className="text-[11px] text-red-400 mt-1 flex items-center gap-1 font-semibold">
@@ -676,14 +676,14 @@ export function AdminGroupsManager() {
                 <button
                   type="button"
                   onClick={() => setEditingGroup(null)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={editSubmitting || editHandleAvailable === false || editHandleChecking}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-semibold rounded-xl text-xs flex items-center gap-2 shadow-md"
+                  className="px-5 py-2 bg-primary hover:bg-primary disabled:opacity-40 text-white font-semibold rounded-xl text-xs flex items-center gap-2 shadow-md"
                 >
                   {editSubmitting && <Loader2 className="w-4 h-4 animate-spin" />} Save Changes
                 </button>
@@ -695,20 +695,20 @@ export function AdminGroupsManager() {
 
       {/* Multi-Select Add Users Modal */}
       {activeGroupModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-indigo-400" /> Add Members to @{activeGroupModal.handle}
+                  <UserPlus className="w-4 h-4 text-primary" /> Add Members to @{activeGroupModal.handle}
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Select multiple team members to assign to {activeGroupModal.name}.
                 </p>
               </div>
               <button
                 onClick={() => setActiveGroupModal(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1 rounded-lg text-muted-foreground hover:text-white hover:bg-muted"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -724,7 +724,7 @@ export function AdminGroupsManager() {
 
                 if (availableUsers.length === 0) {
                   return (
-                    <div className="p-6 text-center text-xs text-slate-500">
+                    <div className="p-6 text-center text-xs text-muted-foreground">
                       All workspace members are already in this group!
                     </div>
                   )
@@ -738,26 +738,26 @@ export function AdminGroupsManager() {
                       onClick={() => toggleUserToAdd(activeGroupModal.id, u.id)}
                       className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all text-xs ${
                         isChecked
-                          ? "bg-indigo-950/40 border-indigo-500/50 text-indigo-200"
-                          : "bg-slate-800/60 border-slate-700/80 text-slate-300 hover:bg-slate-800"
+                          ? "bg-indigo-950/40 border-primary/50 text-indigo-200"
+                          : "bg-muted/60 border-border/80 text-foreground hover:bg-muted"
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center font-bold text-[10px] text-slate-200 uppercase">
+                        <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center font-bold text-[10px] text-foreground uppercase">
                           {u.username[0]}
                         </div>
                         <div>
-                          <div className="font-semibold text-slate-200">
-                            {u.displayName || u.username} <span className="text-slate-500">(@{u.username})</span>
+                          <div className="font-semibold text-foreground">
+                            {u.displayName || u.username} <span className="text-muted-foreground">(@{u.username})</span>
                           </div>
-                          <div className="text-[11px] text-slate-500">{u.email}</div>
+                          <div className="text-[11px] text-muted-foreground">{u.email}</div>
                         </div>
                       </div>
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => {}}
-                        className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
+                        className="w-4 h-4 rounded border-border bg-muted text-primary focus:ring-primary"
                       />
                     </label>
                   )
@@ -765,15 +765,15 @@ export function AdminGroupsManager() {
               })()}
             </div>
 
-            <div className="flex justify-between items-center pt-3 border-t border-slate-800">
-              <span className="text-xs text-slate-400 font-semibold">
+            <div className="flex justify-between items-center pt-3 border-t border-border">
+              <span className="text-xs text-muted-foreground font-semibold">
                 {(selectedUsersToAdd[activeGroupModal.id] || []).length} user(s) selected
               </span>
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setActiveGroupModal(null)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-white"
                 >
                   Cancel
                 </button>
@@ -784,7 +784,7 @@ export function AdminGroupsManager() {
                     setActiveGroupModal(null)
                   }}
                   disabled={(selectedUsersToAdd[activeGroupModal.id] || []).length === 0}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-bold rounded-xl text-xs shadow-md"
+                  className="px-5 py-2 bg-primary hover:bg-primary disabled:opacity-40 text-white font-bold rounded-xl text-xs shadow-md"
                 >
                   Add Selected Members
                 </button>

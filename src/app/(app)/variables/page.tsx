@@ -179,7 +179,7 @@ export default function VariablesPage() {
         actions={
           activeTab === 'manual' && !isAdding && !editingId && (
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+              className="bg-primary hover:bg-primary/90 text-white font-medium"
               onClick={() => setIsAdding(true)}
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -208,7 +208,7 @@ export default function VariablesPage() {
               onClick={() => setActiveTab('manual')}
               className={`flex items-center gap-2 px-5 py-2.5 font-medium text-sm border-b-2 transition-colors ${
                 activeTab === 'manual'
-                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  ? 'border-primary text-primary dark:text-primary'
                   : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
@@ -222,7 +222,7 @@ export default function VariablesPage() {
               onClick={() => setActiveTab('auto')}
               className={`flex items-center gap-2 px-5 py-2.5 font-medium text-sm border-b-2 transition-colors ${
                 activeTab === 'auto'
-                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  ? 'border-primary text-primary dark:text-primary'
                   : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
@@ -289,7 +289,7 @@ export default function VariablesPage() {
                     <select
                       value={newVariable.type}
                       onChange={(e) => setNewVariable({ ...newVariable, type: e.target.value as Variable['type'] })}
-                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                       <option value="text">Text</option>
                       <option value="number">Number</option>
@@ -322,7 +322,7 @@ export default function VariablesPage() {
                   <div className="flex gap-2">
                     <Button
                       onClick={() => editingId ? handleUpdate(editingId) : handleAdd()}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                      className="bg-primary hover:bg-primary/90 text-white font-medium"
                     >
                       {editingId ? 'Update' : 'Create'} Variable
                     </Button>
@@ -349,15 +349,15 @@ export default function VariablesPage() {
               ) : (
                 filteredManualVariables.map((variable) => (
                   <div key={variable.id}
-                    className="flex items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 hover:border-blue-500/50 transition-colors"
+                    className="flex items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 hover:border-primary/50 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <code className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">{`[${variable.key}]`}</code>
+                        <code className="text-sm font-mono font-semibold text-primary dark:text-primary">{`[${variable.key}]`}</code>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 text-slate-400 hover:text-blue-500"
+                          className="h-6 w-6 p-0 text-slate-400 hover:text-primary"
                           onClick={() => copyToClipboard(`[${variable.key}]`, variable.key)}
                         >
                           {copiedKey === variable.key ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
@@ -388,7 +388,7 @@ export default function VariablesPage() {
                       )}
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white"
+                      <Button size="sm" className="bg-primary hover:bg-primary/90 text-white"
                         onClick={() => {
                           setEditingId(variable.id);
                           setNewVariable({
@@ -440,11 +440,11 @@ export default function VariablesPage() {
                       className="flex items-start gap-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-4 py-2.5"
                     >
                       <div className="flex items-center gap-1 shrink-0">
-                        <code className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">{`[${def.key}]`}</code>
+                        <code className="text-sm font-mono font-semibold text-primary dark:text-primary">{`[${def.key}]`}</code>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 text-slate-400 hover:text-blue-500"
+                          className="h-6 w-6 p-0 text-slate-400 hover:text-primary"
                           onClick={() => copyToClipboard(`[${def.key}]`, def.key)}
                         >
                           {copiedKey === def.key ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}

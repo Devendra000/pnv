@@ -61,32 +61,32 @@ export function ThreadPanel({ parentMessage, currentUserId, onClose }: ThreadPan
   if (!parentMessage) return null
 
   return (
-    <aside className="w-80 sm:w-96 bg-slate-900 border-l border-slate-800 flex flex-col h-full shrink-0 shadow-2xl">
+    <aside className="w-80 sm:w-96 bg-card border-l border-border flex flex-col h-full shrink-0 shadow-2xl">
       {/* Header */}
-      <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-bold text-slate-100">
-          <MessageSquare className="w-4 h-4 text-indigo-400" />
+      <div className="p-4 border-b border-border/80 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+          <MessageSquare className="w-4 h-4 text-primary" />
           <span>Thread</span>
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+          className="p-1 rounded-lg text-muted-foreground hover:text-white hover:bg-muted transition-all"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Parent Message Header */}
-      <div className="p-2 border-b border-slate-800/50 bg-slate-800/20">
+      <div className="p-2 border-b border-border/50 bg-muted/20">
         <MessageBubble message={parentMessage} currentUserId={currentUserId} />
       </div>
 
       {/* Replies Feed */}
-      <div className="flex-1 overflow-y-auto py-2 divide-y divide-slate-800/30">
+      <div className="flex-1 overflow-y-auto py-2 divide-y divide-border/30">
         {loading ? (
-          <div className="p-4 text-center text-xs text-slate-500">Loading replies...</div>
+          <div className="p-4 text-center text-xs text-muted-foreground">Loading replies...</div>
         ) : replies.length === 0 ? (
-          <div className="p-6 text-center text-xs text-slate-500">
+          <div className="p-6 text-center text-xs text-muted-foreground">
             No replies yet. Start the conversation!
           </div>
         ) : (

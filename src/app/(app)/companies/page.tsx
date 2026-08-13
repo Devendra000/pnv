@@ -58,7 +58,7 @@ export default function CompaniesPage() {
         description="Manage your company database and information"
         actions={
           <Link href="/companies/new">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium">
+            <Button className="bg-primary hover:bg-primary/90 text-white font-medium">
               <Plus className="w-4 h-4 mr-2" />
               New Company
             </Button>

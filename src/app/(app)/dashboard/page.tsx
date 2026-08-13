@@ -12,7 +12,7 @@ export default function DashboardPage() {
       title: 'Total Companies',
       value: stats.totalCompanies,
       icon: Building2,
-      color: 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300',
+      color: 'bg-primary/20 dark:bg-blue-900 text-primary dark:text-primary',
     },
     {
       title: 'Objectives',

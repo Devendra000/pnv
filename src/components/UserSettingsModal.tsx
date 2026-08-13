@@ -222,14 +222,52 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
                     
                     <div className="flex-1 space-y-4">
                       <div className="space-y-1.5">
-                        <label className="text-sm font-semibold text-foreground">Profile Picture URL</label>
-                        <input
-                          type="url"
-                          value={avatarUrl}
-                          onChange={e => setAvatarUrl(e.target.value)}
-                          placeholder="https://example.com/my-photo.jpg"
-                          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
-                        />
+                        <label className="text-sm font-semibold text-foreground">Profile Picture</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              
+                              const formData = new FormData()
+                              formData.append("file", file)
+                              formData.append("folder", "profiles")
+                              
+                              try {
+                                const res = await fetch("/api/upload", {
+                                  method: "POST",
+                                  body: formData
+                                })
+                                const data = await res.json()
+                                if (res.ok) {
+                                  setAvatarUrl(data.url)
+                                } else {
+                                  setErrorMsg(data.error || "Upload failed")
+                                }
+                              } catch (err) {
+                                setErrorMsg("Upload failed")
+                              }
+                            }}
+                            className="hidden"
+                            id="avatar-upload"
+                          />
+                          <label 
+                            htmlFor="avatar-upload"
+                            className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-medium rounded-lg cursor-pointer transition-colors shrink-0"
+                          >
+                            Upload File
+                          </label>
+                          <span className="text-xs text-muted-foreground">or URL:</span>
+                          <input
+                            type="url"
+                            value={avatarUrl}
+                            onChange={e => setAvatarUrl(e.target.value)}
+                            placeholder="https://..."
+                            className="flex-1 min-w-0 px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+                          />
+                        </div>
                       </div>
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

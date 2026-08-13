@@ -122,7 +122,7 @@ export default function ObjectivesPage() {
             )}
             {!isAddingObj && !editingObjId && (
               <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                className="bg-primary hover:bg-primary/90 text-white font-medium"
                 onClick={() => {
                   setIsAddingObj(true);
                   setObjectiveCatId(selectedCategoryId !== 'ALL' ? selectedCategoryId : '');
@@ -175,8 +175,8 @@ export default function ObjectivesPage() {
               onClick={() => setSelectedCategoryId('ALL')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                 selectedCategoryId === 'ALL'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-blue-500/50'
+                  ? 'bg-primary text-white shadow-md shadow-blue-500/20'
+                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-primary/50'
               }`}
             >
               <span>All Categories</span>
@@ -200,8 +200,8 @@ export default function ObjectivesPage() {
                     onClick={() => setSelectedCategoryId(cat.id)}
                     className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                       isSelected
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                        : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-blue-500/50'
+                        ? 'bg-primary text-white shadow-md shadow-blue-500/20'
+                        : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-primary/50'
                     }`}
                   >
                     <Tag className="w-3.5 h-3.5 opacity-70" />
@@ -220,7 +220,7 @@ export default function ObjectivesPage() {
                     <button
                       onClick={() => startEditCategory(cat)}
                       title="Edit Category"
-                      className="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-500 hover:text-white"
+                      className="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-primary/100 hover:text-white"
                     >
                       <Edit2 className="w-3 h-3" />
                     </button>
@@ -244,9 +244,9 @@ export default function ObjectivesPage() {
 
         {/* Category Add/Edit Modal/Form */}
         {(isAddingCat || editingCatId) && (
-          <div className="bg-white dark:bg-slate-900 border border-blue-500/30 rounded-2xl p-6 space-y-4 shadow-lg">
+          <div className="bg-white dark:bg-slate-900 border border-primary/30 rounded-2xl p-6 space-y-4 shadow-lg">
             <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <FolderPlus className="w-5 h-5 text-blue-500" />
+              <FolderPlus className="w-5 h-5 text-primary" />
               {editingCatId ? 'Edit Category' : 'Create New Category'}
             </h3>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -286,7 +286,7 @@ export default function ObjectivesPage() {
               </Button>
               <Button
                 onClick={handleSaveCategory}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-primary hover:bg-primary/90 text-white"
               >
                 {editingCatId ? 'Update Category' : 'Create Category'}
               </Button>
@@ -308,7 +308,7 @@ export default function ObjectivesPage() {
                 <select
                   value={objectiveCatId}
                   onChange={(e) => setObjectiveCatId(e.target.value)}
-                  className="w-full h-10 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full h-10 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">-- No Category (General) --</option>
                   {objectiveCategories.map((cat) => (
@@ -328,14 +328,14 @@ export default function ObjectivesPage() {
                   onChange={(e) => setObjectiveText(e.target.value)}
                   placeholder="e.g. To operate, manage, and establish star-tier hotel and resort facilities..."
                   required
-                  className="w-full h-28 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none"
+                  className="w-full h-28 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                 />
               </div>
 
               <div className="flex gap-2">
                 <Button
                   onClick={handleSaveObjective}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  className="bg-primary hover:bg-primary/90 text-white font-medium"
                 >
                   {editingObjId ? 'Update Objective' : 'Create Objective'}
                 </Button>
@@ -371,12 +371,12 @@ export default function ObjectivesPage() {
             filteredObjectives.map((objective) => (
               <div
                 key={objective.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 hover:border-blue-500/50 transition-all shadow-sm group"
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 hover:border-primary/50 transition-all shadow-sm group"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
                     {objective.categoryName && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/40">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary border border-primary/20 dark:border-primary/40">
                         <Tag className="w-3 h-3" />
                         {objective.categoryName}
                       </span>

@@ -5,7 +5,8 @@ import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Mention from "@tiptap/extension-mention"
 import Placeholder from "@tiptap/extension-placeholder"
-import { Send, Loader2, AtSign, Hash, Bold, Italic, Strikethrough, Code, List, ListOrdered, Quote, Heading1, Heading2, Heading3 } from "lucide-react"
+import Image from "@tiptap/extension-image"
+import { Send, Loader2, AtSign, Hash, Bold, Italic, Strikethrough, Code, List, ListOrdered, Quote, Heading1, Heading2, Heading3, ImagePlus } from "lucide-react"
 import { createMentionSuggestion } from "./mentionSuggestion"
 import { createCompanyMentionSuggestion } from "./companyMentionSuggestion"
 import trimTrailingEmptyBlocks from '@/lib/trimTiptap'
@@ -13,7 +14,7 @@ import trimTrailingEmptyBlocks from '@/lib/trimTiptap'
 const SEND_ON_ENTER = false
 
 // Toolbar component for the rich text editor
-const MenuBar = ({ editor }: { editor: any }) => {
+const MenuBar = ({ editor, onImageUpload }: { editor: any; onImageUpload: (file: File) => void }) => {
   if (!editor) {
     return null
   }
@@ -27,8 +28,8 @@ const MenuBar = ({ editor }: { editor: any }) => {
       }}
       className={`p-1.5 rounded-lg transition-colors ${
         isActive
-          ? "bg-indigo-500/30 text-indigo-300"
-          : "text-slate-400 hover:bg-slate-700/60 hover:text-slate-200"
+          ? "bg-primary/30 text-primary"
+          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
       }`}
       title={title}
     >
@@ -37,7 +38,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
   )
 
   return (
-    <div className="flex flex-wrap items-center gap-1 p-2 bg-slate-800/90 border-b border-slate-700/80 rounded-t-2xl">
+    <div className="flex flex-wrap items-center gap-1 p-2 bg-muted/90 border-b border-border/80 rounded-t-2xl">
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive("bold")}
@@ -63,7 +64,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
         title="Code (Cmd+E)"
       />
       
-      <div className="w-[1px] h-4 bg-slate-700 mx-1" />
+      <div className="w-[1px] h-4 bg-accent mx-1" />
 
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -84,7 +85,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
         title="Heading 3 (Cmd+Alt+3)"
       />
 
-      <div className="w-[1px] h-4 bg-slate-700 mx-1" />
+      <div className="w-[1px] h-4 bg-accent mx-1" />
 
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -104,6 +105,27 @@ const MenuBar = ({ editor }: { editor: any }) => {
         icon={Quote}
         title="Blockquote (Cmd+Shift+9)"
       />
+      
+      <div className="w-[1px] h-4 bg-accent mx-1" />
+      
+      <ToolbarButton
+        onClick={() => document.getElementById('chat-image-upload')?.click()}
+        isActive={editor.isActive("image")}
+        icon={ImagePlus}
+        title="Upload Image"
+      />
+      <input 
+        id="chat-image-upload" 
+        type="file" 
+        accept="image/*" 
+        className="hidden" 
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            onImageUpload(e.target.files[0])
+            e.target.value = '' // reset
+          }
+        }} 
+      />
     </div>
   )
 }
@@ -118,8 +140,27 @@ interface MessageInputProps {
 export function MessageInput({ channelId, parentId, placeholder = "Type a message... (Use @ to mention)", onSent }: MessageInputProps) {
   const [sending, setSending] = useState(false)
   const [hasContent, setHasContent] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const handleSendRef = useRef<() => void>(() => {})
   const editorRef = useRef<any>(null)
+
+  const handleImageUpload = async (file: File) => {
+    setIsUploading(true)
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("folder", "chat")
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: formData })
+      if (res.ok) {
+        const data = await res.json()
+        editorRef.current?.chain().focus().setImage({ src: data.url }).run()
+      }
+    } catch (err) {
+      console.error("Image upload failed", err)
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -129,9 +170,16 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
       Placeholder.configure({
         placeholder,
       }),
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: "rounded-lg max-w-full max-h-[300px] object-cover cursor-pointer",
+        },
+      }),
       Mention.configure({
         HTMLAttributes: {
-          class: "mention font-semibold text-indigo-400 bg-indigo-500/20 px-1 py-0.5 rounded-md",
+          class: "mention font-semibold text-primary bg-primary/20 px-1 py-0.5 rounded-md",
         },
         suggestion: createMentionSuggestion(channelId),
       }),
@@ -144,9 +192,31 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
     ],
 
     onUpdate({ editor }) {
-      setHasContent(!editor.isEmpty && !!editor.getText().trim())
+      setHasContent(!editor.isEmpty && !!editor.getText().trim() || editor.isActive('image'))
     },
     editorProps: {
+      handlePaste(view: any, event: ClipboardEvent) {
+        if (event.clipboardData && event.clipboardData.files && event.clipboardData.files.length > 0) {
+          const file = event.clipboardData.files[0]
+          if (file.type.startsWith('image/')) {
+            event.preventDefault()
+            handleImageUpload(file)
+            return true
+          }
+        }
+        return false
+      },
+      handleDrop(view: any, event: DragEvent, slice: any, moved: boolean) {
+        if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+          const file = event.dataTransfer.files[0]
+          if (file.type.startsWith('image/')) {
+            event.preventDefault()
+            handleImageUpload(file)
+            return true
+          }
+        }
+        return false
+      },
       handleKeyDown(view: any, event: KeyboardEvent): boolean {
         if (event.key === "Enter") {
           // If mention autocomplete popup is open, let mention extension handle Enter selection
@@ -202,7 +272,7 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
       },
       attributes: {
         class:
-          "focus:outline-none min-h-[44px] max-h-48 overflow-y-auto px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 prose prose-sm prose-invert max-w-none",
+          "focus:outline-none min-h-[44px] max-h-48 overflow-y-auto px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground prose prose-sm dark:prose-invert max-w-none",
       },
     },
   })
@@ -260,9 +330,9 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
   })
 
   return (
-    <div className="p-4 bg-slate-900/60 border-t border-slate-800 shrink-0">
-      <div className="relative bg-slate-800/80 border border-slate-700/80 rounded-2xl shadow-inner focus-within:ring-2 focus-within:ring-indigo-500/50 focus-within:border-indigo-500 transition-all flex flex-col">
-        <MenuBar editor={editor} />
+    <div className="p-4 bg-background/60 border-t border-border shrink-0">
+      <div className="relative bg-muted/80 border border-border/80 rounded-2xl shadow-inner focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary transition-all flex flex-col">
+        <MenuBar editor={editor} onImageUpload={handleImageUpload} />
         
         <div className="flex items-end">
           <div className="flex-1 min-w-0">
@@ -273,7 +343,7 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
             <button
               type="button"
               onClick={() => editor?.commands.insertContent("@")}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-indigo-400 hover:bg-slate-700/60 transition-all"
+              className="p-1.5 rounded-xl text-muted-foreground hover:text-primary hover:bg-accent/60 transition-all"
               title="Insert @mention"
             >
               <AtSign className="w-4 h-4" />
@@ -281,7 +351,7 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
             <button
               type="button"
               onClick={() => editor?.commands.insertContent("#")}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-slate-700/60 transition-all"
+              className="p-1.5 rounded-xl text-muted-foreground hover:text-emerald-400 hover:bg-accent/60 transition-all"
               title="Insert #company"
             >
               <Hash className="w-4 h-4" />
@@ -289,10 +359,10 @@ export function MessageInput({ channelId, parentId, placeholder = "Type a messag
             <button
               type="button"
               onClick={handleSend}
-              disabled={sending || !hasContent}
-              className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-md shadow-indigo-600/20 transition-all"
+              disabled={sending || isUploading || !hasContent}
+              className="p-2 rounded-xl bg-primary hover:bg-primary disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-md shadow-primary/20 transition-all"
             >
-              {sending ? (
+              {sending || isUploading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Send className="w-4 h-4" />

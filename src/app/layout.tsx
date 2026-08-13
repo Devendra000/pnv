@@ -7,7 +7,6 @@ import { AuthProvider } from '@/components/AuthProvider'
 export const metadata: Metadata = {
   title: 'Company Document Generator',
   description: 'Professional document generation and management system for companies',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
@@ -42,19 +41,19 @@ export default async function RootLayout({
 }>) {
   const session = await auth()
   const prefs = (session?.user as any)?.preferences || {}
-  
+
   // Default to dark mode if not specified
   const themeMode = prefs.themeMode || 'dark'
   const htmlClass = themeMode === 'system' ? '' : themeMode
-  
+
   // Build inline styles for accent colors if selected
   const inlineStyles = {
-    ...(prefs.accentColor && { 
+    ...(prefs.accentColor && {
       '--primary': prefs.accentColor,
       '--ring': prefs.accentColor
     }),
-    ...(prefs.backgroundColor && { 
-      '--background': prefs.backgroundColor 
+    ...(prefs.backgroundColor && {
+      '--background': prefs.backgroundColor
     })
   } as React.CSSProperties
 

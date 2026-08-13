@@ -169,7 +169,7 @@ function PersonEditor({
             <select
               value={(person as Owner).ownerRoleId || ''}
               onChange={(event) => updateField('ownerRoleId', event.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Select Type (Optional)</option>
               {ownerRoles.map((r) => (
@@ -651,7 +651,7 @@ export function CompanyForm({
                   onClick={() => setShowSelectedOnly(!showSelectedOnly)}
                   className={`border-slate-700 font-medium ${
                     showSelectedOnly
-                      ? 'bg-blue-600/20 text-blue-400 border-blue-500/50'
+                      ? 'bg-primary/20 text-primary border-primary/50'
                       : 'bg-slate-900/60 text-slate-300 hover:bg-slate-800'
                   }`}
                 >
@@ -674,7 +674,7 @@ export function CompanyForm({
                       onClick={() => setActiveCategoryId('ALL')}
                       className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all ${
                         activeCategoryId === 'ALL'
-                          ? 'border-blue-500 bg-blue-600/20 text-white shadow-md'
+                          ? 'border-primary bg-primary/20 text-white shadow-md'
                           : 'border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700 hover:bg-slate-800/40'
                       }`}
                     >
@@ -682,7 +682,7 @@ export function CompanyForm({
                       <div className="mt-1 flex items-center justify-between w-full text-[11px]">
                         <span>{objectives.length} objectives</span>
                         {selectedObjectives.length > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-400 font-medium">
+                          <span className="px-1.5 py-0.5 rounded-md bg-primary/100/20 text-primary font-medium">
                             {selectedObjectives.length} selected
                           </span>
                         )}
@@ -703,7 +703,7 @@ export function CompanyForm({
                           onClick={() => setActiveCategoryId(cat.id)}
                           className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all ${
                             isActive
-                              ? 'border-blue-500 bg-blue-600/20 text-white shadow-md'
+                              ? 'border-primary bg-primary/20 text-white shadow-md'
                               : 'border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700 hover:bg-slate-800/40'
                           }`}
                         >
@@ -713,7 +713,7 @@ export function CompanyForm({
                           <div className="mt-1 flex items-center justify-between w-full text-[11px]">
                             <span>{catObjs.length} objectives</span>
                             {catSelectedCount > 0 && (
-                              <span className="px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-400 font-medium">
+                              <span className="px-1.5 py-0.5 rounded-md bg-primary/100/20 text-primary font-medium">
                                 {catSelectedCount} selected
                               </span>
                             )}
@@ -764,7 +764,7 @@ export function CompanyForm({
                         key={obj.id}
                         className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-4 transition-all ${
                           isChecked
-                            ? 'border-blue-500/70 bg-blue-950/20 shadow-sm shadow-blue-500/10'
+                            ? 'border-primary/70 bg-primary/10 shadow-sm shadow-primary/10'
                             : 'border-slate-800 bg-slate-800/30 hover:bg-slate-800/50'
                         }`}
                       >
@@ -780,11 +780,11 @@ export function CompanyForm({
                               );
                             }
                           }}
-                          className="mt-1 h-4 w-4 accent-blue-500 rounded"
+                          className="mt-1 h-4 w-4 accent-primary rounded"
                         />
                         <div className="flex-1 space-y-1">
                           {obj.categoryName && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-400 uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary uppercase tracking-wider">
                               <Tag className="h-3 w-3" />
                               {obj.categoryName}
                             </span>

@@ -11,7 +11,7 @@ interface ChatLayoutProps {
 export function ChatLayout({ session, children }: ChatLayoutProps) {
   return (
     <ChatPresenceProvider>
-      <div className="flex h-full w-full overflow-hidden bg-slate-950 text-slate-100 font-sans">
+      <div className="flex h-full w-full overflow-hidden bg-background text-foreground font-sans">
         <ChannelSidebar session={session} />
         <main className="flex-1 flex min-w-0 h-full overflow-hidden">
           {children}

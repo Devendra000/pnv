@@ -87,7 +87,7 @@ export function DynamicList({
           <Button
             type="button"
             onClick={() => setIsAdding(true)}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-primary hover:bg-primary/90"
             disabled={isAtLimit}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -143,7 +143,7 @@ export function DynamicList({
             <Button
               type="button"
               onClick={handleAdd}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-primary hover:bg-primary/90"
               disabled={isAtLimit}
             >
               <Plus className="w-4 h-4 mr-2" />

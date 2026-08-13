@@ -113,7 +113,7 @@ export function MessageList({ channelId, currentUserId, onOpenThread }: MessageL
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8 text-slate-500 text-xs">
+      <div className="flex-1 flex items-center justify-center p-8 text-muted-foreground text-xs">
         Loading messages...
       </div>
     )
@@ -121,10 +121,10 @@ export function MessageList({ channelId, currentUserId, onOpenThread }: MessageL
 
   if (accessDenied) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-slate-400 text-center select-none">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-muted-foreground text-center select-none">
         <Lock className="w-10 h-10 text-amber-400/80 mb-3 animate-pulse" />
-        <p className="text-sm font-bold text-slate-200">Access Denied</p>
-        <p className="text-xs text-slate-400 mt-1 max-w-sm">
+        <p className="text-sm font-bold text-foreground">Access Denied</p>
+        <p className="text-xs text-muted-foreground mt-1 max-w-sm">
           You are no longer a member of this private group or channel and cannot view its messages.
         </p>
       </div>
@@ -133,15 +133,15 @@ export function MessageList({ channelId, currentUserId, onOpenThread }: MessageL
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-slate-500 text-center">
-        <p className="text-sm font-semibold text-slate-400">No messages yet</p>
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-muted-foreground text-center">
+        <p className="text-sm font-semibold text-muted-foreground">No messages yet</p>
         <p className="text-xs mt-1">Be the first to send a message in this channel!</p>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 overflow-y-auto py-4 divide-y divide-slate-800/30">
+    <div className="flex-1 overflow-y-auto py-4 divide-y divide-border/30">
       {messages.map((message) => (
         <MessageBubble
           key={message.id}

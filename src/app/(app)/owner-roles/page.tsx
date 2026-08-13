@@ -70,7 +70,7 @@ export default function OwnerRolesPage() {
               setEditingId(null);
               setRoleName('');
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all"
+            className="bg-primary hover:bg-primary/90 text-white shadow-sm transition-all"
             disabled={isAdding}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -89,7 +89,7 @@ export default function OwnerRolesPage() {
               placeholder="Search owner types..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-blue-500"
+              className="pl-9 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-primary"
             />
           </div>
         </div>
@@ -100,16 +100,16 @@ export default function OwnerRolesPage() {
             
             {/* Add / Edit Form Card */}
             {(isAdding || editingId) && (
-              <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/10 p-5 shadow-sm transition-all h-full flex flex-col gap-4">
+              <div className="rounded-xl border border-primary/20 dark:border-primary/50 bg-primary/10 dark:bg-primary/10 p-5 shadow-sm transition-all h-full flex flex-col gap-4">
                 <div className="flex items-center justify-between shrink-0">
-                  <h3 className="font-semibold text-blue-900 dark:text-blue-400 flex items-center gap-2">
+                  <h3 className="font-semibold text-primary dark:text-primary flex items-center gap-2">
                     <Users className="h-4 w-4" />
                     {editingId ? 'Edit Type' : 'New Type'}
                   </h3>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-full"
+                    className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/20 dark:text-primary dark:hover:bg-primary/30 rounded-full"
                     onClick={() => {
                       setIsAdding(false);
                       setEditingId(null);
@@ -124,7 +124,7 @@ export default function OwnerRolesPage() {
                     placeholder="e.g. अध्यक्ष"
                     value={roleName}
                     onChange={(e) => setRoleName(e.target.value)}
-                    className="bg-white dark:bg-slate-950 border-blue-200 dark:border-blue-800 focus-visible:ring-blue-500"
+                    className="bg-white dark:bg-slate-950 border-primary/20 dark:border-primary/50 focus-visible:ring-primary"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleSaveRole();
                       if (e.key === 'Escape') {
@@ -138,7 +138,7 @@ export default function OwnerRolesPage() {
                   <Button 
                     size="sm"
                     onClick={handleSaveRole}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-primary hover:bg-primary/90 text-white"
                     disabled={!roleName.trim()}
                   >
                     Save Type
@@ -151,7 +151,7 @@ export default function OwnerRolesPage() {
             {filteredRoles.map((role) => (
               <div
                 key={role.id}
-                className="group relative flex flex-col justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm transition-all hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md min-h-[140px]"
+                className="group relative flex flex-col justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm transition-all hover:border-primary/30 dark:hover:border-primary/70 hover:shadow-md min-h-[140px]"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -165,7 +165,7 @@ export default function OwnerRolesPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors"
+                      className="h-8 w-8 p-0 text-slate-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/30 rounded-full transition-colors"
                       onClick={() => startEdit(role)}
                     >
                       <Edit2 className="h-4 w-4" />

@@ -74,7 +74,7 @@ export function DataTable<T extends { id: string }>({
                     {onEdit && (
                       <button
                         onClick={() => onEdit(row)}
-                        className="text-slate-500 hover:text-blue-600 transition-colors"
+                        className="text-slate-500 hover:text-primary transition-colors"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>

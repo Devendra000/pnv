@@ -148,7 +148,7 @@ export function TemplateHelperModal({ isOpen, onClose, variables = [] }: Templat
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600/20 text-blue-400 border border-blue-500/30">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/20 text-primary border border-primary/30">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
@@ -170,7 +170,7 @@ export function TemplateHelperModal({ isOpen, onClose, variables = [] }: Templat
             onClick={() => setActiveTab('single')}
             className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
               activeTab === 'single'
-                ? 'border-blue-500 text-blue-400'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-slate-400 hover:text-white'
             }`}
           >
@@ -450,9 +450,9 @@ export function TemplateHelperModal({ isOpen, onClose, variables = [] }: Templat
               </div>
 
               {/* Instructions Callout */}
-              <div className="rounded-2xl border border-blue-900/50 bg-blue-950/30 p-4 text-xs text-blue-300 space-y-1">
-                <div className="flex items-center gap-2 font-semibold text-blue-200">
-                  <Info className="h-4 w-4 shrink-0 text-blue-400" />
+              <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4 text-xs text-primary space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-primary">
+                  <Info className="h-4 w-4 shrink-0 text-primary" />
                   How to use in Word (.docx):
                 </div>
                 <p>

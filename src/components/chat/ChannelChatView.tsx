@@ -38,7 +38,7 @@ export function ChannelChatView({ channelId, session, isDm, dmUser }: ChannelCha
   const targetChannelId = channel?.id || channelId
 
   return (
-    <div className="flex-1 flex h-full min-w-0 bg-slate-950 overflow-hidden">
+    <div className="flex-1 flex h-full min-w-0 bg-background overflow-hidden">
       <div className="flex-1 flex flex-col h-full min-w-0">
         <ChannelHeader channel={channel} isDm={isDm} dmUser={dmUser} />
         <MessageList

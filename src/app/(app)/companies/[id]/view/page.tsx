@@ -46,7 +46,7 @@ export default function CompanyViewPage() {
         <div className="p-6 pb-4">
           <button
             onClick={() => router.back()}
-            className="mb-4 text-xs font-semibold text-slate-500 hover:text-indigo-400 transition-colors flex items-center gap-1.5 uppercase tracking-wider"
+            className="mb-4 text-xs font-semibold text-slate-500 hover:text-primary transition-colors flex items-center gap-1.5 uppercase tracking-wider"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back
           </button>
@@ -85,7 +85,7 @@ export default function CompanyViewPage() {
           {/* Owners Section */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
-              <Users className="w-5 h-5 text-indigo-500" />
+              <Users className="w-5 h-5 text-primary" />
               Owners ({company.ownerType})
             </h3>
             {company.owners && company.owners.length > 0 ? (
@@ -94,7 +94,7 @@ export default function CompanyViewPage() {
                   <div key={owner.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
                     <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between">
                       <span>{idx + 1}. {owner.name}</span>
-                      {owner.shares && <span className="text-xs bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded-full">{owner.shares} Shares</span>}
+                      {owner.shares && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{owner.shares} Shares</span>}
                     </div>
                     {(owner.phoneNumber || owner.address) && (
                       <div className="text-xs text-slate-500 mt-1 flex gap-3">

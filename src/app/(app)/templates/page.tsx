@@ -112,7 +112,7 @@ export default function TemplatesPage() {
           <>
             {!isAdding && !editingId && (
               <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                className="bg-primary hover:bg-primary/90 text-white font-medium"
                 onClick={() => setIsAdding(true)}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -190,7 +190,7 @@ export default function TemplatesPage() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Upload DOCX Template *
                 </label>
-                <label className="flex items-center gap-3 w-full px-4 py-3 bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+                <label className="flex items-center gap-3 w-full px-4 py-3 bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer hover:border-primary transition-colors">
                   <Upload className="w-4 h-4 text-slate-500" />
                   <span className="text-sm text-foreground">
                     {selectedFile ? selectedFile.name : 'Choose a .docx file'}
@@ -220,7 +220,7 @@ export default function TemplatesPage() {
                       return (
                       <span
                         key={key}
-                        className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs text-blue-700 dark:text-blue-300"
+                        className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/100/10 px-3 py-1 text-xs text-primary dark:text-primary"
                       >
                         <span className="font-mono">{'['}{key}{']'}</span>
                         <span>{matchedVariable?.label || 'Custom variable'}</span>
@@ -245,7 +245,7 @@ export default function TemplatesPage() {
                     }
                   }}
                   type="button"
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  className="bg-primary hover:bg-primary/90 text-white font-medium"
                   disabled={!newTemplate.name.trim() || (!selectedFile && !editingId)}
                 >
                   {editingId ? 'Update' : 'Create'} Template
@@ -278,7 +278,7 @@ export default function TemplatesPage() {
             filteredTemplates.map((template) => (
               <div
                 key={template.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:border-blue-500/50 transition-colors"
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:border-primary/50 transition-colors"
               >
                 <div
                   className="flex items-start justify-between cursor-pointer"
@@ -306,7 +306,7 @@ export default function TemplatesPage() {
                           {template.matchedVariables.map((variable) => (
                             <span
                               key={variable.id}
-                              className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs text-blue-700 dark:text-blue-300"
+                              className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/100/10 px-3 py-1 text-xs text-primary dark:text-primary"
                             >
                               <span className="font-mono">{'['}{variable.key}{']'}</span>
                               <span>{variable.label}</span>
@@ -321,7 +321,7 @@ export default function TemplatesPage() {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        className="bg-primary hover:bg-primary/90 text-white"
                         onClick={() => {
                           setEditingId(template.id);
                           setNewTemplate({ name: template.name });

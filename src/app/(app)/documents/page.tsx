@@ -65,7 +65,7 @@ export function getDocumentIconAndColor(docxUrl: string) {
   } else if (isPdf) {
     return { Icon: FileText, textCol: 'text-red-600', bgCol: 'bg-red-100', darkText: 'dark:text-red-400', darkBg: 'dark:bg-red-950/80', label: 'PDF' };
   } else if (isDocx) {
-    return { Icon: FileText, textCol: 'text-blue-600', bgCol: 'bg-blue-100', darkText: 'dark:text-blue-400', darkBg: 'dark:bg-blue-950/80', label: 'DOCX' };
+    return { Icon: FileText, textCol: 'text-primary', bgCol: 'bg-primary/20', darkText: 'dark:text-primary', darkBg: 'dark:bg-blue-950/80', label: 'DOCX' };
   }
   return { Icon: File, textCol: 'text-slate-600', bgCol: 'bg-slate-100', darkText: 'dark:text-slate-400', darkBg: 'dark:bg-slate-900', label: fileExt.toUpperCase() };
 }
@@ -112,7 +112,7 @@ function FolderBranch({
         style={{ paddingLeft: `${8 + depth * 14}px` }}
         className={`group flex w-full items-center justify-between rounded-lg py-1.5 pr-1.5 transition-colors ${
           isActive
-            ? 'bg-blue-600 font-medium text-white shadow-sm'
+            ? 'bg-primary font-medium text-white shadow-sm'
             : 'text-slate-700 hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-slate-800/60'
         }`}
       >
@@ -172,8 +172,8 @@ function FolderBranch({
               title="Paste into this folder"
               className={`rounded p-1 transition-colors ${
                 isActive
-                  ? 'text-white hover:bg-blue-700'
-                  : 'text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-950'
+                  ? 'text-white hover:bg-primary/90'
+                  : 'text-primary hover:bg-primary/20 dark:text-primary dark:hover:bg-blue-950'
               }`}
             >
               <Check className="h-3.5 w-3.5" />
@@ -190,7 +190,7 @@ function FolderBranch({
               title="Duplicate folder"
               className={`rounded p-1 transition-colors ${
                 isActive
-                  ? 'text-white hover:bg-blue-700'
+                  ? 'text-white hover:bg-primary/90'
                   : 'text-slate-500 hover:bg-slate-300/50 dark:hover:bg-slate-700/50'
               }`}
             >
@@ -208,7 +208,7 @@ function FolderBranch({
               title="Move folder"
               className={`rounded p-1 transition-colors ${
                 isActive
-                  ? 'text-white hover:bg-blue-700'
+                  ? 'text-white hover:bg-primary/90'
                   : 'text-slate-500 hover:bg-slate-300/50 dark:hover:bg-slate-700/50'
               }`}
             >
@@ -226,7 +226,7 @@ function FolderBranch({
               title="Rename folder"
               className={`rounded p-1 transition-colors ${
                 isActive
-                  ? 'text-white hover:bg-blue-700'
+                  ? 'text-white hover:bg-primary/90'
                   : 'text-slate-500 hover:bg-slate-300/50 dark:hover:bg-slate-700/50'
               }`}
             >
@@ -244,7 +244,7 @@ function FolderBranch({
               title="Set as default generation folder"
               className={`rounded p-1 transition-colors ${
                 isActive
-                  ? 'text-white hover:bg-blue-700'
+                  ? 'text-white hover:bg-primary/90'
                   : 'text-slate-500 hover:bg-emerald-100 hover:text-emerald-600 dark:hover:bg-emerald-950'
               }`}
             >
@@ -857,7 +857,7 @@ export default function DocumentsPage() {
                   onClick={() => changeExplorerMode('folders')}
                   className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                     explorerMode === 'folders'
-                      ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-800 dark:text-blue-400'
+                      ? 'bg-white text-primary shadow-sm dark:bg-slate-800 dark:text-primary'
                       : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                   }`}
                 >
@@ -868,7 +868,7 @@ export default function DocumentsPage() {
                   onClick={() => changeExplorerMode('documents')}
                   className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                     explorerMode === 'documents'
-                      ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-800 dark:text-blue-400'
+                      ? 'bg-white text-primary shadow-sm dark:bg-slate-800 dark:text-primary'
                       : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                   }`}
                 >
@@ -878,7 +878,7 @@ export default function DocumentsPage() {
               </div>
 
               <Link href="/documents/generate">
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button className="bg-primary hover:bg-primary/90">
                   <Plus className="mr-2 h-4 w-4" />
                   Generate document
                 </Button>
@@ -959,10 +959,10 @@ export default function DocumentsPage() {
                   return (
                     <div
                       key={doc.id}
-                      className="group grid grid-cols-[minmax(0,1.2fr)_140px_160px_175px_160px] items-center border-b border-slate-100 px-4 py-3 text-sm transition-colors hover:bg-blue-50/40 dark:border-slate-800/60 dark:hover:bg-blue-950/20"
+                      className="group grid grid-cols-[minmax(0,1.2fr)_140px_160px_175px_160px] items-center border-b border-slate-100 px-4 py-3 text-sm transition-colors hover:bg-primary/10/40 dark:border-slate-800/60 dark:hover:bg-primary/10"
                     >
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/80 dark:text-blue-400">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary dark:bg-blue-950/80 dark:text-primary">
                           <FileText className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
@@ -981,7 +981,7 @@ export default function DocumentsPage() {
                         <FolderOpen className="h-3.5 w-3.5 shrink-0 text-amber-400 fill-amber-400/20" />
                         <button
                           onClick={() => handleLocateDocumentInFolder(doc)}
-                          className="truncate text-xs font-medium text-blue-600 hover:underline dark:text-blue-400 text-left"
+                          className="truncate text-xs font-medium text-primary hover:underline dark:text-primary text-left"
                           title={`Go to folder: ${folderPath}`}
                         >
                           {folderPath}
@@ -997,7 +997,7 @@ export default function DocumentsPage() {
                         <button
                           onClick={() => handleLocateDocumentInFolder(doc)}
                           title="Locate in folder"
-                          className="rounded-lg p-1.5 text-slate-600 hover:bg-blue-100 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-blue-950"
+                          className="rounded-lg p-1.5 text-slate-600 hover:bg-primary/20 hover:text-primary dark:text-slate-400 dark:hover:bg-blue-950"
                         >
                           <FolderSearch className="h-4 w-4" />
                         </button>
@@ -1005,7 +1005,7 @@ export default function DocumentsPage() {
                           href={getFileApiUrl(doc.docxUrl)}
                           download={displayName}
                           title="Download"
-                          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800"
                         >
                           <Download className="h-4 w-4" />
                         </a>
@@ -1015,21 +1015,21 @@ export default function DocumentsPage() {
                             setRenameInputValue(doc.fileName || doc.templateName);
                           }}
                           title="Rename"
-                          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800"
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setClipboardState({ action: 'copyDoc', doc })}
                           title="Copy document"
-                          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800"
                         >
                           <Copy className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setClipboardState({ action: 'moveDoc', doc })}
                           title="Move document"
-                          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+                          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800"
                         >
                           <MoveRight className="h-4 w-4" />
                         </button>
@@ -1096,7 +1096,7 @@ export default function DocumentsPage() {
                 <div className="flex min-w-0 items-center gap-1 overflow-hidden text-sm">
                   <button
                     onClick={() => changeActiveFolderId(null)}
-                    className="shrink-0 font-medium text-slate-600 hover:text-blue-600 dark:text-slate-300"
+                    className="shrink-0 font-medium text-slate-600 hover:text-primary dark:text-slate-300"
                   >
                     Companies
                   </button>
@@ -1105,7 +1105,7 @@ export default function DocumentsPage() {
                       <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
                       <button
                         onClick={() => changeActiveFolderId(folder.id)}
-                        className="truncate font-medium hover:text-blue-600"
+                        className="truncate font-medium hover:text-primary"
                       >
                         {folder.name}
                       </button>
@@ -1193,7 +1193,7 @@ export default function DocumentsPage() {
                           isDescendantOrSelf(clipboardState.folder.id, activeFolder.id, folders))
                       }
                       onClick={handlePasteHere}
-                      className="bg-blue-600 hover:bg-blue-700 font-medium"
+                      className="bg-primary hover:bg-primary/90 font-medium"
                     >
                       <Check className="mr-1.5 h-4 w-4" />
                       Paste Here
@@ -1240,7 +1240,7 @@ export default function DocumentsPage() {
                       <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Upload Manager</h3>
                       <button
                         onClick={() => setUploadTasks((prev) => prev.filter(t => t.status === 'uploading' || t.status === 'pending'))}
-                        className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                        className="text-xs font-medium text-primary hover:underline dark:text-primary"
                       >
                         Clear Completed
                       </button>
@@ -1261,7 +1261,7 @@ export default function DocumentsPage() {
                             <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                               <div
                                 className={`h-full rounded-full transition-all duration-300 ${
-                                  task.status === 'error' ? 'bg-red-500' : task.status === 'completed' ? 'bg-emerald-500' : 'bg-blue-500'
+                                  task.status === 'error' ? 'bg-red-500' : task.status === 'completed' ? 'bg-emerald-500' : 'bg-primary/100'
                                 }`}
                                 style={{ width: `${task.progress}%` }}
                               />
@@ -1299,7 +1299,7 @@ export default function DocumentsPage() {
                             return (
                               <div
                                 key={folder.id}
-                                className={`group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 transition-all hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-600 dark:hover:bg-blue-950/30 ${
+                                className={`group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 transition-all hover:border-blue-400 hover:bg-primary/10/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-primary dark:hover:bg-primary/10 ${
                                   cardSize === 'small'
                                     ? 'p-2.5 min-h-[90px]'
                                     : cardSize === 'large'
@@ -1348,7 +1348,7 @@ export default function DocumentsPage() {
                                       setRenameInputValue(folderName);
                                     }}
                                     title="Rename folder"
-                                    className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                    className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800 ${
                                       cardSize === 'small' ? 'p-1' : 'p-1.5'
                                     }`}
                                   >
@@ -1386,7 +1386,7 @@ export default function DocumentsPage() {
                               {childFolders.map((folder) => (
                                 <div
                                   key={folder.id}
-                                  className={`group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 transition-all hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-600 dark:hover:bg-blue-950/30 ${
+                                  className={`group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 transition-all hover:border-blue-400 hover:bg-primary/10/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-primary dark:hover:bg-primary/10 ${
                                     cardSize === 'small'
                                       ? 'p-2.5 min-h-[90px]'
                                       : cardSize === 'large'
@@ -1437,7 +1437,7 @@ export default function DocumentsPage() {
                                     <button
                                       onClick={() => handleDuplicateFolder(folder)}
                                       title="Duplicate folder"
-                                      className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                      className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800 ${
                                         cardSize === 'small' ? 'p-1' : 'p-1.5'
                                       }`}
                                     >
@@ -1449,7 +1449,7 @@ export default function DocumentsPage() {
                                         setRenameInputValue(folder.name);
                                       }}
                                       title="Rename"
-                                      className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                      className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800 ${
                                         cardSize === 'small' ? 'p-1' : 'p-1.5'
                                       }`}
                                     >
@@ -1458,7 +1458,7 @@ export default function DocumentsPage() {
                                     <button
                                       onClick={() => setClipboardState({ action: 'moveFolder', folder })}
                                       title="Move folder"
-                                      className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                      className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800 ${
                                         cardSize === 'small' ? 'p-1' : 'p-1.5'
                                       }`}
                                     >
@@ -1520,7 +1520,7 @@ export default function DocumentsPage() {
                                 return (
                                   <div
                                     key={doc.id}
-                                    className={`group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white transition-all hover:border-blue-400 hover:bg-blue-50/20 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-600 ${
+                                    className={`group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white transition-all hover:border-blue-400 hover:bg-primary/10/20 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-primary ${
                                       cardSize === 'small'
                                         ? 'p-2.5 min-h-[90px]'
                                         : cardSize === 'large'
@@ -1576,7 +1576,7 @@ export default function DocumentsPage() {
                                         href={getFileApiUrl(doc.docxUrl)}
                                         download={displayName}
                                         title="Download"
-                                        className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                        className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800 ${
                                           cardSize === 'small' ? 'p-1' : 'p-1.5'
                                         }`}
                                       >
@@ -1588,7 +1588,7 @@ export default function DocumentsPage() {
                                           setRenameInputValue(doc.fileName || doc.templateName);
                                         }}
                                         title="Rename"
-                                        className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                        className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800 ${
                                           cardSize === 'small' ? 'p-1' : 'p-1.5'
                                         }`}
                                       >
@@ -1597,7 +1597,7 @@ export default function DocumentsPage() {
                                       <button
                                         onClick={() => setClipboardState({ action: 'copyDoc', doc })}
                                         title="Copy document"
-                                        className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                        className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800 ${
                                           cardSize === 'small' ? 'p-1' : 'p-1.5'
                                         }`}
                                       >
@@ -1606,7 +1606,7 @@ export default function DocumentsPage() {
                                       <button
                                         onClick={() => setClipboardState({ action: 'moveDoc', doc })}
                                         title="Move document"
-                                        className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 ${
+                                        className={`rounded-lg text-slate-600 hover:bg-slate-200 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800 ${
                                           cardSize === 'small' ? 'p-1' : 'p-1.5'
                                         }`}
                                       >
@@ -1656,7 +1656,7 @@ export default function DocumentsPage() {
                           return (
                             <div
                               key={folder.id}
-                              className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                              className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-primary/10 dark:hover:bg-primary/10"
                             >
                               <button
                                 onClick={() => changeActiveFolderId(folder.id)}
@@ -1679,7 +1679,7 @@ export default function DocumentsPage() {
                                     setRenameInputValue(folderName);
                                   }}
                                   title="Rename folder"
-                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-primary dark:hover:bg-slate-800"
                                 >
                                   <Edit2 className="h-4 w-4" />
                                 </button>
@@ -1693,7 +1693,7 @@ export default function DocumentsPage() {
                           return (
                             <div
                               key={doc.id}
-                              className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                              className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-primary/10 dark:hover:bg-primary/10"
                             >
                               <div className="flex min-w-0 items-center gap-2 text-left hover:opacity-80 focus:outline-none">
                                 <Icon className={`h-5 w-5 shrink-0 ${textCol}`} />
@@ -1709,7 +1709,7 @@ export default function DocumentsPage() {
                                   href={getFileApiUrl(doc.docxUrl)}
                                   download={displayName}
                                   title="Download"
-                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-primary dark:hover:bg-slate-800"
                                 >
                                   <Download className="h-4 w-4" />
                                 </a>
@@ -1719,21 +1719,21 @@ export default function DocumentsPage() {
                                     setRenameInputValue(doc.fileName || doc.templateName);
                                   }}
                                   title="Rename"
-                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-primary dark:hover:bg-slate-800"
                                 >
                                   <Edit2 className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={() => setClipboardState({ action: 'copyDoc', doc })}
                                   title="Copy document"
-                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-primary dark:hover:bg-slate-800"
                                 >
                                   <Copy className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={() => setClipboardState({ action: 'moveDoc', doc })}
                                   title="Move document"
-                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-primary dark:hover:bg-slate-800"
                                 >
                                   <MoveRight className="h-4 w-4" />
                                 </button>
@@ -1755,7 +1755,7 @@ export default function DocumentsPage() {
                         {childFolders.map((folder) => (
                           <div
                             key={folder.id}
-                            className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                            className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-primary/10 dark:hover:bg-primary/10"
                           >
                             <button
                               onClick={() => changeActiveFolderId(folder.id)}
@@ -1777,7 +1777,7 @@ export default function DocumentsPage() {
                               <button
                                 onClick={() => handleDuplicateFolder(folder)}
                                 title="Duplicate folder"
-                                className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-primary dark:hover:bg-slate-800"
                               >
                                 <Copy className="h-4 w-4" />
                               </button>
@@ -1787,14 +1787,14 @@ export default function DocumentsPage() {
                                   setRenameInputValue(folder.name);
                                 }}
                                 title="Rename"
-                                className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-primary dark:hover:bg-slate-800"
                               >
                                 <Edit2 className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => setClipboardState({ action: 'moveFolder', folder })}
                                 title="Move folder"
-                                className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-primary dark:hover:bg-slate-800"
                               >
                                 <MoveRight className="h-4 w-4" />
                               </button>
@@ -1826,7 +1826,7 @@ export default function DocumentsPage() {
                           return (
                             <div
                               key={doc.id}
-                              className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                              className="group grid grid-cols-[minmax(0,1fr)_175px_160px] items-center border-b px-4 py-3 text-sm transition-colors hover:bg-primary/10 dark:hover:bg-primary/10"
                             >
                               <div className="flex min-w-0 items-center gap-2 text-left hover:opacity-80 focus:outline-none">
                                 <Icon className={`h-5 w-5 shrink-0 ${textCol}`} />
@@ -1842,7 +1842,7 @@ export default function DocumentsPage() {
                                   href={getFileApiUrl(doc.docxUrl)}
                                   download={displayName}
                                   title="Download"
-                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-primary dark:hover:bg-slate-800"
                                 >
                                   <Download className="h-4 w-4" />
                                 </a>
@@ -1852,21 +1852,21 @@ export default function DocumentsPage() {
                                     setRenameInputValue(doc.fileName || doc.templateName);
                                   }}
                                   title="Rename"
-                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-primary dark:hover:bg-slate-800"
                                 >
                                   <Edit2 className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={() => setClipboardState({ action: 'copyDoc', doc })}
                                   title="Copy document"
-                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-primary dark:hover:bg-slate-800"
                                 >
                                   <Copy className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={() => setClipboardState({ action: 'moveDoc', doc })}
                                   title="Move document"
-                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-blue-600 dark:hover:bg-slate-800"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-slate-200 hover:text-primary dark:hover:bg-slate-800"
                                 >
                                   <MoveRight className="h-4 w-4" />
                                 </button>
@@ -1904,7 +1904,7 @@ export default function DocumentsPage() {
               {clipboardState && (
                 <div className="absolute bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-blue-300 bg-white/95 p-3.5 shadow-2xl backdrop-blur-md dark:border-blue-900 dark:bg-slate-900/95">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary dark:bg-blue-950 dark:text-primary">
                       {clipboardState.action.startsWith('move') ? (
                         <MoveRight className="h-4 w-4" />
                       ) : (
@@ -1936,7 +1936,7 @@ export default function DocumentsPage() {
                           isDescendantOrSelf(clipboardState.folder.id, activeFolder.id, folders))
                       }
                       onClick={handlePasteHere}
-                      className="bg-blue-600 hover:bg-blue-700 text-xs px-3.5 h-8 font-medium"
+                      className="bg-primary hover:bg-primary/90 text-xs px-3.5 h-8 font-medium"
                     >
                       <Check className="mr-1.5 h-3.5 w-3.5" />
                       Paste Here
@@ -2005,7 +2005,7 @@ export default function DocumentsPage() {
                   Cancel
                 </Button>
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-primary hover:bg-primary/90"
                   onClick={() => {
                     if (modalState.type === 'createFolder') {
                       handleCreateFolder(renameInputValue);
@@ -2055,7 +2055,7 @@ export default function DocumentsPage() {
                     <span><strong>{modalState.subfolderCount}</strong> subfolder(s) inside</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-blue-500" />
+                    <FileText className="h-4 w-4 text-primary" />
                     <span><strong>{modalState.documentCount}</strong> document(s) inside</span>
                   </li>
                 </ul>

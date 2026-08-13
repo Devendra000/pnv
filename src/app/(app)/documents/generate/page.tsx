@@ -670,7 +670,7 @@ export default function GenerateDocumentPage() {
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <p className="font-medium text-foreground text-sm">{variable.label}</p>
                                     {isAuto && (
-                                      <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-400/20 px-1.5 py-0.5 rounded">
+                                      <span className="text-[10px] font-bold uppercase tracking-wider bg-primary/100/10 text-primary dark:text-primary border border-blue-400/20 px-1.5 py-0.5 rounded">
                                         Auto
                                       </span>
                                     )}

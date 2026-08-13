@@ -131,7 +131,7 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
               <Link
                 key={idx}
                 href={`/dm/${mentionInfo.username}`}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 font-semibold text-xs border border-indigo-500/30 transition-all cursor-pointer shadow-sm no-underline"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-primary/20 text-primary hover:bg-primary/30 font-semibold text-xs border border-primary/30 transition-all cursor-pointer shadow-sm no-underline"
               >
                 <span>{part}</span>
               </Link>
@@ -142,7 +142,7 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
             return (
               <span
                 key={idx}
-                className="px-1.5 py-0.5 mx-0.5 rounded-md bg-indigo-500/20 text-indigo-300 font-semibold text-xs border border-indigo-500/30 shadow-sm"
+                className="px-1.5 py-0.5 mx-0.5 rounded-md bg-primary/20 text-primary font-semibold text-xs border border-primary/30 shadow-sm"
               >
                 {part}
               </span>
@@ -162,32 +162,32 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
     <div
       id={`message-${message.id}`}
       className={`flex gap-3 px-4 py-2.5 transition-all duration-500 group ${isHighlighted
-          ? "bg-indigo-600/30 border-y-2 border-indigo-500 shadow-xl shadow-indigo-500/20 ring-1 ring-indigo-500/50"
+          ? "bg-primary/30 border-y-2 border-primary shadow-xl shadow-indigo-500/20 ring-1 ring-primary/50"
           : isOwner
-            ? "bg-indigo-950/10 hover:bg-slate-800/30"
-            : "hover:bg-slate-800/30"
+            ? "bg-indigo-950/10 hover:bg-muted/30"
+            : "hover:bg-muted/30"
         }`}
     >
       {/* Avatar */}
-      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-slate-700 to-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-slate-200 uppercase shrink-0 mt-0.5">
+      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-slate-700 to-slate-800 border border-border flex items-center justify-center font-bold text-xs text-foreground uppercase shrink-0 mt-0.5">
         {avatarLetter}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+          <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
             {senderName}
             <span className={`w-1.5 h-1.5 rounded-full ${isOnline(message.senderId) ? 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.5)]' : 'bg-slate-600'}`} />
           </span>
-          <span className="text-[10px] text-slate-500">{formattedTime}</span>
+          <span className="text-[10px] text-muted-foreground">{formattedTime}</span>
         </div>
 
         <div className="text-sm">
           {message.contentParsed && message.contentParsed.type === "doc" ? (
             <RenderTiptapContent content={message.contentParsed} validMentionMap={validMentionMap} />
           ) : (
-            <div className="text-slate-300 leading-relaxed break-words">
+            <div className="text-foreground leading-relaxed break-words">
               {renderFallbackText(message.contentRaw)}
             </div>
           )}
@@ -198,11 +198,11 @@ export function MessageBubble({ message, currentUserId, onOpenThread, isHighligh
           <div className="mt-2 flex items-center gap-3">
             <button
               onClick={() => onOpenThread(message)}
-              className="text-xs text-slate-400 hover:text-indigo-400 flex items-center gap-1.5 transition-all"
+              className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-all"
             >
               <MessageSquare className="w-3.5 h-3.5" />
               {replyCount > 0 ? (
-                <span className="font-semibold text-indigo-400">
+                <span className="font-semibold text-primary">
                   {replyCount} {replyCount === 1 ? "reply" : "replies"}
                 </span>
               ) : (
