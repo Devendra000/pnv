@@ -221,6 +221,7 @@ model User {
   passwordHash String   @map("password_hash")
   displayName  String?  @map("display_name")
   avatarUrl    String?  @map("avatar_url")
+  bio          String?  @map("bio")
   role         UserRole @default(USER)
   isActive     Boolean  @default(true) @map("is_active")
   preferences  Json?    @map("preferences")

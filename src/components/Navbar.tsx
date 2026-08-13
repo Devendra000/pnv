@@ -2,12 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FileText, Settings, MessageCircle, Palette } from 'lucide-react'
+import { FileText, Settings, MessageCircle, Palette, LogOut } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { socket } from '@/lib/socket-client'
-import { ThemeSettingsModal } from './ThemeSettingsModal'
+import { UserSettingsModal } from './UserSettingsModal'
 
 export function Navbar() {
   const pathname = usePathname()
@@ -15,6 +15,7 @@ export function Navbar() {
   const { data: session } = useSession()
   const [unreadCount, setUnreadCount] = useState(0)
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   const isActive = (path: string) => pathname?.startsWith(path)
 
@@ -156,20 +157,68 @@ export function Navbar() {
             )}
           </Link>
 
-          {/* Theme Settings Button */}
-          <button
-            onClick={() => setIsThemeModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 ml-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title="Appearance Settings"
-          >
-            <Palette className="w-5 h-5" />
-          </button>
+          {/* User Avatar & Dropdown */}
+          <div className="relative ml-2">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800 ring-2 ring-transparent hover:ring-primary/50 transition-all overflow-hidden flex items-center justify-center text-sm font-bold text-slate-500"
+            >
+              {session?.user?.avatarUrl ? (
+                <img src={(session.user as any).avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span className="uppercase">
+                  {(session?.user as any)?.displayName?.charAt(0) || session?.user?.username?.charAt(0) || '?'}
+                </span>
+              )}
+            </button>
+
+            {isDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-3 border-b border-border bg-slate-50/50 dark:bg-slate-900/50">
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {(session?.user as any)?.displayName || session?.user?.username}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      @{session?.user?.username}
+                    </p>
+                  </div>
+                  <div className="p-1">
+                    <button
+                      onClick={() => {
+                        setIsDropdownOpen(false)
+                        setIsThemeModalOpen(true)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-left"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Settings
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsDropdownOpen(false)
+                        window.location.href = "/api/auth/signout"
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors text-left mt-1"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Log out
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
-
-      <ThemeSettingsModal
-        isOpen={isThemeModalOpen}
-        onClose={() => setIsThemeModalOpen(false)}
+      
+      <UserSettingsModal 
+        isOpen={isThemeModalOpen} 
+        onClose={() => setIsThemeModalOpen(false)} 
       />
     </nav>
   )

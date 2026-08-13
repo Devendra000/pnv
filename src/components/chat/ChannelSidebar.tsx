@@ -425,23 +425,6 @@ export function ChannelSidebar({ session }: ChannelSidebarProps) {
         )}
       </div>
 
-      {/* Footer / User Session */}
-      <div className="p-3 border-t border-slate-800/80 flex items-center justify-between">
-        <Link href="/dashboard" className="text-xs text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1.5">
-          ← Back to App
-        </Link>
-        <button
-          onClick={() => {
-            socket.disconnect()
-            signOut({ callbackUrl: "/login" })
-          }}
-          className="p-1.5 rounded-md hover:bg-slate-800 text-slate-400 hover:text-rose-400 transition-all flex items-center gap-1.5"
-          title="Sign Out"
-        >
-          <LogOut className="w-4 h-4" />
-        </button>
-      </div>
-
       <CreateChannelModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
