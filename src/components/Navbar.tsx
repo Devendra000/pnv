@@ -36,7 +36,7 @@ export function Navbar() {
     const isChatPage = pathname?.startsWith('/chat') || pathname?.startsWith('/dm');
     if (isChatPage) {
       // Mark mentions as read in background since there's no UI for them anymore
-      fetch('/api/notifications', { method: 'PATCH' }).catch(() => {})
+      fetch('/api/notifications', { method: 'PATCH' }).catch(() => { })
     } else {
       // If returning to non-chat page, refresh the global unread count
       fetchUnreadCount();
@@ -120,11 +120,10 @@ export function Navbar() {
         <div className="flex items-center gap-1">
           <Link
             href="/documents/generate"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              isActive('/documents/generate')
-                ? 'bg-primary/20 text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isActive('/documents/generate')
+              ? 'bg-primary/20 text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             <FileText className="w-5 h-5" />
             <span className="text-sm font-medium">Generate Document</span>
@@ -132,11 +131,10 @@ export function Navbar() {
 
           <Link
             href="/documents"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              isActive('/documents') && !isActive('/documents/generate')
-                ? 'bg-primary/20 text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isActive('/documents') && !isActive('/documents/generate')
+              ? 'bg-primary/20 text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             <Settings className="w-5 h-5" />
             <span className="text-sm font-medium">Document Manager</span>
@@ -144,11 +142,10 @@ export function Navbar() {
 
           <Link
             href="/chat"
-            className={`relative flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              isActive('/chat')
-                ? 'bg-primary/20 text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`relative flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isActive('/chat')
+              ? 'bg-primary/20 text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             <MessageCircle className="w-5 h-5" />
             <span className="text-sm font-medium">Chat</span>
@@ -169,10 +166,10 @@ export function Navbar() {
           </button>
         </div>
       </div>
-      
-      <ThemeSettingsModal 
-        isOpen={isThemeModalOpen} 
-        onClose={() => setIsThemeModalOpen(false)} 
+
+      <ThemeSettingsModal
+        isOpen={isThemeModalOpen}
+        onClose={() => setIsThemeModalOpen(false)}
       />
     </nav>
   )
