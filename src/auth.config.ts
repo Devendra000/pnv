@@ -7,7 +7,11 @@ export const authConfig = {
   },
   providers: [],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === "update" && session?.preferences) {
+        token.preferences = session.preferences
+      }
+
       if (user) {
         token.role = (user as any).role
         token.username = (user as any).username
@@ -22,6 +26,7 @@ export const authConfig = {
         if (!dbUser) {
           return null // Destroy token if user doesn't exist
         }
+        token.preferences = dbUser.preferences || {}
       }
       return token
     },
@@ -30,6 +35,7 @@ export const authConfig = {
         session.user.role = token.role as string
         session.user.username = token.username as string
         session.user.id = token.userId as string
+        ;(session.user as any).preferences = token.preferences || {}
       }
       return session
     },

@@ -2,17 +2,19 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FileText, Settings, MessageCircle } from 'lucide-react'
+import { FileText, Settings, MessageCircle, Palette } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { socket } from '@/lib/socket-client'
+import { ThemeSettingsModal } from './ThemeSettingsModal'
 
 export function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
   const { data: session } = useSession()
   const [unreadCount, setUnreadCount] = useState(0)
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false)
 
   const isActive = (path: string) => pathname?.startsWith(path)
 
@@ -156,8 +158,22 @@ export function Navbar() {
               </span>
             )}
           </Link>
+
+          {/* Theme Settings Button */}
+          <button
+            onClick={() => setIsThemeModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 ml-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            title="Appearance Settings"
+          >
+            <Palette className="w-5 h-5" />
+          </button>
         </div>
       </div>
+      
+      <ThemeSettingsModal 
+        isOpen={isThemeModalOpen} 
+        onClose={() => setIsThemeModalOpen(false)} 
+      />
     </nav>
   )
 }
