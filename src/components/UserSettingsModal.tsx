@@ -15,13 +15,23 @@ const THEME_MODES = [
 ]
 
 const ACCENT_COLORS = [
-  { id: 'default', color: '#6366f1', label: 'Indigo (Default)' },
+  { id: 'default', color: '#000000', label: 'Black (Default)' },
+  { id: 'indigo', color: '#6366f1', label: 'Indigo' },
   { id: 'emerald', color: '#10b981', label: 'Emerald' },
   { id: 'rose', color: '#f43f5e', label: 'Rose' },
   { id: 'amber', color: '#f59e0b', label: 'Amber' },
   { id: 'blue', color: '#3b82f6', label: 'Blue' },
   { id: 'violet', color: '#8b5cf6', label: 'Violet' },
 ]
+
+const resolveFullUrl = (url?: string | null) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (url.startsWith('/') && typeof window !== 'undefined') {
+    return `${window.location.origin}${url}`
+  }
+  return url
+}
 
 export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
   const { data: session, update } = useSession()
@@ -39,7 +49,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
   const [username, setUsername] = useState<string>(user?.username || '')
   const [email, setEmail] = useState<string>(user?.email || '')
   const [bio, setBio] = useState<string>(user?.bio || '')
-  const [avatarUrl, setAvatarUrl] = useState<string>(user?.avatarUrl || '')
+  const [avatarUrl, setAvatarUrl] = useState<string>(resolveFullUrl(user?.avatarUrl))
   
   const [isSaving, setIsSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
@@ -53,7 +63,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
       setUsername(user?.username || '')
       setEmail(user?.email || '')
       setBio(user?.bio || '')
-      setAvatarUrl(user?.avatarUrl || '')
+      setAvatarUrl(resolveFullUrl(user?.avatarUrl))
       setErrorMsg('')
     }
   }, [isOpen, user, prefs])
@@ -69,7 +79,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
     htmlEl.classList.add(themeMode)
 
     // Apply Accent
-    if (accentColor && accentColor !== '#6366f1') {
+    if (accentColor && accentColor !== '#000000' && accentColor !== 'default') {
       htmlEl.style.setProperty('--primary', accentColor)
       htmlEl.style.setProperty('--ring', accentColor)
     } else {
@@ -85,7 +95,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
       if (activeTab === 'appearance') {
         const updatedPrefs = {
           themeMode,
-          accentColor: accentColor === '#6366f1' ? null : accentColor
+          accentColor: (!accentColor || accentColor === '#000000' || accentColor === 'default') ? null : accentColor
         }
 
         await fetch("/api/users/preferences", {
@@ -127,7 +137,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
       htmlEl.classList.remove('light', 'dark')
       htmlEl.classList.add(origMode)
       
-      if (prefs.accentColor) {
+      if (prefs.accentColor && prefs.accentColor !== '#000000') {
         htmlEl.style.setProperty('--primary', prefs.accentColor)
         htmlEl.style.setProperty('--ring', prefs.accentColor)
       } else {
@@ -202,7 +212,10 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
                   <div className="flex flex-col sm:flex-row gap-6">
                     {/* Avatar Display & Input */}
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-800 ring-4 ring-background shadow-lg">
+                      <div 
+                        className="w-24 h-24 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-800 border-2 border-primary ring-4 ring-background shadow-lg"
+                        style={{ borderColor: accentColor || undefined }}
+                      >
                         {avatarUrl ? (
                           <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                         ) : (
@@ -235,15 +248,16 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
                                 })
                                 const data = await res.json()
                                 if (res.ok) {
-                                  setAvatarUrl(data.url)
+                                  const fullUrl = resolveFullUrl(data.url)
+                                  setAvatarUrl(fullUrl)
                                   
                                   // Auto-save avatar immediately
                                   await fetch("/api/users/profile", {
                                     method: "PATCH",
                                     headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ displayName, email, bio, avatarUrl: data.url }),
+                                    body: JSON.stringify({ displayName, email, bio, avatarUrl: fullUrl }),
                                   })
-                                  await update({ avatarUrl: data.url })
+                                  await update({ avatarUrl: fullUrl })
                                 } else {
                                   setErrorMsg(data.error || "Upload failed")
                                 }

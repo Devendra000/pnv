@@ -50,7 +50,15 @@ export async function POST(req: Request) {
     const filepath = path.join(dirPath, filename)
     await writeFile(filepath, buffer)
 
-    return NextResponse.json({ url: `/uploads/${safeFolder}/${filename}` })
+    const urlObj = new URL(req.url)
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || urlObj.host
+    const protocol = req.headers.get("x-forwarded-proto") || (urlObj.protocol ? urlObj.protocol.replace(":", "") : "http")
+    const origin = `${protocol}://${host}`
+
+    const relativePath = `/uploads/${safeFolder}/${filename}`
+    const fullUrl = `${origin}${relativePath}`
+
+    return NextResponse.json({ url: fullUrl, path: relativePath })
   } catch (error) {
     console.error("Upload error:", error)
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })

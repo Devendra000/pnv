@@ -16,7 +16,8 @@ const THEME_MODES = [
 ]
 
 const ACCENT_COLORS = [
-  { id: 'default', color: '#6366f1', label: 'Indigo (Default)' },
+  { id: 'default', color: '#000000', label: 'Black (Default)' },
+  { id: 'indigo', color: '#6366f1', label: 'Indigo' },
   { id: 'emerald', color: '#10b981', label: 'Emerald' },
   { id: 'rose', color: '#f43f5e', label: 'Rose' },
   { id: 'amber', color: '#f59e0b', label: 'Amber' },
@@ -58,7 +59,7 @@ export function ThemeSettingsModal({ isOpen, onClose }: ThemeSettingsModalProps)
     }
 
     // Apply Accent
-    if (accentColor && accentColor !== '#6366f1') {
+    if (accentColor && accentColor !== '#000000' && accentColor !== 'default') {
       htmlEl.style.setProperty('--primary', accentColor)
       htmlEl.style.setProperty('--ring', accentColor)
     } else {
@@ -72,7 +73,7 @@ export function ThemeSettingsModal({ isOpen, onClose }: ThemeSettingsModalProps)
     try {
       const updatedPrefs = {
         themeMode,
-        accentColor: accentColor === '#6366f1' ? null : accentColor
+        accentColor: (!accentColor || accentColor === '#000000' || accentColor === 'default') ? null : accentColor
       }
 
       await fetch("/api/users/preferences", {
@@ -98,7 +99,7 @@ export function ThemeSettingsModal({ isOpen, onClose }: ThemeSettingsModalProps)
     htmlEl.classList.remove('light', 'dark')
     if (origMode !== 'system') htmlEl.classList.add(origMode)
     
-    if (prefs.accentColor) {
+    if (prefs.accentColor && prefs.accentColor !== '#000000') {
       htmlEl.style.setProperty('--primary', prefs.accentColor)
       htmlEl.style.setProperty('--ring', prefs.accentColor)
     } else {
