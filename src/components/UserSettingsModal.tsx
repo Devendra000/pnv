@@ -99,7 +99,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
         const res = await fetch("/api/users/profile", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ displayName, username, email, bio, avatarUrl }),
+          body: JSON.stringify({ displayName, email, bio, avatarUrl }),
         })
         const data = await res.json()
         
@@ -107,7 +107,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
           throw new Error(data.error || "Failed to update profile")
         }
 
-        await update({ displayName, username, email, bio, avatarUrl })
+        await update({ displayName, email, bio, avatarUrl })
       }
       // Don't close immediately on success, maybe show a success toast? (For now, close is fine)
       onClose()
@@ -241,7 +241,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
                                   await fetch("/api/users/profile", {
                                     method: "PATCH",
                                     headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ displayName, username, email, bio, avatarUrl: data.url }),
+                                    body: JSON.stringify({ displayName, email, bio, avatarUrl: data.url }),
                                   })
                                   await update({ avatarUrl: data.url })
                                 } else {
@@ -288,7 +288,9 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
                             type="text"
                             value={username}
                             onChange={e => setUsername(e.target.value)}
-                            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+                            disabled
+                            className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800/50 text-slate-500 border border-border rounded-lg text-sm cursor-not-allowed opacity-70"
+                            title="Username cannot be changed currently"
                           />
                         </div>
                       </div>
@@ -299,9 +301,8 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
                           type="email"
                           value={email}
                           onChange={e => setEmail(e.target.value)}
-                          disabled
-                          className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800/50 text-slate-500 border border-border rounded-lg text-sm cursor-not-allowed opacity-70"
-                          title="Email cannot be changed currently"
+                          placeholder="your-email@example.com"
+                          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
                         />
                       </div>
 

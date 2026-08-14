@@ -12,32 +12,30 @@ export async function PATCH(req: Request) {
     const data = await req.json()
     const { displayName, username, email, bio, avatarUrl } = data
 
-    // Check if username/email is taken by another user
-    if (username || email) {
-      const existing = await prisma.user.findFirst({
-        where: {
-          OR: [
-            ...(username ? [{ username }] : []),
-            ...(email ? [{ email }] : [])
-          ],
-          NOT: {
-            id: session.user.id
-          }
-        }
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    })
+    if (!currentUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    // Check if user is trying to change their username
+    if (username && username !== currentUser.username) {
+      return NextResponse.json({ error: "Username cannot be changed" }, { status: 400 })
+    }
+
+    // Check if email is changing and if the new email is already taken
+    if (email && email !== currentUser.email) {
+      const existing = await prisma.user.findUnique({
+        where: { email }
       })
       if (existing) {
-        if (existing.username === username) {
-          return NextResponse.json({ error: "Username already taken" }, { status: 400 })
-        }
-        if (existing.email === email) {
-          return NextResponse.json({ error: "Email already taken" }, { status: 400 })
-        }
+        return NextResponse.json({ error: "Email already taken" }, { status: 400 })
       }
     }
 
     const updateData: any = {}
     if (displayName !== undefined) updateData.displayName = displayName
-    if (username !== undefined) updateData.username = username
     if (email !== undefined) updateData.email = email
     if (bio !== undefined) updateData.bio = bio
     if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl
