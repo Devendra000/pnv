@@ -11,7 +11,7 @@ import {
 import { resolveFormulaVariables } from '@/lib/formulaEvaluator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, BadgeInfo, Building2, FileText, Lock, Plus, Trash2, Users, Search, Tag, Check, Filter } from 'lucide-react';
+import { ArrowLeft, BadgeInfo, Building2, FileText, Lock, Plus, Trash2, Users, Search, Tag, Check, Filter, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 
 interface CompanyFormProps {
@@ -171,7 +171,6 @@ function PersonEditor({
               onChange={(event) => updateField('ownerRoleId', event.target.value)}
               className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="">Select Type (Optional)</option>
               {ownerRoles.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
@@ -348,20 +347,37 @@ export function CompanyForm({
     }, initialValues);
   });
 
-  // Pre-select 'अध्यक्ष' for the first owner if they are newly added and don't have a role yet
+  // Ensure at least one owner is 'अध्यक्ष' and assign others to 'संचालक' by default
   useEffect(() => {
-    if (!company && owners.length === 1 && !owners[0].ownerRoleId && ownerRoles.length > 0) {
-      const adhakshyaRole = ownerRoles.find(r => r.name === 'अध्यक्ष');
-      if (adhakshyaRole) {
-        setOwners(current => {
-          if (current.length === 1 && !current[0].ownerRoleId) {
-            return [{ ...current[0], ownerRoleId: adhakshyaRole.id }];
-          }
-          return current;
+    if (ownerRoles.length > 0 && owners.length > 0) {
+      const adhyakshaRole = ownerRoles.find(r => r.name === 'अध्यक्ष');
+      const sanchalakRole = ownerRoles.find(r => r.name === 'संचालक');
+      
+      let changed = false;
+      let newOwners = [...owners];
+
+      if (adhyakshaRole && !newOwners.some(o => o.ownerRoleId === adhyakshaRole.id)) {
+        if (newOwners[0]) {
+           newOwners[0] = { ...newOwners[0], ownerRoleId: adhyakshaRole.id };
+           changed = true;
+        }
+      }
+
+      if (sanchalakRole) {
+        newOwners = newOwners.map(o => {
+           if (!o.ownerRoleId) {
+              changed = true;
+              return { ...o, ownerRoleId: sanchalakRole.id };
+           }
+           return o;
         });
       }
+
+      if (changed) {
+         setOwners(newOwners);
+      }
     }
-  }, [company, owners, ownerRoles]);
+  }, [ownerRoles, owners]);
 
   // Helper: add a new witness for a new owner slot
   const addWitnessForOwner = (ownerIdx: number) =>
@@ -564,7 +580,28 @@ export function CompanyForm({
                       label={`Owner ${index + 1}`}
                       person={owner}
                       onChange={(nextOwner) =>
-                        setOwners((current) => current.map((item, itemIndex) => (itemIndex === index ? (nextOwner as Owner) : item)))
+                        setOwners((current) => {
+                          let updated = [...current];
+                          const adhyakshaRole = ownerRoles.find(r => r.name === 'अध्यक्ष');
+                          const sanchalakRole = ownerRoles.find(r => r.name === 'संचालक');
+                          
+                          const isNowAdhyaksha = adhyakshaRole && (nextOwner as Owner).ownerRoleId === adhyakshaRole.id;
+                          const wasAdhyaksha = adhyakshaRole && current[index].ownerRoleId === adhyakshaRole.id;
+
+                          if (isNowAdhyaksha && !wasAdhyaksha) {
+                            // Demote others to Sanchalak
+                            updated = updated.map((item, idx) => {
+                              if (idx === index) return nextOwner as Owner;
+                              if (item.ownerRoleId === adhyakshaRole.id) {
+                                return { ...item, ownerRoleId: sanchalakRole?.id || null };
+                              }
+                              return item;
+                            });
+                          } else {
+                            updated[index] = nextOwner as Owner;
+                          }
+                          return updated;
+                        })
                       }
                       onRemove={
                         formData.ownerType === 'MULTIPLE' && owners.length > 1
@@ -877,15 +914,19 @@ export function CompanyForm({
                   const formulaVars = autoVars.filter(v => !!v.formula);
                   const standardAutoVars = autoVars.filter(v => !v.formula);
 
-                  const renderAutoGroup = (groupTitle: string, groupVars: Variable[]) => {
+                  const renderAutoGroup = (groupTitle: string, groupVars: Variable[], openByDefault: boolean = false) => {
                     if (groupVars.length === 0) return null;
                     return (
-                      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-5">
-                        <div className="mb-5 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
-                          <Lock className="h-3.5 w-3.5 text-slate-500" />
-                          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">{groupTitle} — read only</p>
-                        </div>
-                        <div className="grid gap-4 lg:grid-cols-2">
+                      <details open={openByDefault} className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                        <summary className="flex cursor-pointer select-none items-center justify-between p-5 outline-none [&::-webkit-details-marker]:hidden">
+                          <div className="flex items-center gap-2">
+                            <Lock className="h-3.5 w-3.5 text-slate-500" />
+                            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">{groupTitle} — read only</p>
+                          </div>
+                          <ChevronDown className="h-4 w-4 text-slate-500 transition-transform duration-200 group-open:rotate-180" />
+                        </summary>
+                        <div className="border-t border-slate-200 dark:border-slate-800 p-5">
+                          <div className="grid gap-4 lg:grid-cols-2">
                           {groupVars.map((variable) => {
                             const derivedValue = runtimeValues[variable.key] || '';
                             const isEmpty = !derivedValue;
@@ -919,15 +960,16 @@ export function CompanyForm({
                               </div>
                             );
                           })}
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     );
                   };
 
                   return (
                     <div className="space-y-6 mt-6 pt-6 border-t border-slate-200 dark:border-slate-800/60">
+                      {renderAutoGroup("Formula", formulaVars, true)}
                       {renderAutoGroup("Auto-mapped", standardAutoVars)}
-                      {renderAutoGroup("Formula", formulaVars)}
                     </div>
                   );
                 })()}

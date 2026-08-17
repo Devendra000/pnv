@@ -1802,6 +1802,10 @@ export async function createOwnerRoleAction(name: string): Promise<OwnerRole> {
 }
 
 export async function updateOwnerRoleAction(id: string, name: string): Promise<OwnerRole> {
+  const existingRole = await prisma.ownerRole.findUnique({ where: { id } });
+  if (existingRole && (existingRole.name === 'अध्यक्ष' || existingRole.name === 'संचालक')) {
+    throw new Error(`Cannot rename the system role "${existingRole.name}".`);
+  }
   const r = await prisma.ownerRole.update({ where: { id }, data: { name } });
   return {
     ...r,
@@ -1811,5 +1815,9 @@ export async function updateOwnerRoleAction(id: string, name: string): Promise<O
 }
 
 export async function deleteOwnerRoleAction(id: string): Promise<void> {
+  const existingRole = await prisma.ownerRole.findUnique({ where: { id } });
+  if (existingRole && (existingRole.name === 'अध्यक्ष' || existingRole.name === 'संचालक')) {
+    throw new Error(`Cannot delete the system role "${existingRole.name}".`);
+  }
   await prisma.ownerRole.delete({ where: { id } });
 }

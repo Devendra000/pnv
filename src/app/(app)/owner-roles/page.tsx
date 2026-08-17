@@ -161,28 +161,30 @@ export default function OwnerRolesPage() {
                   </div>
                   
                   {/* Action Buttons */}
-                  <div className="flex shrink-0 gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-slate-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/30 rounded-full transition-colors"
-                      onClick={() => startEdit(role)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to delete this owner type?')) {
-                          deleteOwnerRole(role.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {role.name !== 'अध्यक्ष' && role.name !== 'संचालक' && (
+                    <div className="flex shrink-0 gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/30 rounded-full transition-colors"
+                        onClick={() => startEdit(role)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to delete this owner type?')) {
+                            deleteOwnerRole(role.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
