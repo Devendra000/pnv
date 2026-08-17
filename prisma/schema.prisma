@@ -116,6 +116,7 @@ model Variable {
   description String?
   type        String  @default("text") // text | date | number | list
   formula     String? // Optional expression: "TODAY", "[var_a] + [var_b]", "[x] / 100", etc.
+  group       String? // Optional group name for UI categorization
 
   companyValues CompanyVariableValue[]
 

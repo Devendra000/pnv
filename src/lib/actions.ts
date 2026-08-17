@@ -626,6 +626,7 @@ export async function fetchAppData(): Promise<{
       label: v.label,
       description: v.description,
       formula: v.formula,
+      group: v.group,
       type: v.type as UIVariable['type'],
     }));
 
@@ -1070,6 +1071,7 @@ export async function createVariableAction(data: Omit<UIVariable, 'id'>): Promis
       description: data.description,
       type: data.type,
       formula: data.formula ?? null,
+      group: data.group ?? null,
     },
   });
   return {
@@ -1078,6 +1080,7 @@ export async function createVariableAction(data: Omit<UIVariable, 'id'>): Promis
     label: v.label,
     description: v.description,
     formula: v.formula,
+    group: v.group,
     type: v.type as UIVariable['type'],
   };
 }
@@ -1091,6 +1094,7 @@ export async function updateVariableAction(id: string, data: Partial<Omit<UIVari
       description: data.description,
       type: data.type,
       formula: data.formula !== undefined ? (data.formula ?? null) : undefined,
+      group: data.group !== undefined ? (data.group ?? null) : undefined,
     },
   });
   return {
@@ -1099,6 +1103,7 @@ export async function updateVariableAction(id: string, data: Partial<Omit<UIVari
     label: v.label,
     description: v.description,
     formula: v.formula,
+    group: v.group,
     type: v.type as UIVariable['type'],
   };
 }
@@ -1136,6 +1141,7 @@ export async function createTemplateAction(data: { name: string; fileName: strin
     id: v.id,
     key: v.key,
     label: v.label,
+    group: v.group,
     type: v.type as UIVariable['type'],
   })));
 
@@ -1172,6 +1178,7 @@ export async function updateTemplateAction(id: string, data: { name: string; fil
     id: v.id,
     key: v.key,
     label: v.label,
+    group: v.group,
     type: v.type as UIVariable['type'],
   })));
 

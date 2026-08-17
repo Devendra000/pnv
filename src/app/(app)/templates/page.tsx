@@ -220,7 +220,7 @@ export default function TemplatesPage() {
                       return (
                       <span
                         key={key}
-                        className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/100/10 px-3 py-1 text-xs text-primary dark:text-primary"
+                        className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary dark:text-primary"
                       >
                         <span className="font-mono">{'['}{key}{']'}</span>
                         <span>{matchedVariable?.label || 'Custom variable'}</span>
@@ -306,7 +306,7 @@ export default function TemplatesPage() {
                           {template.matchedVariables.map((variable) => (
                             <span
                               key={variable.id}
-                              className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/100/10 px-3 py-1 text-xs text-primary dark:text-primary"
+                              className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary dark:text-primary"
                             >
                               <span className="font-mono">{'['}{variable.key}{']'}</span>
                               <span>{variable.label}</span>

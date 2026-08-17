@@ -52,14 +52,24 @@ export default function VariablesPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCustomGroup, setIsCustomGroup] = useState(false);
   const [newVariable, setNewVariable] = useState<{
     key: string;
     label: string;
     description: string;
     formula: string;
+    group: string;
     type: Variable['type'];
-  }>({ key: '', label: '', description: '', formula: '', type: 'text' });
+  }>({ key: '', label: '', description: '', formula: '', group: '', type: 'text' });
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const uniqueGroups = useMemo(() => {
+    const groups = new Set<string>();
+    variables.forEach((v) => {
+      if (v.group) groups.add(v.group);
+    });
+    return Array.from(groups).sort();
+  }, [variables]);
 
   const copyToClipboard = async (text: string, identifier: string) => {
     try {
@@ -143,9 +153,11 @@ export default function VariablesPage() {
         label: newVariable.label.trim(),
         description: newVariable.description.trim() || undefined,
         formula: newVariable.formula.trim() || undefined,
+        group: newVariable.group.trim() || undefined,
         type: newVariable.type,
       });
-      setNewVariable({ key: '', label: '', description: '', formula: '', type: 'text' });
+      setNewVariable({ key: '', label: '', description: '', formula: '', group: '', type: 'text' });
+      setIsCustomGroup(false);
       setIsAdding(false);
     }
   };
@@ -158,17 +170,20 @@ export default function VariablesPage() {
         label: newVariable.label.trim(),
         description: newVariable.description.trim() || undefined,
         formula: newVariable.formula.trim() || undefined,
+        group: newVariable.group.trim() || undefined,
         type: newVariable.type,
       });
       setEditingId(null);
-      setNewVariable({ key: '', label: '', description: '', formula: '', type: 'text' });
+      setNewVariable({ key: '', label: '', description: '', formula: '', group: '', type: 'text' });
+      setIsCustomGroup(false);
     }
   };
 
   const cancelForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setNewVariable({ key: '', label: '', description: '', formula: '', type: 'text' });
+    setNewVariable({ key: '', label: '', description: '', formula: '', group: '', type: 'text' });
+    setIsCustomGroup(false);
   };
 
   return (
@@ -285,6 +300,56 @@ export default function VariablesPage() {
                     />
                   </div>
                   <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-foreground">
+                        Group <span className="text-slate-500 font-normal">(Optional)</span>
+                      </label>
+                      {isCustomGroup && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomGroup(false);
+                            setNewVariable({ ...newVariable, group: '' });
+                          }}
+                          className="text-xs text-primary hover:underline focus:outline-none"
+                        >
+                          Select existing
+                        </button>
+                      )}
+                    </div>
+                    {isCustomGroup || (uniqueGroups.length === 0 && !newVariable.group) ? (
+                      <Input
+                        value={newVariable.group}
+                        onChange={(e) => setNewVariable({ ...newVariable, group: e.target.value })}
+                        placeholder="e.g., Financial, Personal"
+                        className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-foreground"
+                        autoFocus={isCustomGroup}
+                      />
+                    ) : (
+                      <select
+                        value={uniqueGroups.includes(newVariable.group) ? newVariable.group : (newVariable.group ? '__custom__' : '')}
+                        onChange={(e) => {
+                          if (e.target.value === '__add_new__') {
+                            setIsCustomGroup(true);
+                            setNewVariable({ ...newVariable, group: '' });
+                          } else {
+                            setNewVariable({ ...newVariable, group: e.target.value === '__empty__' ? '' : e.target.value });
+                          }
+                        }}
+                        className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="__empty__">No Group</option>
+                        {uniqueGroups.map((g) => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                        {newVariable.group && !uniqueGroups.includes(newVariable.group) && (
+                          <option value="__custom__">{newVariable.group}</option>
+                        )}
+                        <option value="__add_new__" className="font-semibold text-primary">+ Add new group...</option>
+                      </select>
+                    )}
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Type</label>
                     <select
                       value={newVariable.type}
@@ -365,6 +430,11 @@ export default function VariablesPage() {
                         <span className="rounded-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
                           {variable.type}
                         </span>
+                        {variable.group && (
+                          <span className="rounded-full border border-blue-200 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                            {variable.group}
+                          </span>
+                        )}
                         {variable.formula && (
                           <span
                             title={`Formula: ${variable.formula}`}
@@ -396,8 +466,10 @@ export default function VariablesPage() {
                             label: variable.label,
                             description: variable.description || '',
                             formula: variable.formula || '',
+                            group: variable.group || '',
                             type: variable.type,
                           });
+                          setIsCustomGroup(!!variable.group && !uniqueGroups.includes(variable.group));
                           setIsAdding(false);
                         }}
                       >Edit</Button>

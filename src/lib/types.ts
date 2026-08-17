@@ -88,6 +88,7 @@ export interface Variable {
   label: string;
   description?: string | null;
   formula?: string | null;
+  group?: string | null;
   type: 'text' | 'number' | 'date' | 'list';
 }
 

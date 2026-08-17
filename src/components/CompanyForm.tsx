@@ -82,15 +82,15 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/60 shadow-sm shadow-black/20 backdrop-blur">
-      <div className="border-b border-slate-800 bg-slate-900/40 px-6 py-5">
+    <section className="overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 shadow-sm shadow-black/20 backdrop-blur">
+      <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 px-6 py-5">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-800 text-white shadow-sm">
+          <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm">
             {icon}
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
-            <p className="mt-1 text-sm text-slate-400">{description}</p>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
           </div>
         </div>
       </div>
@@ -102,9 +102,9 @@ function SectionCard({
 function FieldLabel({ children, variableTag }: { children: ReactNode; variableTag?: string }) {
   return (
     <div className="mb-2 flex items-center justify-between gap-2">
-      <label className="text-sm font-medium text-slate-300">{children}</label>
+      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{children}</label>
       {variableTag ? (
-        <span className="font-mono text-[11px] font-semibold text-amber-400 bg-amber-950/40 border border-amber-800/50 px-1.5 py-0.5 rounded shadow-sm">
+        <span className="font-mono text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/50 px-1.5 py-0.5 rounded shadow-sm">
           [{variableTag}]
         </span>
       ) : null}
@@ -135,11 +135,11 @@ function PersonEditor({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-800/30 p-4 sm:p-5">
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-white">{label}</p>
-          <p className="text-xs text-slate-400">Fill the details that will appear in documents.</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">{label}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Fill the details that will appear in documents.</p>
         </div>
         {removable && onRemove ? (
           <button
@@ -160,7 +160,7 @@ function PersonEditor({
             value={person.name || ''}
             onChange={(event) => updateField('name', event.target.value)}
             placeholder="Full name"
-            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+            className="border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
           />
         </div>
         {isOwner && (
@@ -169,7 +169,7 @@ function PersonEditor({
             <select
               value={(person as Owner).ownerRoleId || ''}
               onChange={(event) => updateField('ownerRoleId', event.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Select Type (Optional)</option>
               {ownerRoles.map((r) => (
@@ -187,7 +187,7 @@ function PersonEditor({
               value={(person as Owner).fatherName || ''}
               onChange={(event) => updateField('fatherName', event.target.value)}
               placeholder="Father's name"
-              className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+              className="border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
             />
           </div>
         )}
@@ -200,7 +200,7 @@ function PersonEditor({
               value={person.citizenshipJariDate || ''}
               onChange={(event) => updateField('citizenshipJariDate', event.target.value)}
               placeholder="e.g. 2080-01-01"
-              className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+              className="border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
             />
           </div>
         )}
@@ -210,7 +210,7 @@ function PersonEditor({
             value={person.phoneNumber || ''}
             onChange={(event) => updateField('phoneNumber', event.target.value)}
             placeholder="Phone number"
-            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+            className="border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
           />
         </div>
         <div className="lg:col-span-2">
@@ -219,7 +219,7 @@ function PersonEditor({
             value={person.address || ''}
             onChange={(event) => updateField('address', event.target.value)}
             placeholder="Address"
-            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+            className="border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
           />
         </div>
         <div>
@@ -228,7 +228,7 @@ function PersonEditor({
             value={person.citizenship || ''}
             onChange={(event) => updateField('citizenship', event.target.value)}
             placeholder="Citizenship number"
-            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+            className="border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
           />
         </div>
         <div>
@@ -237,7 +237,7 @@ function PersonEditor({
             value={person.jariJilla || ''}
             onChange={(event) => updateField('jariJilla', event.target.value)}
             placeholder="Jari Jilla (Issuing District)"
-            className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+            className="border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
           />
         </div>
         {showShares && (
@@ -247,7 +247,7 @@ function PersonEditor({
               value={(person as Owner).shares || ''}
               onChange={(event) => updateField('shares', event.target.value)}
               placeholder="Share Sankhaya"
-              className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+              className="border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
             />
           </div>
         )}
@@ -325,7 +325,9 @@ export function CompanyForm({
   const { objectiveCategories = [], ownerRoles = [] } = useAppDataContext();
   const [activeCategoryId, setActiveCategoryId] = useState<string | 'ALL'>('ALL');
   const [objectiveSearchQuery, setObjectiveSearchQuery] = useState('');
-  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+  const [showSelectedOnly, setShowSelectedOnly] = useState(() =>
+    company?.objectives ? company.objectives.length > 0 : false
+  );
 
   const [selectedObjectives, setSelectedObjectives] = useState<string[]>(() =>
     company?.objectives ? company.objectives.map((objective) => objective.sourceObjectiveId || '') : []
@@ -474,12 +476,12 @@ export function CompanyForm({
     <div className="mx-auto max-w-7xl">
       <div className="mb-6 flex items-center justify-between gap-4">
         <Link href="/companies">
-          <Button variant="ghost" className="px-0 text-slate-400 hover:bg-transparent hover:text-white">
+          <Button variant="ghost" className="px-0 text-slate-500 dark:text-slate-400 hover:bg-transparent hover:text-slate-900 dark:text-white">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Companies
           </Button>
         </Link>
-        <div className="hidden rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-slate-400 shadow-sm sm:block">
+        <div className="hidden rounded-full border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400 shadow-sm sm:block">
           Separated company form
         </div>
       </div>
@@ -499,7 +501,7 @@ export function CompanyForm({
                   onChange={(event) => setFormData({ ...formData, englishName: event.target.value })}
                   required
                   placeholder="Company name in English"
-                  className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+                  className="border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
                 />
               </div>
               <div>
@@ -508,7 +510,7 @@ export function CompanyForm({
                   value={formData.nepaliName || ''}
                   onChange={(e) => setFormData((current) => ({ ...current, nepaliName: e.target.value }))}
                   placeholder="e.g. एक्मे कर्प"
-                  className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+                  className="border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
                 />
               </div>
               <div className="lg:col-span-2">
@@ -517,31 +519,29 @@ export function CompanyForm({
                   value={formData.companyAddress || ''}
                   onChange={(e) => setFormData((current) => ({ ...current, companyAddress: e.target.value }))}
                   placeholder="e.g. Kathmandu, Nepal"
-                  className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+                  className="border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
                 />
               </div>
               <div>
                 <FieldLabel variableTag="owner_type">Ownership Structure</FieldLabel>
-                <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-700 bg-slate-950/40 p-2">
+                <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/40 p-2">
                   <button
                     type="button"
                     onClick={() => setOwnerType('SINGLE')}
-                    className={`rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
-                      formData.ownerType === 'SINGLE'
-                        ? 'bg-slate-100 text-slate-900 shadow-sm'
-                        : 'bg-transparent text-slate-400 hover:text-white'
-                    }`}
+                    className={`rounded-xl px-4 py-3 text-sm font-medium transition-colors ${formData.ownerType === 'SINGLE'
+                      ? 'bg-slate-100 text-slate-900 shadow-sm'
+                      : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
+                      }`}
                   >
                     Single Owner
                   </button>
                   <button
                     type="button"
                     onClick={() => setOwnerType('MULTIPLE')}
-                    className={`rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
-                      formData.ownerType === 'MULTIPLE'
-                        ? 'bg-slate-100 text-slate-900 shadow-sm'
-                        : 'bg-transparent text-slate-400 hover:text-white'
-                    }`}
+                    className={`rounded-xl px-4 py-3 text-sm font-medium transition-colors ${formData.ownerType === 'MULTIPLE'
+                      ? 'bg-slate-100 text-slate-900 shadow-sm'
+                      : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
+                      }`}
                   >
                     Multiple Owners
                   </button>
@@ -557,7 +557,7 @@ export function CompanyForm({
           >
             <div className="space-y-6">
               {owners.map((owner, index) => (
-                <div key={owner.id} className="rounded-2xl border border-slate-700/50 bg-slate-800/10 p-1">
+                <div key={owner.id} className="rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-800/10 p-1">
                   {/* Owner card */}
                   <div className="p-3">
                     <PersonEditor
@@ -569,9 +569,9 @@ export function CompanyForm({
                       onRemove={
                         formData.ownerType === 'MULTIPLE' && owners.length > 1
                           ? () => {
-                              setOwners((current) => current.filter((_, i) => i !== index));
-                              removeWitnessForOwner(index);
-                            }
+                            setOwners((current) => current.filter((_, i) => i !== index));
+                            removeWitnessForOwner(index);
+                          }
                           : undefined
                       }
                       removable={formData.ownerType === 'MULTIPLE' && owners.length > 1}
@@ -583,10 +583,10 @@ export function CompanyForm({
                   </div>
 
                   {/* Witness sub-form for this owner */}
-                  <div className="mx-3 mb-3 rounded-xl border border-slate-700/40 bg-slate-900/60 p-4">
+                  <div className="mx-3 mb-3 rounded-xl border border-slate-700/40 bg-slate-50 dark:bg-slate-900/60 p-4">
                     <div className="mb-3 flex items-center gap-2">
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-[10px] font-bold text-slate-300">{index + 1}</span>
-                      <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Witness for Owner {index + 1}</p>
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-300">{index + 1}</span>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Witness for Owner {index + 1}</p>
                     </div>
                     {witnesses[index] ? (
                       <PersonEditor
@@ -610,7 +610,7 @@ export function CompanyForm({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-dashed border-slate-700 bg-transparent py-6 text-slate-300 hover:bg-slate-800/40"
+                  className="w-full border-dashed border-slate-300 dark:border-slate-700 bg-transparent py-6 text-slate-700 dark:text-slate-300 hover:bg-slate-800/40"
                   onClick={() => {
                     const newIdx = owners.length;
                     setOwners((current) => [
@@ -636,24 +636,23 @@ export function CompanyForm({
               {/* Category Search & Filter Toolbar */}
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-slate-400" />
                   <Input
                     type="text"
                     placeholder="Search objectives or categories..."
                     value={objectiveSearchQuery}
                     onChange={(e) => setObjectiveSearchQuery(e.target.value)}
-                    className="pl-10 border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+                    className="pl-10 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
                   />
                 </div>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setShowSelectedOnly(!showSelectedOnly)}
-                  className={`border-slate-700 font-medium ${
-                    showSelectedOnly
-                      ? 'bg-primary/20 text-primary border-primary/50'
-                      : 'bg-slate-900/60 text-slate-300 hover:bg-slate-800'
-                  }`}
+                  className={`border-slate-300 dark:border-slate-700 font-medium ${showSelectedOnly
+                    ? 'bg-primary/20 text-primary border-primary/50'
+                    : 'bg-slate-50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
+                    }`}
                 >
                   <Filter className="mr-2 h-4 w-4" />
                   {showSelectedOnly
@@ -665,20 +664,19 @@ export function CompanyForm({
               {/* Category Selection Grid / Pills */}
               {!showSelectedOnly && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Government Categories (Click to filter)
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
                     <button
                       type="button"
                       onClick={() => setActiveCategoryId('ALL')}
-                      className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all ${
-                        activeCategoryId === 'ALL'
-                          ? 'border-primary bg-primary/20 text-white shadow-md'
-                          : 'border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700 hover:bg-slate-800/40'
-                      }`}
+                      className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all ${activeCategoryId === 'ALL'
+                        ? 'border-primary bg-primary/20 text-slate-900 dark:text-white shadow-md'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:border-slate-700 hover:bg-slate-800/40'
+                        }`}
                     >
-                      <span className="text-xs font-semibold text-white">All Categories</span>
+                      <span className="text-xs font-semibold text-slate-900 dark:text-white">All Categories</span>
                       <div className="mt-1 flex items-center justify-between w-full text-[11px]">
                         <span>{objectives.length} objectives</span>
                         {selectedObjectives.length > 0 && (
@@ -701,13 +699,12 @@ export function CompanyForm({
                           key={cat.id}
                           type="button"
                           onClick={() => setActiveCategoryId(cat.id)}
-                          className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all ${
-                            isActive
-                              ? 'border-primary bg-primary/20 text-white shadow-md'
-                              : 'border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700 hover:bg-slate-800/40'
-                          }`}
+                          className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all ${isActive
+                            ? 'border-primary bg-primary/20 text-slate-900 dark:text-white shadow-md'
+                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:border-slate-700 hover:bg-slate-800/40'
+                            }`}
                         >
-                          <span className="text-xs font-semibold text-white truncate w-full">
+                          <span className="text-xs font-semibold text-slate-900 dark:text-white truncate w-full">
                             {cat.name}
                           </span>
                           <div className="mt-1 flex items-center justify-between w-full text-[11px]">
@@ -745,13 +742,13 @@ export function CompanyForm({
 
                   if (filteredList.length === 0) {
                     return (
-                      <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/30 p-8 text-center">
-                        <p className="text-sm text-slate-400">
+                      <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-900/30 p-8 text-center">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
                           {showSelectedOnly
                             ? 'No objectives selected yet.'
                             : objectiveSearchQuery || activeCategoryId !== 'ALL'
-                            ? 'No objectives found under this category or search query.'
-                            : 'No objectives configured.'}
+                              ? 'No objectives found under this category or search query.'
+                              : 'No objectives configured.'}
                         </p>
                       </div>
                     );
@@ -762,11 +759,10 @@ export function CompanyForm({
                     return (
                       <label
                         key={obj.id}
-                        className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-4 transition-all ${
-                          isChecked
-                            ? 'border-primary/70 bg-primary/10 shadow-sm shadow-primary/10'
-                            : 'border-slate-800 bg-slate-800/30 hover:bg-slate-800/50'
-                        }`}
+                        className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-4 transition-all ${isChecked
+                          ? 'border-primary/70 bg-primary/10 shadow-sm shadow-primary/10'
+                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 hover:bg-slate-800/50'
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -789,7 +785,7 @@ export function CompanyForm({
                               {obj.categoryName}
                             </span>
                           )}
-                          <p className="text-sm font-medium text-white leading-relaxed">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white leading-relaxed">
                             {obj.text}
                           </p>
                         </div>
@@ -808,141 +804,168 @@ export function CompanyForm({
           >
             {variables.length > 0 ? (
               <div className="space-y-8">
-                {/* ── Auto-mapped (read-only) ── */}
-                {(() => {
-                  const autoVars = variables.filter((v) => isRuntimeCompanyVariableKey(v.key) || baseRuntimeValues[v.key] !== undefined || !!v.formula);
-                  if (autoVars.length === 0) return null;
-                  return (
-                    <div>
-                      <div className="mb-4 flex items-center gap-2">
-                        <Lock className="h-3.5 w-3.5 text-slate-500" />
-                        <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Auto-mapped — read only</p>
-                      </div>
-                      <div className="grid gap-3 lg:grid-cols-2">
-                        {autoVars.map((variable) => {
-                          const derivedValue = runtimeValues[variable.key] || '';
-                          const isEmpty = !derivedValue;
-                          const isMultiLine = variable.type === 'list' && derivedValue.includes('\n');
-                          return (
-                            <div key={variable.id} className={isMultiLine ? 'lg:col-span-2' : ''}>
-                              <div className="mb-1.5 flex items-center justify-between gap-2">
-                                <label className="text-sm font-medium text-slate-400">{variable.label}</label>
-                                <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                                  <Lock className="h-2.5 w-2.5" />
-                                  auto
-                                </span>
-                              </div>
-                              {isMultiLine ? (
-                                <pre className="min-h-20 w-full whitespace-pre-wrap rounded-2xl border border-slate-700/50 bg-slate-950/40 px-4 py-3 font-mono text-sm text-slate-300 select-all">
-                                  {derivedValue}
-                                </pre>
-                              ) : (
-                                <div className={`flex items-center rounded-xl border px-3 py-2.5 font-mono text-sm ${
-                                  isEmpty
-                                    ? 'border-slate-800 bg-slate-950/20 text-slate-600'
-                                    : 'border-slate-700/50 bg-slate-950/40 text-slate-300'
-                                }`}>
-                                  {isEmpty ? <span className="italic">not set yet</span> : derivedValue}
-                                </div>
-                              )}
-                              {variable.formula && (
-                                <p className="mt-1.5 text-[11px] font-medium text-amber-600/80 dark:text-amber-500/80">
-                                  ⚡ Formula: <code className="font-mono bg-amber-50 dark:bg-amber-950/30 px-1 py-0.5 rounded text-[10px]">{variable.formula}</code>
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-
                 {/* ── Manual input ── */}
                 {(() => {
                   const manualVars = variables.filter((v) => !isRuntimeCompanyVariableKey(v.key) && baseRuntimeValues[v.key] === undefined && !v.formula);
                   if (manualVars.length === 0) return null;
+
+                  const grouped: Record<string, Variable[]> = {};
+                  manualVars.forEach(v => {
+                    const g = v.group || 'Other';
+                    if (!grouped[g]) grouped[g] = [];
+                    grouped[g].push(v);
+                  });
+
                   return (
-                    <div>
-                      <div className="mb-4 flex items-center gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Manual input required</p>
+                    <div className="space-y-6">
+                      {Object.entries(grouped).map(([groupName, groupVars]) => (
+                        <div key={groupName} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-5">
+                          <div className="mb-5 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                              {groupName === 'Other' ? 'Manual input required' : `Manual input — ${groupName}`}
+                            </p>
+                          </div>
+                          <div className="grid gap-4 lg:grid-cols-2">
+                            {groupVars.map((variable) => {
+                              // Use 'text' even for numbers because HTML 'number' input strictly rejects commas and Nepali digits
+                              const inputType = variable.type === 'date' ? 'date' : 'text';
+                              const derivedValue = runtimeValues[variable.key] || '';
+                              return (
+                                <div key={variable.id} className={variable.type === 'list' ? 'lg:col-span-2' : ''}>
+                                  <FieldLabel>{variable.label}</FieldLabel>
+                                  {variable.type === 'list' ? (
+                                    <textarea
+                                      value={variableValues[variable.id] || derivedValue}
+                                      onChange={(event) =>
+                                        setVariableValues((current) => ({
+                                          ...current,
+                                          [variable.id]: event.target.value,
+                                        }))
+                                      }
+                                      placeholder={`Enter ${variable.key}`}
+                                      className="min-h-28 w-full rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-500 outline-none transition-shadow focus:border-slate-500 focus:ring-2 focus:ring-slate-700"
+                                    />
+                                  ) : (
+                                    <Input
+                                      type={inputType}
+                                      value={variableValues[variable.id] || derivedValue}
+                                      onChange={(event) =>
+                                        setVariableValues((current) => ({
+                                          ...current,
+                                          [variable.id]: event.target.value,
+                                        }))
+                                      }
+                                      placeholder={`Enter ${variable.key}`}
+                                      className="border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-500"
+                                    />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* ── Auto-mapped (read-only) ── */}
+                {(() => {
+                  const autoVars = variables.filter((v) => isRuntimeCompanyVariableKey(v.key) || baseRuntimeValues[v.key] !== undefined || !!v.formula);
+                  if (autoVars.length === 0) return null;
+
+                  const formulaVars = autoVars.filter(v => !!v.formula);
+                  const standardAutoVars = autoVars.filter(v => !v.formula);
+
+                  const renderAutoGroup = (groupTitle: string, groupVars: Variable[]) => {
+                    if (groupVars.length === 0) return null;
+                    return (
+                      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-5">
+                        <div className="mb-5 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                          <Lock className="h-3.5 w-3.5 text-slate-500" />
+                          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">{groupTitle} — read only</p>
+                        </div>
+                        <div className="grid gap-4 lg:grid-cols-2">
+                          {groupVars.map((variable) => {
+                            const derivedValue = runtimeValues[variable.key] || '';
+                            const isEmpty = !derivedValue;
+                            const isMultiLine = variable.type === 'list' && derivedValue.includes('\n');
+                            return (
+                              <div key={variable.id} className={isMultiLine ? 'lg:col-span-2' : ''}>
+                                <div className="mb-1.5 flex items-center justify-between gap-2">
+                                  <label className="text-sm font-medium font-mono text-slate-700 dark:text-slate-300">{`[${variable.key}]`}</label>
+                                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                                    <Lock className="h-2.5 w-2.5" />
+                                    auto
+                                  </span>
+                                </div>
+                                {isMultiLine ? (
+                                  <pre className="min-h-20 w-full whitespace-pre-wrap rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-950/40 px-4 py-3 font-mono text-sm text-slate-700 dark:text-slate-300 select-all">
+                                    {derivedValue}
+                                  </pre>
+                                ) : (
+                                  <div className={`flex items-center rounded-xl border px-3 py-2.5 font-mono text-sm ${isEmpty
+                                    ? 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/20 text-slate-600'
+                                    : 'border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-950/40 text-slate-700 dark:text-slate-300'
+                                    }`}>
+                                    {isEmpty ? <span className="italic">not set yet</span> : derivedValue}
+                                  </div>
+                                )}
+                                {variable.formula && (
+                                  <p className="mt-1.5 text-[11px] font-medium text-amber-600/80 dark:text-amber-500/80">
+                                    ⚡ Formula: <code className="font-mono bg-amber-50 dark:bg-amber-950/30 px-1 py-0.5 rounded text-[10px]">{variable.formula}</code>
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="grid gap-4 lg:grid-cols-2">
-                        {manualVars.map((variable) => {
-                          // Use 'text' even for numbers because HTML 'number' input strictly rejects commas and Nepali digits
-                          const inputType = variable.type === 'date' ? 'date' : 'text';
-                          const derivedValue = runtimeValues[variable.key] || '';
-                          return (
-                            <div key={variable.id} className={variable.type === 'list' ? 'lg:col-span-2' : ''}>
-                              <FieldLabel>{variable.label}</FieldLabel>
-                              {variable.type === 'list' ? (
-                                <textarea
-                                  value={variableValues[variable.id] || derivedValue}
-                                  onChange={(event) =>
-                                    setVariableValues((current) => ({
-                                      ...current,
-                                      [variable.id]: event.target.value,
-                                    }))
-                                  }
-                                  placeholder={`Enter ${variable.key}`}
-                                  className="min-h-28 w-full rounded-2xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-white placeholder:text-slate-500 outline-none transition-shadow focus:border-slate-500 focus:ring-2 focus:ring-slate-700"
-                                />
-                              ) : (
-                                <Input
-                                  type={inputType}
-                                  value={variableValues[variable.id] || derivedValue}
-                                  onChange={(event) =>
-                                    setVariableValues((current) => ({
-                                      ...current,
-                                      [variable.id]: event.target.value,
-                                    }))
-                                  }
-                                  placeholder={`Enter ${variable.key}`}
-                                  className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
+                    );
+                  };
+
+                  return (
+                    <div className="space-y-6 mt-6 pt-6 border-t border-slate-200 dark:border-slate-800/60">
+                      {renderAutoGroup("Auto-mapped", standardAutoVars)}
+                      {renderAutoGroup("Formula", formulaVars)}
                     </div>
                   );
                 })()}
               </div>
             ) : (
-              <p className="text-sm text-slate-400">No variables configured yet.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">No variables configured yet.</p>
             )}
           </SectionCard>
         </div>
 
         <aside className="sticky top-6 self-start">
-          <div className="rounded-3xl border border-slate-800 bg-slate-950 p-6 text-white shadow-2xl shadow-black/40">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Live summary</p>
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-6 text-slate-900 dark:text-white shadow-2xl shadow-black/40">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Live summary</p>
             <h3 className="mt-2 text-2xl font-semibold">Ready to generate</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
+            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
               Keep the form sections separated so each document part can be scanned quickly before saving.
             </p>
 
             <div className="mt-6 space-y-3 text-sm">
               <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
-                <span className="text-slate-400">Company name</span>
-                <span className="font-medium text-white">{formData.englishName || 'Not set'}</span>
+                <span className="text-slate-500 dark:text-slate-400">Company name</span>
+                <span className="font-medium text-slate-900 dark:text-white">{formData.englishName || 'Not set'}</span>
               </div>
               <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
-                <span className="text-slate-400">Owners</span>
-                <span className="font-medium text-white">{owners.length}</span>
+                <span className="text-slate-500 dark:text-slate-400">Owners</span>
+                <span className="font-medium text-slate-900 dark:text-white">{owners.length}</span>
               </div>
               <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
-                <span className="text-slate-400">Witnesses</span>
-                <span className="font-medium text-white">{witnesses.length}</span>
+                <span className="text-slate-500 dark:text-slate-400">Witnesses</span>
+                <span className="font-medium text-slate-900 dark:text-white">{witnesses.length}</span>
               </div>
               <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
-                <span className="text-slate-400">Selected objectives</span>
-                <span className="font-medium text-white">{selectedObjectives.length}</span>
+                <span className="text-slate-500 dark:text-slate-400">Selected objectives</span>
+                <span className="font-medium text-slate-900 dark:text-white">{selectedObjectives.length}</span>
               </div>
               <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
-                <span className="text-slate-400">Variable fields</span>
-                <span className="font-medium text-white">{totalVariableFields}</span>
+                <span className="text-slate-500 dark:text-slate-400">Variable fields</span>
+                <span className="font-medium text-slate-900 dark:text-white">{totalVariableFields}</span>
               </div>
             </div>
 
@@ -951,7 +974,7 @@ export function CompanyForm({
                 {company ? 'Update Company' : 'Create Company'}
               </Button>
               <Link href="/companies">
-                <Button variant="outline" className="h-12 w-full border-slate-700 bg-transparent text-white hover:bg-white/10">
+                <Button variant="outline" className="h-12 w-full border-slate-300 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white hover:bg-white/10">
                   Cancel
                 </Button>
               </Link>
