@@ -20,6 +20,29 @@ const renderNode = (
   if (node.type === "text") {
     let textElement: React.ReactNode = node.text
 
+    if (typeof node.text === "string") {
+      const urlRegex = /(https?:\/\/[^\s]+)/g
+      const parts = node.text.split(urlRegex)
+      if (parts.length > 1) {
+        textElement = parts.map((part: string, i: number) => {
+          if (part.match(/^https?:\/\//)) {
+            return (
+              <a 
+                key={`link-${index}-${i}`} 
+                href={part} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline break-all"
+              >
+                {part}
+              </a>
+            )
+          }
+          return part
+        })
+      }
+    }
+
     if (node.marks) {
       node.marks.forEach((mark: any) => {
         if (mark.type === "bold") {
@@ -30,6 +53,18 @@ const renderNode = (
           textElement = <s key={`strike-${index}`}>{textElement}</s>
         } else if (mark.type === "code") {
           textElement = <code key={`code-${index}`} className="bg-muted text-primary px-1 py-0.5 rounded text-xs">{textElement}</code>
+        } else if (mark.type === "link") {
+          textElement = (
+            <a 
+              key={`mark-link-${index}`} 
+              href={mark.attrs?.href} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary hover:underline break-all"
+            >
+              {textElement}
+            </a>
+          )
         }
       })
     }
@@ -50,6 +85,7 @@ const renderNode = (
             key={index}
             href={`/chat/group-${mentionInfo.handle}`}
             title={`Group @${mentionInfo.handle} • ${memberText}`}
+            target="_blank"
             className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 font-semibold text-xs border border-amber-500/30 transition-all cursor-pointer shadow-sm no-underline"
           >
             <Users className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -61,6 +97,7 @@ const renderNode = (
           <Link
             key={index}
             href={`/dm/${mentionInfo.username}`}
+            target="_blank"
             className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-primary/20 text-primary hover:bg-primary/30 font-semibold text-xs border border-primary/30 transition-all cursor-pointer shadow-sm no-underline"
           >
             <span>@{node.attrs?.label}</span>
@@ -94,6 +131,7 @@ const renderNode = (
         key={index}
         href={`/companies/${companyId}/view`}
         title={`Company #${node.attrs?.label}`}
+        target="_blank"
         className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 font-semibold text-xs border border-emerald-500/30 transition-all cursor-pointer shadow-sm no-underline"
       >
         <Building className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
